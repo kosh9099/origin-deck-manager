@@ -1,7 +1,7 @@
 import { Sailor } from '@/types';
 
 /**
- * 항해사의 데이터에서 스킬 레벨을 정밀 추출합니다.
+ * 항해사의 데이터에서 스킬 레벨을 정밀 추출합니다. (지휘관님 작성 로직 유지)
  */
 export function getSailorSkillLevel(sailor: Sailor, skillName: string): number {
   if (!sailor) return 0;
@@ -46,4 +46,10 @@ export function getTradeStatSum(sailor: Sailor): number {
   if (!sailor) return 0;
   // DB 컬럼명 박물, 보급, 백병 반영
   return (Number(sailor.박물) || 0) + (Number(sailor.보급) || 0) + (Number(sailor.백병) || 0);
+}
+
+// ▼▼▼ [추가] 빌드 에러 해결을 위해 이 함수만 추가했습니다 ▼▼▼
+export function hasAnyTargetSkill(sailor: Sailor, skills: string[]): boolean {
+  // 지휘관님의 정밀 추출 로직(getSailorSkillLevel)을 사용하여 검사합니다.
+  return skills.some(sk => getSailorSkillLevel(sailor, sk) > 0);
 }
