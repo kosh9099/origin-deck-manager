@@ -9,19 +9,25 @@ export interface Sailor {
   등급: SailorGrade;
   타입: SailorType;
   직업: string;
-  // [중요] DB에서 스킬 점수가 컬럼으로 바로 들어올 때를 대비한 만능 키
-  // 이게 있어야 "Sailor 형식에 '투쟁적인 탐험가'가 없습니다" 같은 에러가 안 납니다.
-  [key: string]: any; 
+  [key: string]: any; // 스킬 점수용 만능 키
 }
 
-// 3. 함선 설정 구조
+// 3. 함선 설정 구조 (입력값)
 export interface ShipConfig {
   id: number;
   총선실: number;
   전투선실: number;
 }
 
-// 4. 고든님이 주신 27개 핵심 탐험 스킬 리스트
+// 4. [추가] 함선 배치 결과 구조 (이게 없어서 에러남!)
+export interface Ship {
+  id: number;
+  admiral?: Sailor | null; // 선장
+  adventure: Sailor[];     // 모험 선실원들
+  combat: Sailor[];        // 전투 선실원들
+}
+
+// 5. 탐험 스킬 데이터
 export const EXPLORATION_STATS = {
   '전리품': [
     { name: '투쟁적인 탐험가', max: 10 },
@@ -60,7 +66,7 @@ export const EXPLORATION_STATS = {
   ]
 };
 
-// 5. [추가] 자동 충원 옵션 (이게 없어서 에러가 났었습니다!)
+// 6. 최적화 옵션
 export interface OptimizerOptions {
   includeBoarding: boolean;
   includeSpecialForces: boolean;
