@@ -1,6 +1,5 @@
-import { Sailor, ShipConfig, OptimizerOptions, Ship } from '@/types'; // [수정] Ship 타입 추가
+import { Sailor, ShipConfig, OptimizerOptions, Ship } from '@/types';
 import { filterSailors } from './filters';
-// initFleet 제거 (직접 생성함)
 import { fillFleetSlots } from './placement';
 import { getSailorSkillLevel, getTradeStatSum } from './scoring';
 import { ADMIRAL_GRADE, GRADE_RANK, MAX_SKILL_LEVELS } from './rules';
@@ -14,23 +13,19 @@ export function generateOptimizedFleet(
   targetLevels: Record<string, number>,
   options: OptimizerOptions
 ) {
-  // 1. 금지 항해사 필터링
   const { all } = filterSailors(sailors, bannedIds);
   const usedIds = new Set<number>();
   
   const currentLevels: Record<string, number> = {};
   Object.keys(MAX_SKILL_LEVELS).forEach(sk => currentLevels[sk] = 0);
 
-  // [핵심 수정] initFleet 함수 대신 여기서 직접 ID를 포함하여 생성
-  // 이 부분이 없어서 아까 'id is missing' 에러가 났던 것입니다.
   const ships: Ship[] = fleetConfig.map(config => ({
-    id: config.id,           // [중요] ID 명시
+    id: config.id,
     admiral: null,
     adventure: [],
     combat: []
   }));
 
-  // 2. 제독 강제 배치
   const mainAdmiral = all.find(s => s.id === selectedAdmiralId);
   if (mainAdmiral && ships[0]) {
     ships[0].admiral = mainAdmiral;
@@ -40,18 +35,20 @@ export function generateOptimizedFleet(
     });
   }
 
-  /**
-   * [배치 우선순위 계산] - 지휘관님 로직 100% 유지
-   */
   const getPriority = (s: Sailor, isCombatSlot: boolean) => {
     const isEssential = essentialIds.has(s.id);
+    
+    // [데이터 방어] 공백 제거 및 undefined 방지
+    const sType = (s.타입 || '').trim();
+    const sJob = (s.직업 || '').trim();
+    const sGrade = (s.등급 || '').trim();
 
-    // A. [절대 규칙] 타입 제한
-    if (isCombatSlot && s.타입 !== '전투') return -1;
-    if (!isCombatSlot && s.타입 === '전투') return -1;
+    // A. 타입 제한 (전투 슬롯엔 전투만, 일반 슬롯엔 모험/교역만)
+    if (isCombatSlot && sType !== '전투') return -1;
+    if (!isCombatSlot && sType === '전투') return -1;
 
-    // 교역 옵션 체크 (필수면 통과)
-    if (!isCombatSlot && s.타입 === '교역' && !options.includeTrade && !isEssential) {
+    // 교역 옵션 체크
+    if (!isCombatSlot && sType === '교역' && !options.includeTrade && !isEssential) {
         return -1;
     }
 
@@ -63,56 +60,58 @@ export function generateOptimizedFleet(
 
       const maxCap = MAX_SKILL_LEVELS[sk] || 10; 
       const current = currentLevels[sk] || 0;
-
-      if (current >= maxCap) return; // 만렙이면 점수 X
+      if (current >= maxCap) return;
 
       const target = targetLevels[sk] || 0;
       const needed = maxCap - current;
       const effectiveLv = Math.min(lv, needed);
 
       if (effectiveLv > 0) {
-        const weight = target > 0 ? (50000 * target) : 10; 
+        // 목표가 설정된 스킬에 엄청난 가중치를 부여합니다.
+        const weight = target > 0 ? (100000 * target) : 1; 
         skillScore += effectiveLv * weight;
       }
     });
 
-    // 필수 항해사 VIP 프리패스
     if (isEssential) {
-        return 10000000000 + skillScore + (GRADE_RANK[s.등급] || 0);
+        return 10000000000 + skillScore + (GRADE_RANK[sGrade] || 0);
     }
 
-    // --- 이하 일반 항해사 로직 ---
-
-    const isBoarder = s.직업 === "백병대";
-    const isSpec = s.직업 === "특공대";
+    const isBoarder = sJob === "백병대";
+    const isSpec = sJob === "특공대";
     const hasSk = skillScore > 0;
 
-    // C. [전투 선실]
+    // C. 전투 선실 배치 로직
     if (isCombatSlot) {
-      if (s.등급 === ADMIRAL_GRADE && hasSk) return 1000000000 + skillScore; 
+      if (sGrade === ADMIRAL_GRADE && hasSk) return 1000000000 + skillScore; 
       if (isBoarder && hasSk) return 900000000 + skillScore;
       if (isSpec && hasSk) return 800000000 + skillScore;
       
-      if (options.includeBoarding && isBoarder) return 2000000 + GRADE_RANK[s.등급];
-      if (options.includeSpecialForces && isSpec) return 1000000 + GRADE_RANK[s.등급];
+      if (options.includeBoarding && isBoarder) return 2000000 + (GRADE_RANK[sGrade] || 0);
+      if (options.includeSpecialForces && isSpec) return 1000000 + (GRADE_RANK[sGrade] || 0);
 
+      // 아무 조건도 만족 못하면 전투 선실에서 탈락
       return -1;
     } 
     
-    // D. [일반 선실]
+    // D. 일반 선실 배치 로직
     else {
-      const isAdv = s.타입 === '모험';
-      const isTrade = s.타입 === '교역';
+      const isAdv = sType === '모험';
+      const isTrade = sType === '교역';
 
+      // 스킬이 있으면 최우선 배치
       if (isAdv && hasSk) return 900000000 + skillScore;
       if (options.includeTrade && isTrade && hasSk) return 800000000 + skillScore;
       
-      return 100 + getTradeStatSum(s) / 1000;
+      // 스킬이 없더라도 빈자리를 채우기 위해 기본 점수 부여 (탈락 방지)
+      return 100 + (getTradeStatSum(s) / 1000) + (GRADE_RANK[sGrade] || 0);
     }
   };
 
-  // 3. 엔진 가동
   fillFleetSlots(ships, all, usedIds, currentLevels, getPriority);
+
+  // [디버그] 배치가 끝난 후 결과를 콘솔에 출력
+  console.log("배치 완료된 함대 상황:", ships);
 
   return { ships };
 }
