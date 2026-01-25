@@ -1,4 +1,6 @@
-import { getTradeStatSum } from '../scoring';
+import { Sailor } from '@/types';
+import { GRADE_RANK } from '../rules';
+import { hasAnyTargetSkill, getTradeStatSum } from '../scoring';
 
 export const getTradeAdvPriority = (s: Sailor, activeSkills: string[]) => {
   const hasSk = hasAnyTargetSkill(s, activeSkills);

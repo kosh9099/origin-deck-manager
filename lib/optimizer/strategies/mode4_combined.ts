@@ -1,3 +1,6 @@
+import { Sailor } from '@/types';
+import { hasAnyTargetSkill } from '../scoring';
+
 export const getCombinedCombatPriority = (s: Sailor, activeSkills: string[]) => {
   if (s.타입 !== '전투') return -1;
   const isAdm = s.등급 === "S+";

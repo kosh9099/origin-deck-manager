@@ -1,3 +1,7 @@
+import { Sailor } from '@/types';
+import { GRADE_RANK } from '../rules';
+import { hasAnyTargetSkill } from '../scoring';
+
 export const getSpecialCombatPriority = (s: Sailor, activeSkills: string[]) => {
   if (s.타입 !== '전투') return -1;
   const hasSk = hasAnyTargetSkill(s, activeSkills);
