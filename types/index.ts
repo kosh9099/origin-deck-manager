@@ -1,5 +1,3 @@
-// types/index.ts
-
 // 1. 등급 및 타입 정의
 export type SailorGrade = 'S+' | 'S' | 'A' | 'B' | 'C';
 export type SailorType = '전투' | '모험' | '교역';
@@ -11,7 +9,9 @@ export interface Sailor {
   등급: SailorGrade;
   타입: SailorType;
   직업: string;
-  스킬: { [key: string]: number }; // 여기에 27개 스킬 데이터가 들어감
+  // [중요] DB에서 스킬 점수가 컬럼으로 바로 들어올 때를 대비한 만능 키
+  // 이게 있어야 "Sailor 형식에 '투쟁적인 탐험가'가 없습니다" 같은 에러가 안 납니다.
+  [key: string]: any; 
 }
 
 // 3. 함선 설정 구조
@@ -21,7 +21,7 @@ export interface ShipConfig {
   전투선실: number;
 }
 
-// 4. 고든님이 주신 27개 핵심 탐험 스킬 리스트 (여기로 교체!)
+// 4. 고든님이 주신 27개 핵심 탐험 스킬 리스트
 export const EXPLORATION_STATS = {
   '전리품': [
     { name: '투쟁적인 탐험가', max: 10 },
@@ -59,3 +59,10 @@ export const EXPLORATION_STATS = {
     { name: '탐사의 기본', max: 10 },
   ]
 };
+
+// 5. [추가] 자동 충원 옵션 (이게 없어서 에러가 났었습니다!)
+export interface OptimizerOptions {
+  includeBoarding: boolean;
+  includeSpecialForces: boolean;
+  includeTrade: boolean;
+}
