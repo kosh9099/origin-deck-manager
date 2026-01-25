@@ -1,0 +1,1 @@
+// mode4의 Combat 로직 + mode5의 Adventure 로직을 호출하여 사용
