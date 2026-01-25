@@ -1,6 +1,6 @@
-import { Sailor, ShipConfig, OptimizerOptions } from '@/types';
+import { Sailor, ShipConfig, OptimizerOptions, Ship } from '@/types'; // [수정] Ship 타입 추가
 import { filterSailors } from './filters';
-import { initFleet } from './strategies/base';
+// initFleet 제거 (직접 생성함)
 import { fillFleetSlots } from './placement';
 import { getSailorSkillLevel, getTradeStatSum } from './scoring';
 import { ADMIRAL_GRADE, GRADE_RANK, MAX_SKILL_LEVELS } from './rules';
@@ -14,18 +14,25 @@ export function generateOptimizedFleet(
   targetLevels: Record<string, number>,
   options: OptimizerOptions
 ) {
-  // 1. 금지 항해사 필터링 (필수 항해사는 filters.ts에서 걸러지지 않으므로 여기서 처리됨)
+  // 1. 금지 항해사 필터링
   const { all } = filterSailors(sailors, bannedIds);
   const usedIds = new Set<number>();
   
   const currentLevels: Record<string, number> = {};
   Object.keys(MAX_SKILL_LEVELS).forEach(sk => currentLevels[sk] = 0);
 
-  const ships = fleetConfig.map((_, i) => initFleet(fleetConfig, i));
+  // [핵심 수정] initFleet 함수 대신 여기서 직접 ID를 포함하여 생성
+  // 이 부분이 없어서 아까 'id is missing' 에러가 났던 것입니다.
+  const ships: Ship[] = fleetConfig.map(config => ({
+    id: config.id,           // [중요] ID 명시
+    admiral: null,
+    adventure: [],
+    combat: []
+  }));
 
   // 2. 제독 강제 배치
   const mainAdmiral = all.find(s => s.id === selectedAdmiralId);
-  if (mainAdmiral) {
+  if (mainAdmiral && ships[0]) {
     ships[0].admiral = mainAdmiral;
     usedIds.add(mainAdmiral.id);
     Object.keys(MAX_SKILL_LEVELS).forEach(sk => {
@@ -34,17 +41,16 @@ export function generateOptimizedFleet(
   }
 
   /**
-   * [배치 우선순위 계산]
+   * [배치 우선순위 계산] - 지휘관님 로직 100% 유지
    */
   const getPriority = (s: Sailor, isCombatSlot: boolean) => {
     const isEssential = essentialIds.has(s.id);
 
     // A. [절대 규칙] 타입 제한
-    // 전투 슬롯엔 전투만, 일반 슬롯엔 전투 금지 (이건 필수여도 지켜야 함)
     if (isCombatSlot && s.타입 !== '전투') return -1;
     if (!isCombatSlot && s.타입 === '전투') return -1;
 
-    // [수정 1] 교역 옵션이 꺼져 있어도, '필수 항해사'라면 예외적으로 허용
+    // 교역 옵션 체크 (필수면 통과)
     if (!isCombatSlot && s.타입 === '교역' && !options.includeTrade && !isEssential) {
         return -1;
     }
@@ -65,16 +71,13 @@ export function generateOptimizedFleet(
       const effectiveLv = Math.min(lv, needed);
 
       if (effectiveLv > 0) {
-        // 목표가 높을수록 가중치 (최대 50만점)
         const weight = target > 0 ? (50000 * target) : 10; 
         skillScore += effectiveLv * weight;
       }
     });
 
-    // [수정 2] 필수 항해사 VIP 프리패스 (가장 중요!)
-    // 스킬 점수가 0점이어도, 백병대가 아니어도 무조건 채용되도록 100억 점 부여
+    // 필수 항해사 VIP 프리패스
     if (isEssential) {
-        // 100억 점 + 스킬 점수 (같은 필수끼리 경쟁 시 스킬 좋은 쪽 우대)
         return 10000000000 + skillScore + (GRADE_RANK[s.등급] || 0);
     }
 
