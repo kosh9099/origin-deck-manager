@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   BarChart, Sword, Eye, Sprout, 
-  Gem, Skull, PawPrint 
+  Skull, PawPrint 
 } from 'lucide-react';
 import { SkillStat } from '@/lib/optimizer/data/skillStats';
 
@@ -10,13 +10,13 @@ interface Props {
 }
 
 export default function StatSummaryCard({ stats }: Props) {
+  // 전리품 획득(Gem) 아이콘과 항목을 제거하고, 해적/맹수 전투의 % 단위를 삭제했습니다.
   const statItems = [
     { label: '탐험 전투력', value: stats.combat, icon: Sword, color: 'text-red-400', bg: 'bg-red-500/10' },
     { label: '탐험 관찰력', value: stats.observation, icon: Eye, color: 'text-blue-400', bg: 'bg-blue-500/10' },
     { label: '탐험 채집력', value: stats.gathering, icon: Sprout, color: 'text-green-400', bg: 'bg-green-500/10' },
-    { label: '전리품 획득', value: `${(stats.loot * 100).toFixed(1)}%`, icon: Gem, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-    { label: '해적 전투', value: `${stats.pirate}%`, icon: Skull, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-    { label: '맹수 전투', value: `${stats.beast}%`, icon: PawPrint, color: 'text-orange-400', bg: 'bg-orange-500/10' },
+    { label: '해적 전투', value: stats.pirate, icon: Skull, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+    { label: '맹수 전투', value: stats.beast, icon: PawPrint, color: 'text-orange-400', bg: 'bg-orange-500/10' },
   ];
 
   return (
