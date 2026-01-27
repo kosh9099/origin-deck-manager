@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { Sailor, OptimizerOptions } from '@/types';
 import CrewSearch from './CrewSearch';
 import StatusLists from './StatusLists';
-import { UserCheck, Swords, Crosshair, Anchor, Zap } from 'lucide-react'; // Zap 아이콘 추가
+import { UserCheck, Swords, Crosshair, Anchor, Zap, Package } from 'lucide-react'; // Package 아이콘 추가
 
 interface Props {
   sailors: Sailor[];
@@ -78,9 +78,8 @@ export default function CrewManager({
 
       <div className="bg-slate-900/90 rounded-b-xl p-4 border border-white/5 backdrop-blur-md space-y-5">
         
-        {/* 1. 자동 충원 옵션 (가시성 UP) */}
+        {/* 1. 자동 충원 옵션 */}
         <div className="space-y-2">
-          {/* [변경] 텍스트 가시성 강화: 밝은 배경 박스 + 아이콘 */}
           <h3 className="text-[11px] font-black text-blue-100 uppercase tracking-widest flex items-center gap-1.5 bg-blue-500/20 px-2 py-1.5 rounded border-l-2 border-blue-400">
             <Zap size={12} className="text-blue-300" />
             자동 충원 옵션
@@ -140,6 +139,25 @@ export default function CrewManager({
               </div>
               <div className={`w-3 h-3 rounded-full transition-colors ${options.includeTrade ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" : "bg-slate-600"}`} />
             </div>
+
+            {/* [신규] 보급/직업 우선 */}
+            <div 
+              onClick={() => toggleOption('prioritizeSupply')}
+              className={`flex items-center justify-between p-2 rounded-lg cursor-pointer border transition-all ${
+                options.prioritizeSupply 
+                  ? 'bg-indigo-500/20 border-indigo-500/50' 
+                  : 'bg-slate-800 border-white/5 hover:bg-slate-700/50'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Package size={14} className={options.prioritizeSupply ? "text-indigo-400" : "text-slate-500"} />
+                <span className={`text-xs font-bold ${options.prioritizeSupply ? "text-indigo-100" : "text-slate-400"}`}>
+                  보급/직업 우선 (Sort by Supply)
+                </span>
+              </div>
+              <div className={`w-3 h-3 rounded-full transition-colors ${options.prioritizeSupply ? "bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]" : "bg-slate-600"}`} />
+            </div>
+
           </div>
         </div>
 

@@ -47,48 +47,44 @@ export function getSupplyStat(sailor: Sailor): number {
   return Number(sailor.보급) || 0;
 }
 
-/**
- * [복구] 교역 스탯 합계 (기존 전략 파일 호환용)
- * 박물 + 보급 + 백병
- */
+// 빌드 에러 방지용 복구
 export function getTradeStatSum(sailor: Sailor): number {
   if (!sailor) return 0;
   return (Number(sailor.박물) || 0) + (Number(sailor.보급) || 0) + (Number(sailor.백병) || 0);
 }
 
 /**
- * [수정] 일반 선실 기본 점수 (스킬 기여도가 같을 때 or 빈자리 채울 때)
- * 지휘관님 서열 정의:
- * 1. 모험 타입 제독 (S+)
- * 2. 높은 등급 (S > A > B...)
- * 3. 높은 보급 스탯
- * 4. 직업 (보급장 > 위생사 > 상담사 > 기타)
+ * [수정] 기본 점수 (Rank 5: 빈 선실 채우기용)
+ * * 옵션 OFF (기본): "보급 스탯이 높은 제독 또는 항해사"
+ * 옵션 ON (보급/직업 우선): "제독 > 보급장 > 위생사 > 상담사 > 기타 직업"
  */
-export function getBaseScore(sailor: Sailor): number {
-  const grade = (sailor.등급 || '').trim();
-  const type = (sailor.타입 || '').trim();
-  const job = (sailor.직업 || '').trim();
+export function getBaseScore(sailor: Sailor, prioritizeJob: boolean): number {
   const supply = getSupplyStat(sailor);
 
-  // 1순위: 모험 타입 S+ 제독 (9억 점 + @)
-  if (grade === 'S+' && type === '모험') {
-    return 900_000_000 + supply; 
+  // [Case 1] 옵션 OFF: 보급 스탯 올인
+  if (!prioritizeJob) {
+    return supply;
   }
 
-  // 2순위: 등급 점수 (천만 단위)
-  const gradeScore = (GRADE_RANK[grade] || 0) * 1_000_000;
-  
-  // 3순위: 보급 점수 (십의 자리 이상 사용)
-  const supplyScore = supply * 10;
+  // [Case 2] 옵션 ON: 직업 서열 중심 (보급은 동점자 처리용)
+  // 점수 단위: 1억 단위로 직업 서열 구분
+  const grade = (sailor.등급 || '').trim();
+  const job = (sailor.직업 || '').trim();
 
-  // 4순위: 직업 점수 (일의 자리 사용)
-  let jobScore = 0;
-  if (job === '보급장') jobScore = 3;
-  else if (job === '위생사') jobScore = 2;
-  else if (job === '상담사') jobScore = 1;
+  // 1. 제독 (S+)
+  if (grade === 'S+') return 1_000_000_000 + supply;
 
-  // 최종 점수 합산
-  return gradeScore + supplyScore + jobScore;
+  // 2. 보급장
+  if (job === '보급장') return 800_000_000 + supply;
+
+  // 3. 위생사
+  if (job === '위생사') return 600_000_000 + supply;
+
+  // 4. 상담사
+  if (job === '상담사') return 400_000_000 + supply;
+
+  // 5. 기타 직업 (보급 스탯만 반영)
+  return 200_000_000 + supply;
 }
 
 // 빌드 에러 방지용

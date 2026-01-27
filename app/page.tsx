@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Sailor, ShipConfig, OptimizerOptions } from '@/types';
 import { generateOptimizedFleet } from '@/lib/optimizer';
-import { RefreshCw, Play } from 'lucide-react';
+import { Play } from 'lucide-react';
 
 // 컴포넌트 임포트
 import FleetSettings from '@/components/fleet/FleetSettings';
@@ -30,7 +30,8 @@ export default function FleetMasterV2() {
   const [options, setOptions] = useState<OptimizerOptions>({
     includeBoarding: false,
     includeSpecialForces: false,
-    includeTrade: false
+    includeTrade: false,
+    prioritizeSupply: false // [신규] 기본값 OFF
   });
 
   // 스킬 및 결과 상태
@@ -64,7 +65,6 @@ export default function FleetMasterV2() {
       return;
     }
 
-    // [수정] try-catch 문으로 감싸서 에러(스킬 미설정 등)를 잡아냅니다.
     try {
       const res = generateOptimizedFleet(
         sailors,
@@ -77,7 +77,6 @@ export default function FleetMasterV2() {
       );
       setResult(res);
     } catch (error: any) {
-      // 에러 메시지("스킬을 설정해주세요.")를 알림창으로 표시
       alert(error.message);
     }
   };
@@ -100,7 +99,6 @@ export default function FleetMasterV2() {
         );
         setResult(res);
       } catch (error: any) {
-        // 백그라운드 재계산 중 에러는 조용히 콘솔에만 남기거나 무시
         console.warn("옵션 반영 실패:", error.message);
       }
     }

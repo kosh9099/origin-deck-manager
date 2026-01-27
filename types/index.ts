@@ -1,74 +1,84 @@
-// 1. 등급 및 타입 정의
-export type SailorGrade = 'S+' | 'S' | 'A' | 'B' | 'C';
-export type SailorType = '전투' | '모험' | '교역';
-
-// 2. 항해사 데이터 구조
 export interface Sailor {
   id: number;
   이름: string;
-  등급: SailorGrade;
-  타입: SailorType;
+  등급: string;
+  타입: string;
   직업: string;
-  [key: string]: any; // 스킬 점수용 만능 키
+  무기: string;
+  통솔: string; // CSV에서 숫자가 문자열로 들어올 수 있음
+  포격: string;
+  충파: string;
+  지원: string;
+  백병: string;
+  박물: string;
+  심미: string;
+  척후: string;
+  보급: string;
+  구매: string;
+  판매: string;
+  협상: string;
+  교환: string;
+  [key: string]: any; // 스킬 컬럼 등 동적 접근 허용
 }
 
-// 3. 함선 설정 구조 (입력값)
 export interface ShipConfig {
   id: number;
   총선실: number;
   전투선실: number;
 }
 
-// 4. [추가] 함선 배치 결과 구조 (이게 없어서 에러남!)
+export interface OptimizerOptions {
+  includeBoarding: boolean;      // 백병대 추가
+  includeSpecialForces: boolean; // 특공대 추가
+  includeTrade: boolean;         // 교역 항해사 허용
+  prioritizeSupply: boolean;     // [신규] 보급/직업 우선 고려
+}
+
 export interface Ship {
   id: number;
-  admiral?: Sailor | null; // 선장
-  adventure: Sailor[];     // 모험 선실원들
-  combat: Sailor[];        // 전투 선실원들
+  admiral: Sailor | null;
+  adventure: (Sailor | null)[];
+  combat: (Sailor | null)[];
 }
 
-// 5. 탐험 스킬 데이터
 export const EXPLORATION_STATS = {
-  '전리품': [
-    { name: '투쟁적인 탐험가', max: 10 },
-    { name: '호전적인 탐험가', max: 10 },
-    { name: '꼼꼼한 탐험가', max: 10 },
-    { name: '주의깊은 탐험가', max: 10 },
-    { name: '성실한 탐험가', max: 10 },
-    { name: '부지런한 탐험가', max: 10 },
+  '탐험': [
+    { name: '투쟁적인 탐험가', stat: 'combat' },
+    { name: '호전적인 탐험가', stat: 'combat' },
+    { name: '부지런한 탐험가', stat: 'observation' },
+    { name: '야심찬 탐험가', stat: 'observation' },
+    { name: '호기심 많은 탐험가', stat: 'gathering' },
+    { name: '유능한 탐험가', stat: 'gathering' }
+  ],
+  '협상': [
+    { name: '설득의 달인', stat: 'supply' },
+    { name: '능숙한 협상가', stat: 'supply' },
+    { name: '평화주의자', stat: 'supply' }
   ],
   '전투': [
-    { name: '험지 평정', max: 2 },
-    { name: '전투적인 채집', max: 7 },
-    { name: '전투적인 관찰', max: 8 },
-    { name: '해적 척결', max: 10 },
-    { name: '맹수 척결', max: 10 },
-    { name: '해적 사냥', max: 10 },
-    { name: '맹수 사냥', max: 10 },
+    { name: '해적 척결', stat: 'pirate' },
+    { name: '해적 사냥', stat: 'pirate' },
+    { name: '맹수 척결', stat: 'beast' },
+    { name: '맹수 사냥', stat: 'beast' }
+  ],
+  '항해': [
+    { name: '험지 평정', stat: 'observation' },
+    { name: '험지 돌파', stat: 'observation' },
+    { name: '자연의 친구', stat: 'gathering' },
+    { name: '자연과의 조화', stat: 'gathering' }
   ],
   '관찰': [
-    { name: '관찰 공부', max: 10 },
-    { name: '관측 후 채집', max: 4 },
-    { name: '관측 후 전투', max: 6 },
-    { name: '생물 관찰', max: 7 },
-    { name: '관찰 채집', max: 8 },
-    { name: '험지 관찰', max: 2 },
-    { name: '관찰 심화', max: 8 },
+    { name: '관찰 심화', stat: 'observation' },
+    { name: '관찰 공부', stat: 'observation' },
+    { name: '관찰의 기본', stat: 'observation' }
   ],
   '채집': [
-    { name: '생물 채집', max: 6 },
-    { name: '채집 우선 전투', max: 9 },
-    { name: '채집 우선 관찰', max: 6 },
-    { name: '험지 채집', max: 2 },
-    { name: '채집 심화', max: 5 },
-    { name: '채집 공부', max: 10 },
-    { name: '탐사의 기본', max: 10 },
+    { name: '생물 채집', stat: 'gathering' },
+    { name: '채집 우선 전투', stat: 'combat' },
+    { name: '채집 우선 관찰', stat: 'observation' },
+    { name: '험지 채집', stat: 'observation' },
+    { name: '채집 심화', stat: 'gathering' },
+    { name: '채집 공부', stat: 'gathering' },
+    { name: '탐사의 기본', stat: 'gathering' }
   ]
-};
-
-// 6. 최적화 옵션
-export interface OptimizerOptions {
-  includeBoarding: boolean;
-  includeSpecialForces: boolean;
-  includeTrade: boolean;
-}
+} as const;
