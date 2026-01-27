@@ -48,6 +48,15 @@ export function getSupplyStat(sailor: Sailor): number {
 }
 
 /**
+ * [복구] 교역 스탯 합계 (기존 전략 파일 호환용)
+ * 박물 + 보급 + 백병
+ */
+export function getTradeStatSum(sailor: Sailor): number {
+  if (!sailor) return 0;
+  return (Number(sailor.박물) || 0) + (Number(sailor.보급) || 0) + (Number(sailor.백병) || 0);
+}
+
+/**
  * [수정] 일반 선실 기본 점수 (스킬 기여도가 같을 때 or 빈자리 채울 때)
  * 지휘관님 서열 정의:
  * 1. 모험 타입 제독 (S+)
@@ -67,11 +76,9 @@ export function getBaseScore(sailor: Sailor): number {
   }
 
   // 2순위: 등급 점수 (천만 단위)
-  // S(50) -> 50,000,000 / A(30) -> 30,000,000
   const gradeScore = (GRADE_RANK[grade] || 0) * 1_000_000;
   
   // 3순위: 보급 점수 (십의 자리 이상 사용)
-  // 보급 20,000 -> 200,000점 (등급 점수 단위를 넘지 않음)
   const supplyScore = supply * 10;
 
   // 4순위: 직업 점수 (일의 자리 사용)
