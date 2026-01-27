@@ -3,8 +3,10 @@
 import React, { useMemo } from 'react';
 import { MAX_SKILL_LEVELS } from '@/lib/optimizer/rules';
 import { getSailorSkillLevel } from '@/lib/optimizer/scoring';
+import { SKILL_STATS, SkillStat } from '@/lib/optimizer/data/skillStats';
 import SkillCategoryCard from './SkillCategoryCard';
-import { BarChart2 } from 'lucide-react'; // 아이콘 추가
+import StatSummaryCard from './StatSummaryCard';
+import { BarChart2 } from 'lucide-react';
 
 interface Props {
   result: any;
@@ -12,35 +14,54 @@ interface Props {
 }
 
 export default function SkillDashboard({ result, targetLevels = {} }: Props) {
-  const skillTotals = useMemo(() => {
+  
+  // [계산] 스킬 레벨 합계 및 능력치 총합 계산
+  const { skillTotals, statSummary } = useMemo(() => {
     const totals: Record<string, number> = {};
+    const stats: SkillStat = { 
+      combat: 0, observation: 0, gathering: 0, 
+      loot: 0, pirate: 0, beast: 0 
+    };
+
+    // 1. 초기화
     Object.keys(MAX_SKILL_LEVELS).forEach(sk => totals[sk] = 0);
 
-    if (!result?.ships) return totals;
+    // 2. 현재 함대 스킬 레벨 합산
+    if (result?.ships) {
+      result.ships.forEach((ship: any) => {
+        const shipCrew = [
+          ship.admiral, 
+          ...(ship.adventure || []), 
+          ...(ship.combat || [])
+        ].filter(Boolean);
 
-    result.ships.forEach((ship: any) => {
-      // ship 객체 내의 모든 인원을 정확히 추출
-      const shipCrew = [
-        ship.admiral, 
-        ...(ship.adventure || []), 
-        ...(ship.combat || [])
-      ].filter(Boolean);
-
-      shipCrew.forEach(sailor => {
-        Object.keys(MAX_SKILL_LEVELS).forEach(sk => {
-          // DB의 실제 레벨을 가져와 합산
-          const lv = getSailorSkillLevel(sailor, sk);
-          totals[sk] += lv;
+        shipCrew.forEach(sailor => {
+          Object.keys(MAX_SKILL_LEVELS).forEach(sk => {
+            const lv = getSailorSkillLevel(sailor, sk);
+            totals[sk] += lv;
+          });
         });
       });
-    });
+    }
 
-    // 지휘관님 규정: 함대 스킬 합계는 10레벨이 최대 (초과분은 낭비)
+    // 3. 10레벨 상한 적용 및 능력치 환산
     Object.keys(totals).forEach(sk => {
+      // 10레벨 초과분은 버림 (지휘관님 규정)
       if (totals[sk] > 10) totals[sk] = 10;
+      
+      const level = totals[sk];
+      if (level > 0 && SKILL_STATS[sk] && SKILL_STATS[sk][level]) {
+        const s = SKILL_STATS[sk][level];
+        stats.combat += s.combat;
+        stats.observation += s.observation;
+        stats.gathering += s.gathering;
+        stats.loot += s.loot;
+        stats.pirate += s.pirate;
+        stats.beast += s.beast;
+      }
     });
 
-    return totals;
+    return { skillTotals: totals, statSummary: stats };
   }, [result]);
 
   const categories = [
@@ -52,7 +73,7 @@ export default function SkillDashboard({ result, targetLevels = {} }: Props) {
 
   return (
     <div className="relative z-0 mt-4">
-      {/* [수정] 배너: 베이지(Beige) 테마, 높이 축소(py-2), 텍스트 변경 */}
+      {/* 배너 */}
       <div className="bg-[#E5D0AC] px-4 py-2 rounded-t-xl border-b-2 border-[#C8B28E] shadow-lg">
         <h2 className="text-[13px] font-black text-[#5D4037] uppercase tracking-widest flex items-center gap-2">
           <BarChart2 size={16} strokeWidth={2.5} />
@@ -60,15 +81,23 @@ export default function SkillDashboard({ result, targetLevels = {} }: Props) {
         </h2>
       </div>
 
-      {/* [수정] 컨텐츠 박스: 분리형 구조 적용 */}
+      {/* 컨텐츠 박스 */}
       <div className="bg-slate-900/90 rounded-b-xl p-3 border border-white/5 backdrop-blur-md shadow-2xl">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        
+        {/* [수정] Grid 레이아웃: 5열 (lg:grid-cols-5) 로 확장 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+          
+          {/* 기존 4개 카테고리 */}
           {categories.map(cat => (
             <SkillCategoryCard 
               key={cat.name} title={cat.name} skills={cat.skills} 
               totals={skillTotals} targets={targetLevels} 
             />
           ))}
+
+          {/* [신규] 5번째 컬럼: 능력치 합계 */}
+          <StatSummaryCard stats={statSummary} />
+
         </div>
       </div>
     </div>

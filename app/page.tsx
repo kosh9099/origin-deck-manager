@@ -63,16 +63,23 @@ export default function FleetMasterV2() {
       alert("선장(제독)을 먼저 선택해야 함대가 출항할 수 있습니다!");
       return;
     }
-    const res = generateOptimizedFleet(
-      sailors,
-      essentialIds,
-      bannedIds,
-      fleetConfig,
-      selectedAdmiral,
-      targetLevels,
-      options
-    );
-    setResult(res);
+
+    // [수정] try-catch 문으로 감싸서 에러(스킬 미설정 등)를 잡아냅니다.
+    try {
+      const res = generateOptimizedFleet(
+        sailors,
+        essentialIds,
+        bannedIds,
+        fleetConfig,
+        selectedAdmiral,
+        targetLevels,
+        options
+      );
+      setResult(res);
+    } catch (error: any) {
+      // 에러 메시지("스킬을 설정해주세요.")를 알림창으로 표시
+      alert(error.message);
+    }
   };
 
   // --- 4. 옵션 변경 시 실시간 반영 핸들러 ---
@@ -81,16 +88,21 @@ export default function FleetMasterV2() {
     
     // 이미 덱이 생성되어 있다면, 옵션 변경 즉시 재계산
     if (result && selectedAdmiral) {
+      try {
         const res = generateOptimizedFleet(
-            sailors,
-            essentialIds,
-            bannedIds,
-            fleetConfig,
-            selectedAdmiral,
-            targetLevels,
-            newOpts // 변경된 옵션 적용
+          sailors,
+          essentialIds,
+          bannedIds,
+          fleetConfig,
+          selectedAdmiral,
+          targetLevels,
+          newOpts // 변경된 옵션 적용
         );
         setResult(res);
+      } catch (error: any) {
+        // 백그라운드 재계산 중 에러는 조용히 콘솔에만 남기거나 무시
+        console.warn("옵션 반영 실패:", error.message);
+      }
     }
   };
 
@@ -102,7 +114,7 @@ export default function FleetMasterV2() {
     
     const nextEssential = new Set(essentialIds);
     if (nextEssential.has(id)) {
-        nextEssential.delete(id);
+      nextEssential.delete(id);
     }
 
     // 2. State 업데이트
@@ -111,16 +123,20 @@ export default function FleetMasterV2() {
 
     // 3. 즉시 재계산 (빈자리 채우기)
     if (selectedAdmiral) {
+      try {
         const res = generateOptimizedFleet(
-            sailors,
-            nextEssential,
-            nextBan,
-            fleetConfig,
-            selectedAdmiral,
-            targetLevels,
-            options
+          sailors,
+          nextEssential,
+          nextBan,
+          fleetConfig,
+          selectedAdmiral,
+          targetLevels,
+          options
         );
         setResult(res);
+      } catch (error: any) {
+        console.warn("밴 처리 후 재계산 실패:", error.message);
+      }
     }
   };
 
@@ -135,7 +151,7 @@ export default function FleetMasterV2() {
               호그라나도 육탐 매니저 <span className="text-3xl not-italic text-indigo-400">V2</span>
             </h1>
             
-            {/* [수정] 서명 가시성 대폭 강화 (밝은 회색, 폰트 키움, 투명도 제거) */}
+            {/* 서명 */}
             <span className="text-sm font-bold text-slate-300 mb-2 tracking-wide">
               by 고든이고든요
             </span>
