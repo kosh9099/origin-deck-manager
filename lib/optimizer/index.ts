@@ -165,9 +165,10 @@ export function generateOptimizedFleet(
       return bestSkillScore + getBaseScore(s, options.prioritizeSupply);
     }
 
-    // Rank 5: 목표 채운 후 빈자리 채우기
-    // getBaseScore가 옵션에 따라 (보급순) 또는 (제독>직업순)으로 점수 반환
-    return getBaseScore(s, options.prioritizeSupply);
+    // [수정] 목표 채운 후 빈자리 채우기 -> 빈 선실로 유지 (패널티 적용)
+    // 기존: return getBaseScore(s, options.prioritizeSupply);
+    // 변경: 스킬 목표가 끝났다면 절대 배치하지 않음 (-1 리턴)
+    return -1;
   };
 
   fillFleetSlots(ships, all, usedIds, currentLevels, getPriority);
