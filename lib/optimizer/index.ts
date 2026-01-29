@@ -13,15 +13,10 @@ export function generateOptimizedFleet(
   targetLevels: Record<string, number>,
   options: OptimizerOptions
 ) {
-  // 1. 초기 필터링
   const { all } = filterSailors(sailors, bannedIds);
   const usedIds = new Set<number>();
-  
-  // 2. 현재 함대 스킬 합계 (실시간 업데이트용)
   const currentLevels: Record<string, number> = {};
-  Object.keys(MAX_SKILL_LEVELS).forEach(sk => currentLevels[sk] = 0);
-
-  // 3. 목표치 확장 (카테고리 목표 반영)
+  
   const expandedTargets: Record<string, number> = { ...targetLevels };
   Object.entries(EXPLORATION_STATS).forEach(([category, skills]) => {
     const categoryGoal = targetLevels[category] || 0;
@@ -32,12 +27,8 @@ export function generateOptimizedFleet(
     }
   });
 
-  const totalTargetSum = Object.values(expandedTargets).reduce((a, b) => a + b, 0);
-  if (totalTargetSum === 0) {
-    throw new Error("스킬을 설정해주세요.");
-  }
+  Object.keys(expandedTargets).forEach(sk => currentLevels[sk] = 0);
 
-  // 4. 함대 슬롯 생성
   const ships: Ship[] = fleetConfig.map(config => {
     const isFlagship = config.id === 1; 
     const advCount = Math.max(0, config.총선실 - config.전투선실 - (isFlagship ? 1 : 0));
@@ -49,78 +40,91 @@ export function generateOptimizedFleet(
     };
   });
 
-  // 5. 제독 배치 및 실시간 레벨 초기화
   const mainAdmiral = all.find(s => s.id === selectedAdmiralId);
   if (mainAdmiral && ships[0]) {
     ships[0].admiral = mainAdmiral;
     usedIds.add(mainAdmiral.id);
-    Object.keys(MAX_SKILL_LEVELS).forEach(sk => {
+    Object.keys(expandedTargets).forEach(sk => {
       currentLevels[sk] += getSailorSkillLevel(mainAdmiral, sk);
     });
   }
 
-  // 6. 우선순위 결정 함수 (등급 기반 동점자 처리 및 실시간 티어 반영)
+  // 6. 우선순위 결정 함수: 전투 타입 전용 S+/백병대 필터
   const getPriority = (s: Sailor, isCombatSlot: boolean) => {
     if (usedIds.has(s.id)) return -1;
-    if (essentialIds.has(s.id)) return 20_000_000; // 필수 항해사 최우선
+    if (essentialIds.has(s.id)) return 20_000_000;
+
+    const score = calculateTierScore(s, currentLevels, expandedTargets);
+    if (score === -1) return -1;
 
     if (isCombatSlot) {
-      if (s.타입 !== '전투' || (s.등급 !== 'S+' && s.직업 !== "백병대")) return -1;
+      /**
+       * [전투 선실 조건]
+       * 1. 타입이 '전투'여야 함 (S+ 등급은 어차피 전투 타입이므로 자연스럽게 포함)
+       * 2. 'S+ 등급'이거나 '백병대 직업'이어야 함
+       */
+      if (s.타입 !== '전투') return -1;
+      
+      const isQualified = s.등급 === 'S+' || s.직업 === "백병대";
+      if (!isQualified) return -1;
+      
+      return score;
     } else {
+      /**
+       * [모험/교역 선실 조건]
+       * 전투 타입 제외 및 옵션에 따른 교역 타입 처리
+       */
       if (s.타입 === '전투') return -1;
       if (!options.includeTrade && s.타입 === '교역') return -1;
+      return score;
     }
-    
-    // scoring.ts의 수정된 티어 로직 호출
-    return calculateTierScore(s, currentLevels, expandedTargets);
   };
 
-  // 7. 1차 슬롯 배치 실행
   fillFleetSlots(ships, all, usedIds, currentLevels, getPriority);
 
-  // ----------------------------------------------------------------
-  // 8. 사후 최적화 (정밀 솎아내기): 델타 업데이트 방식
-  // ----------------------------------------------------------------
-  
-  let deployedSailors: { sailor: Sailor, shipIdx: number, slotType: 'adventure' | 'combat', slotIdx: number }[] = [];
+  // 7. 사후 최적화 (정제 루프): 델타 업데이트 방식
+  let deployed: { sailor: Sailor, sIdx: number, field: 'adventure' | 'combat', slIdx: number }[] = [];
   ships.forEach((ship, sIdx) => {
     ['adventure', 'combat'].forEach(type => {
-      const slotType = type as 'adventure' | 'combat';
-      ship[slotType].forEach((sailor, slIdx) => {
+      const field = type as 'adventure' | 'combat';
+      ship[field].forEach((sailor, slIdx) => {
         if (sailor && !essentialIds.has(sailor.id) && sailor.id !== selectedAdmiralId) {
-          deployedSailors.push({ sailor, shipIdx: sIdx, slotType, slotIdx: slIdx });
+          deployed.push({ sailor, sIdx, field, slIdx });
         }
       });
     });
   });
 
-  // 등급 및 기여도 점수가 낮은 사람부터 제거 시도
-  deployedSailors.sort((a, b) => {
-    const scoreA = calculateTierScore(a.sailor, currentLevels, expandedTargets);
-    const scoreB = calculateTierScore(b.sailor, currentLevels, expandedTargets);
-    return scoreA - scoreB; 
-  });
+  deployed.sort((a, b) => 
+    calculateTierScore(a.sailor, currentLevels, expandedTargets) - 
+    calculateTierScore(b.sailor, currentLevels, expandedTargets)
+  );
 
-  // 목표 유지 가능 여부 확인 후 불필요 인원 제거
-  deployedSailors.forEach(({ sailor, shipIdx, slotType, slotIdx }) => {
+  deployed.forEach(({ sailor, sIdx, field, slIdx }) => {
     let canRemove = true;
     for (const sk in expandedTargets) {
       const lv = getSailorSkillLevel(sailor, sk);
-      if (lv > 0) {
-        if (currentLevels[sk] - lv < expandedTargets[sk]) {
-          canRemove = false;
-          break;
-        }
+      if (lv > 0 && (currentLevels[sk] - lv) < expandedTargets[sk]) {
+        canRemove = false;
+        break;
       }
     }
-
     if (canRemove) {
-      Object.keys(MAX_SKILL_LEVELS).forEach(sk => {
-        currentLevels[sk] -= getSailorSkillLevel(sailor, sk);
-      });
-      ships[shipIdx][slotType][slotIdx] = null;
+      Object.keys(expandedTargets).forEach(sk => currentLevels[sk] -= getSailorSkillLevel(sailor, sk));
+      (ships[sIdx] as any)[field][slIdx] = null;
       usedIds.delete(sailor.id);
     }
+  });
+
+  // 8. 선실 압축: 빈 공간(null) 제거
+  ships.forEach(ship => {
+    ['adventure', 'combat'].forEach(type => {
+      const field = type as 'adventure' | 'combat';
+      const originalLen = ship[field].length;
+      const compacted = ship[field].filter(Boolean);
+      while (compacted.length < originalLen) compacted.push(null);
+      ship[field] = compacted as any;
+    });
   });
 
   return { ships };
