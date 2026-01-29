@@ -1,15 +1,13 @@
 import { Sailor } from '@/types';
-import { GRADE_RANK } from './rules';
+import { GRADE_RANK } from './rules'; // 등급별 점수 매핑 (S+: 500, S: 400 ... 등)
 
 /**
- * 항해사의 데이터에서 스킬 레벨을 정밀 추출합니다.
+ * 항해사의 데이터에서 스킬 레벨을 정밀 추출합니다. (기존 유지)
  */
 export function getSailorSkillLevel(sailor: Sailor, skillName: string): number {
   if (!sailor) return 0;
-  
   const target = skillName.replace(/\s+/g, "").toLowerCase();
 
-  // 패턴 1: DB Key 일치
   for (const key in sailor) {
     const keyNorm = key.replace(/\s+/g, "").toLowerCase();
     if (keyNorm === target) {
@@ -19,7 +17,6 @@ export function getSailorSkillLevel(sailor: Sailor, skillName: string): number {
     }
   }
 
-  // 패턴 2: 텍스트 포함 검색 (LV2 감지)
   let foundTextLevel = 0;
   Object.values(sailor).forEach((val) => {
     if (typeof val === 'string') {
@@ -35,59 +32,60 @@ export function getSailorSkillLevel(sailor: Sailor, skillName: string): number {
       }
     }
   });
-
   return foundTextLevel;
 }
 
 /**
- * 보급 스탯 추출
+ * [수정] 등급 기반 동점자 처리 로직 반영
+ * 기여도가 같을 경우 등급이 높은 항해사를 우선합니다.
  */
-export function getSupplyStat(sailor: Sailor): number {
-  if (!sailor) return 0;
-  return Number(sailor.보급) || 0;
-}
+export function calculateTierScore(
+  sailor: Sailor,
+  currentLevels: Record<string, number>,
+  targetLevels: Record<string, number>
+): number {
+  let totalContribution = 0;
+  let totalWaste = 0;
+  let hasTargetLV2 = false;
 
-// 빌드 에러 방지용 복구
-export function getTradeStatSum(sailor: Sailor): number {
-  if (!sailor) return 0;
-  return (Number(sailor.박물) || 0) + (Number(sailor.보급) || 0) + (Number(sailor.백병) || 0);
-}
+  for (const sk in targetLevels) {
+    const sailorLvl = getSailorSkillLevel(sailor, sk);
+    if (sailorLvl <= 0) continue;
 
-/**
- * [수정] 기본 점수 (Rank 5: 빈 선실 채우기용)
- * * 옵션 OFF (기본): "보급 스탯이 높은 제독 또는 항해사"
- * 옵션 ON (보급/직업 우선): "제독 > 보급장 > 위생사 > 상담사 > 기타 직업"
- */
-export function getBaseScore(sailor: Sailor, prioritizeJob: boolean): number {
-  const supply = getSupplyStat(sailor);
+    const target = targetLevels[sk] || 0;
+    const current = currentLevels[sk] || 0;
+    const needed = Math.max(0, target - current);
 
-  // [Case 1] 옵션 OFF: 보급 스탯 올인
-  if (!prioritizeJob) {
-    return supply;
+    const contribution = Math.min(sailorLvl, needed);
+    const waste = Math.max(0, sailorLvl - needed);
+
+    if (contribution > 0) {
+      totalContribution += contribution;
+      if (sailorLvl >= 2) hasTargetLV2 = true;
+    }
+    totalWaste += waste;
   }
 
-  // [Case 2] 옵션 ON: 직업 서열 중심 (보급은 동점자 처리용)
-  // 점수 단위: 1억 단위로 직업 서열 구분
-  const grade = (sailor.등급 || '').trim();
-  const job = (sailor.직업 || '').trim();
+  if (totalContribution === 0) return -1;
 
-  // 1. 제독 (S+)
-  if (grade === 'S+') return 1_000_000_000 + supply;
+  // 등급 점수 추출 (GRADE_RANK에 정의된 수치 사용, 없으면 0)
+  const gradeScore = GRADE_RANK[sailor.등급] || 0;
 
-  // 2. 보급장
-  if (job === '보급장') return 800_000_000 + supply;
+  // 기본 점수: 기여도 + LV2 보너스 + 등급 점수(동점자 처리)
+  const base = (totalContribution * 1000) + (hasTargetLV2 ? 500 : 0) + gradeScore;
 
-  // 3. 위생사
-  if (job === '위생사') return 600_000_000 + supply;
-
-  // 4. 상담사
-  if (job === '상담사') return 400_000_000 + supply;
-
-  // 5. 기타 직업 (보급 스탯만 반영)
-  return 200_000_000 + supply;
+  if (totalWaste === 0) {
+    return 1_000_000 + base; // Tier A
+  } else {
+    const penalized = 100_000 + base - (totalWaste * 10000);
+    return Math.max(1, penalized); 
+  }
 }
 
-// 빌드 에러 방지용
+// 기존 인터페이스 유지
+export function getSupplyStat(sailor: Sailor): number { return Number(sailor.보급) || 0; }
+export function getBaseScore(sailor: Sailor, prioritizeJob: boolean): number { return GRADE_RANK[sailor.등급] || 0; }
+export function getTradeStatSum(sailor: Sailor): number { return 0; }
 export function hasAnyTargetSkill(sailor: Sailor, skills: string[]): boolean {
   return skills.some(sk => getSailorSkillLevel(sailor, sk) > 0);
 }

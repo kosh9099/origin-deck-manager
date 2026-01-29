@@ -17,6 +17,7 @@ export default function SkillDashboard({ result, targetLevels = {} }: Props) {
   
   // [계산] 스킬 레벨 합계 및 능력치 총합 계산
   const { skillTotals, statSummary } = useMemo(() => {
+    // 실제 합산값을 저장할 객체 (초과분 포함)
     const totals: Record<string, number> = {};
     const stats: SkillStat = { 
       combat: 0, observation: 0, gathering: 0, 
@@ -26,7 +27,7 @@ export default function SkillDashboard({ result, targetLevels = {} }: Props) {
     // 1. 초기화
     Object.keys(MAX_SKILL_LEVELS).forEach(sk => totals[sk] = 0);
 
-    // 2. 현재 함대 스킬 레벨 합산
+    // 2. 현재 함대 스킬 레벨 합산 (실제 총합을 구함)
     if (result?.ships) {
       result.ships.forEach((ship: any) => {
         const shipCrew = [
@@ -44,14 +45,13 @@ export default function SkillDashboard({ result, targetLevels = {} }: Props) {
       });
     }
 
-    // 3. 10레벨 상한 적용 및 능력치 환산
+    // 3. 능력치 환산 시에만 상한(MAX 10) 적용
     Object.keys(totals).forEach(sk => {
-      // 10레벨 초과분은 버림 (지휘관님 규정)
-      if (totals[sk] > 10) totals[sk] = 10;
+      // 능력치 계산용 레벨 (최대 10)
+      const effectiveLevel = Math.min(totals[sk], 10);
       
-      const level = totals[sk];
-      if (level > 0 && SKILL_STATS[sk] && SKILL_STATS[sk][level]) {
-        const s = SKILL_STATS[sk][level];
+      if (effectiveLevel > 0 && SKILL_STATS[sk] && SKILL_STATS[sk][effectiveLevel]) {
+        const s = SKILL_STATS[sk][effectiveLevel];
         stats.combat += s.combat;
         stats.observation += s.observation;
         stats.gathering += s.gathering;
@@ -61,6 +61,7 @@ export default function SkillDashboard({ result, targetLevels = {} }: Props) {
       }
     });
 
+    // skillTotals는 초과분이 포함된 totals를 그대로 반환합니다.
     return { skillTotals: totals, statSummary: stats };
   }, [result]);
 
@@ -73,7 +74,6 @@ export default function SkillDashboard({ result, targetLevels = {} }: Props) {
 
   return (
     <div className="relative z-0 mt-4">
-      {/* 배너 */}
       <div className="bg-[#E5D0AC] px-4 py-2 rounded-t-xl border-b-2 border-[#C8B28E] shadow-lg">
         <h2 className="text-[13px] font-black text-[#5D4037] uppercase tracking-widest flex items-center gap-2">
           <BarChart2 size={16} strokeWidth={2.5} />
@@ -81,23 +81,18 @@ export default function SkillDashboard({ result, targetLevels = {} }: Props) {
         </h2>
       </div>
 
-      {/* 컨텐츠 박스 */}
       <div className="bg-slate-900/90 rounded-b-xl p-3 border border-white/5 backdrop-blur-md shadow-2xl">
-        
-        {/* [수정] Grid 레이아웃: 5열 (lg:grid-cols-5) 로 확장 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-          
-          {/* 기존 4개 카테고리 */}
           {categories.map(cat => (
             <SkillCategoryCard 
-              key={cat.name} title={cat.name} skills={cat.skills} 
-              totals={skillTotals} targets={targetLevels} 
+              key={cat.name} 
+              title={cat.name} 
+              skills={cat.skills} 
+              totals={skillTotals} // 이제 초과된 숫자가 그대로 전달됩니다.
+              targets={targetLevels} 
             />
           ))}
-
-          {/* [신규] 5번째 컬럼: 능력치 합계 */}
           <StatSummaryCard stats={statSummary} />
-
         </div>
       </div>
     </div>

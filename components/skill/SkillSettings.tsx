@@ -9,25 +9,42 @@ interface Props {
   setTargetLevels: (levels: Record<string, number>) => void;
 }
 
-// 스킬별 최대 레벨 데이터베이스
+// [수정] 작가님이 요청하신 스킬별 최신 맥스 레벨 데이터베이스
 const MAX_LEVELS: Record<string, number> = {
+  // [전리품]
+  '투쟁적인 탐험가': 10,
+  '호전적인 탐험가': 10,
+  '꼼꼼한 탐험가': 10,
+  '주의깊은 탐험가': 10,
+  '성실한 탐험가': 10,
+  '부지런한 탐험가': 10,
+
   // [전투]
   '험지 평정': 2,
   '전투적인 채집': 7,
   '전투적인 관찰': 8,
+  '해적 척결': 10,
+  '맹수 척결': 10,
+  '해적 사냥': 10,
+  '맹수 사냥': 10,
+
   // [관찰]
+  '관찰 공부': 10,
   '관측 후 채집': 4,
   '관측 후 전투': 6,
   '생물 관찰': 7,
   '관찰 채집': 8,
   '험지 관찰': 2,
   '관찰 심화': 8,
+
   // [채집]
   '생물 채집': 6,
   '채집 우선 전투': 9,
   '채집 우선 관찰': 6,
   '험지 채집': 2,
   '채집 심화': 5,
+  '채집 공부': 1,      // [수정 반영]
+  '탐사의 기본': 6,     // [수정 반영]
 };
 
 const DEFAULT_MAX = 10;
@@ -46,6 +63,7 @@ export default function SkillSettings({ targetLevels, setTargetLevels }: Props) 
 
   const handleChange = (skill: string, val: number) => {
     const limit = getMaxLevel(skill);
+    // 입력값이 맥스 레벨을 넘지 않도록 제한
     setTargetLevels({ ...targetLevels, [skill]: Math.min(limit, val) });
   };
 
@@ -59,7 +77,6 @@ export default function SkillSettings({ targetLevels, setTargetLevels }: Props) 
 
   return (
     <div className="relative z-0 mt-2">
-      
       {/* 배너 */}
       <div className="bg-emerald-600 px-4 py-2 rounded-t-xl border-b-2 border-emerald-400 shadow-lg">
         <h2 className="text-[13px] font-black text-white uppercase tracking-widest flex items-center gap-2">
@@ -72,7 +89,6 @@ export default function SkillSettings({ targetLevels, setTargetLevels }: Props) 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {categories.map(cat => (
             <div key={cat.name} className="space-y-1">
-              
               {/* 카테고리 헤더 */}
               <div className="flex items-center justify-between pb-1 border-b border-white/10 mb-1 h-[24px]">
                 <div className="flex items-center gap-2">
@@ -80,7 +96,6 @@ export default function SkillSettings({ targetLevels, setTargetLevels }: Props) 
                   <p className="text-[11px] font-black text-emerald-400 uppercase tracking-wider">{cat.name}</p>
                 </div>
                 
-                {/* 일괄 버튼 */}
                 <div className="flex items-center gap-1">
                   <button 
                     onClick={() => handleBatchUpdate(cat.skills, true)}
@@ -105,7 +120,6 @@ export default function SkillSettings({ targetLevels, setTargetLevels }: Props) 
                   const maxLv = getMaxLevel(skill);
                   return (
                     <div key={skill} className="flex items-center justify-between h-[28px] px-2 bg-slate-800/60 rounded border border-white/5 group hover:border-emerald-500/30 transition-all">
-                      {/* [수정] 스킬 이름 및 맥스 레벨 가시성 대폭 상향 */}
                       <div className="flex items-center gap-1.5 overflow-hidden mr-1">
                         <span className="text-[11px] font-black text-slate-200 group-hover:text-white transition-colors truncate">
                           {skill}
