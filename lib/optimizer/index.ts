@@ -49,34 +49,31 @@ export function generateOptimizedFleet(
     });
   }
 
-  // 6. 우선순위 결정 함수: 전투 타입 전용 S+/백병대 필터
+  // 6. 우선순위 결정 함수: 타입 필터를 먼저 거친 후 필수 여부 판단
   const getPriority = (s: Sailor, isCombatSlot: boolean) => {
     if (usedIds.has(s.id)) return -1;
-    if (essentialIds.has(s.id)) return 20_000_000;
 
-    const score = calculateTierScore(s, currentLevels, expandedTargets);
-    if (score === -1) return -1;
-
+    // [로직 변경] 선실 타입에 따른 타입 제한을 최우선으로 적용
     if (isCombatSlot) {
-      /**
-       * [전투 선실 조건]
-       * 1. 타입이 '전투'여야 함 (S+ 등급은 어차피 전투 타입이므로 자연스럽게 포함)
-       * 2. 'S+ 등급'이거나 '백병대 직업'이어야 함
-       */
+      // 전투 선실: 무조건 전투 타입이어야 함
       if (s.타입 !== '전투') return -1;
       
+      // 작가님 원칙: S+ 등급이거나 백병대 직업인 경우만 통과
       const isQualified = s.등급 === 'S+' || s.직업 === "백병대";
       if (!isQualified) return -1;
       
-      return score;
+      // 통과된 인원 중 필수 항해사라면 최상위 점수, 아니면 티어 점수
+      if (essentialIds.has(s.id)) return 20_000_000;
+      return calculateTierScore(s, currentLevels, expandedTargets);
+
     } else {
-      /**
-       * [모험/교역 선실 조건]
-       * 전투 타입 제외 및 옵션에 따른 교역 타입 처리
-       */
+      // 모험/교역 선실: 전투 타입은 절대 진입 불가
       if (s.타입 === '전투') return -1;
       if (!options.includeTrade && s.타입 === '교역') return -1;
-      return score;
+      
+      // 통과된 인원 중 필수 항해사라면 최상위 점수, 아니면 티어 점수
+      if (essentialIds.has(s.id)) return 20_000_000;
+      return calculateTierScore(s, currentLevels, expandedTargets);
     }
   };
 
