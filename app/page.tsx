@@ -115,7 +115,7 @@ export default function FleetMasterV2() {
         <div className="flex flex-col gap-1">
           <div className="flex items-end gap-3">
             <h1 className="text-4xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-orange-400 to-indigo-400 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
-              호그라나도 육탐 매니저 <span className="text-3xl not-italic text-indigo-400">V2</span>
+              호그와트 육탐 매니저 <span className="text-3xl not-italic text-indigo-400">V2</span>
             </h1>
             <span className="text-sm font-bold text-slate-300 mb-2 tracking-wide">by 고든이고든요</span>
           </div>
