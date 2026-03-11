@@ -16,17 +16,16 @@ const managers = [
     active: false,
   },
   {
-    href: '/land',
+    href: null,
     icon: Map,
-    iconColor: 'text-blue-400',
-    iconBg: 'bg-blue-500/15',
-    iconRing: 'ring-blue-500/40',
-    gradient: 'from-blue-500 via-indigo-500 to-purple-600',
+    iconColor: 'text-slate-500',
+    iconBg: 'bg-slate-700/20',
+    iconRing: 'ring-slate-600/30',
+    gradient: 'from-slate-700 to-slate-800',
     label: '육탐 매니저',
     desc: '육지 탐색 특화 함대 구성 및 모험 스킬 최적화.',
-    badge: null,
-    active: true,
-    glow: 'shadow-[0_0_40px_rgba(79,70,229,0.25)] hover:shadow-[0_0_70px_rgba(79,70,229,0.45)]',
+    badge: '긴급 점검 중',
+    active: false,
   },
   {
     href: '/trade',
@@ -99,8 +98,8 @@ export default function Home() {
                   입장하기 <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform duration-300" />
                 </div>
               ) : (
-                <div className="w-full py-2.5 bg-slate-800/60 rounded-xl flex items-center justify-center text-slate-600 text-xs font-bold border border-slate-700/40">
-                  Coming Soon
+                <div className="w-full py-2.5 bg-slate-800/60 rounded-xl flex items-center justify-center text-slate-500 text-xs font-bold border border-slate-700/40">
+                  {m.badge === '긴급 점검 중' ? '시스템 점검 중' : 'Coming Soon'}
                 </div>
               )}
             </div>

@@ -1,10 +1,10 @@
 import { Sailor, ShipConfig, OptimizerOptions, Ship, EXPLORATION_STATS } from '@/types';
 import { filterSailors } from './filters';
 import { fillFleetSlots } from './placement';
-import { getSailorSkillLevel, calculateTierScore } from './scoring';
+import { getSailorSkillLevel, calculateTierScore, calculateFleetSkills } from './scoring';
 import { MAX_SKILL_LEVELS } from './rules';
 
-export function generateOptimizedFleet(
+export function autoDeployFleet(
   sailors: Sailor[],
   essentialIds: Set<number>,
   bannedIds: Set<number>,
@@ -26,6 +26,11 @@ export function generateOptimizedFleet(
       });
     }
   });
+
+  console.log("=== OPTIMIZER START ===");
+  console.log("targetLevels received:", targetLevels);
+  console.log("expandedTargets computed:", expandedTargets);
+  console.log("options:", options);
 
   Object.keys(expandedTargets).forEach(sk => currentLevels[sk] = 0);
 
@@ -53,76 +58,62 @@ export function generateOptimizedFleet(
   const getPriority = (s: Sailor, isCombatSlot: boolean) => {
     if (usedIds.has(s.id)) return -1;
 
-    // [로직 변경] 선실 타입에 따른 타입 제한을 최우선으로 적용
+    // 핵심 육탐 스킬 보유 판별 함수
+    const hasExpSkill = () => {
+      return Object.keys(MAX_SKILL_LEVELS).some(sk => getSailorSkillLevel(s, sk) > 0);
+    };
+
     if (isCombatSlot) {
-      // 전투 선실: 무조건 전투 타입이어야 함
+      // 전투 선실: 무조건 전투 타입 + (제독 또는 백병대) + (육탐 스킬 1개 이상)
       if (s.타입 !== '전투') return -1;
       
-      // 작가님 원칙: S+ 등급이거나 백병대 직업인 경우만 통과
-      const isQualified = s.등급 === 'S+' || s.직업 === "백병대";
-      if (!isQualified) return -1;
+      const isQualifiedRole = s.등급 === 'S+' || s.직업 === "백병대"; // 제독(S+) 또는 백병대
+      if (!isQualifiedRole) return -1;
+      
+      if (!hasExpSkill()) return -1; // 육탐 스킬이 한 개도 없으면 탈락
       
       // 통과된 인원 중 필수 항해사라면 최상위 점수, 아니면 티어 점수
       if (essentialIds.has(s.id)) return 20_000_000;
-      return calculateTierScore(s, currentLevels, expandedTargets);
+      
+      const score = calculateTierScore(s, currentLevels, expandedTargets);
+      return score;
 
     } else {
-      // 모험/교역 선실: 전투 타입은 절대 진입 불가
-      if (s.타입 === '전투') return -1;
-      if (!options.includeTrade && s.타입 === '교역') return -1;
+      // 일반 선실 (모험/교역 등): 사용자가 설정한 로직에 따라 타입 제한
+      // 원칙: "일반 선실: 항해사 데이터의 타입 === '모험' 인 인원만 배치"
+      if (s.타입 !== '모험') return -1;
       
       // 통과된 인원 중 필수 항해사라면 최상위 점수, 아니면 티어 점수
       if (essentialIds.has(s.id)) return 20_000_000;
-      return calculateTierScore(s, currentLevels, expandedTargets);
+      
+      const score = calculateTierScore(s, currentLevels, expandedTargets);
+      return score;
     }
   };
 
-  fillFleetSlots(ships, all, usedIds, currentLevels, getPriority);
+  fillFleetSlots(ships, all, usedIds, currentLevels, expandedTargets, getPriority);
 
-  // 7. 사후 최적화 (정제 루프): 델타 업데이트 방식
-  let deployed: { sailor: Sailor, sIdx: number, field: 'adventure' | 'combat', slIdx: number }[] = [];
-  ships.forEach((ship, sIdx) => {
-    ['adventure', 'combat'].forEach(type => {
-      const field = type as 'adventure' | 'combat';
-      ship[field].forEach((sailor, slIdx) => {
-        if (sailor && !essentialIds.has(sailor.id) && sailor.id !== selectedAdmiralId) {
-          deployed.push({ sailor, sIdx, field, slIdx });
-        }
-      });
-    });
-  });
 
-  deployed.sort((a, b) => 
-    calculateTierScore(a.sailor, currentLevels, expandedTargets) - 
-    calculateTierScore(b.sailor, currentLevels, expandedTargets)
-  );
-
-  deployed.forEach(({ sailor, sIdx, field, slIdx }) => {
-    let canRemove = true;
-    for (const sk in expandedTargets) {
-      const lv = getSailorSkillLevel(sailor, sk);
-      if (lv > 0 && (currentLevels[sk] - lv) < expandedTargets[sk]) {
-        canRemove = false;
-        break;
-      }
-    }
-    if (canRemove) {
-      Object.keys(expandedTargets).forEach(sk => currentLevels[sk] -= getSailorSkillLevel(sailor, sk));
-      (ships[sIdx] as any)[field][slIdx] = null;
-      usedIds.delete(sailor.id);
-    }
-  });
 
   // 8. 선실 압축: 빈 공간(null) 제거
+  const allDeployedCrew: Sailor[] = [];
   ships.forEach(ship => {
+    if (ship.admiral) allDeployedCrew.push(ship.admiral);
+    
     ['adventure', 'combat'].forEach(type => {
       const field = type as 'adventure' | 'combat';
       const originalLen = ship[field].length;
       const compacted = ship[field].filter(Boolean);
+      compacted.forEach(s => { if (s) allDeployedCrew.push(s as Sailor); });
       while (compacted.length < originalLen) compacted.push(null);
       ship[field] = compacted as any;
     });
   });
+
+  const finalSkills = calculateFleetSkills(allDeployedCrew);
+  console.log("=== OPTIMIZER RESULT ===");
+  console.log("Total Deployed Crew Count:", allDeployedCrew.length);
+  console.log("Final Clamped Skills:", finalSkills);
 
   return { ships };
 }

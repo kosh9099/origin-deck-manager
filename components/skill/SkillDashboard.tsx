@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { MAX_SKILL_LEVELS } from '@/lib/optimizer/rules';
-import { getSailorSkillLevel } from '@/lib/optimizer/scoring';
+import { getSailorSkillLevel, calculateFleetSkills } from '@/lib/optimizer/scoring';
 import { SKILL_STATS, SkillStat } from '@/lib/optimizer/data/skillStats';
 import SkillCategoryCard from './SkillCategoryCard';
 import StatSummaryCard from './StatSummaryCard';
@@ -17,41 +17,35 @@ export default function SkillDashboard({ result, targetLevels = {} }: Props) {
   
   // [계산] 스킬 레벨 합계 및 능력치 총합 계산
   const { skillTotals, statSummary } = useMemo(() => {
-    // 실제 합산값을 저장할 객체 (초과분 포함)
-    const totals: Record<string, number> = {};
+    // 1. 결과가 없을 때의 기본값
+    if (!result?.ships) {
+      return { 
+        skillTotals: {}, 
+        statSummary: { combat: 0, observation: 0, gathering: 0, loot: 0, pirate: 0, beast: 0 } 
+      };
+    }
+
+    // 2. 현재 함대에 탑승한 모든 항해사 리스트 평탄화
+    const allCrew: any[] = [];
+    result.ships.forEach((ship: any) => {
+      if (ship.admiral) allCrew.push(ship.admiral);
+      if (ship.adventure) ship.adventure.filter(Boolean).forEach((s: any) => allCrew.push(s));
+      if (ship.combat) ship.combat.filter(Boolean).forEach((s: any) => allCrew.push(s));
+    });
+
+    // 3. 중앙 집중형 계산기 호출 (Clamping 완료된 상태)
+    const totals = calculateFleetSkills(allCrew);
+
+    // 4. 합산된 최종 레벨을 기반으로 함대 전체 부가 능력치 환산
     const stats: SkillStat = { 
       combat: 0, observation: 0, gathering: 0, 
       loot: 0, pirate: 0, beast: 0 
     };
 
-    // 1. 초기화
-    Object.keys(MAX_SKILL_LEVELS).forEach(sk => totals[sk] = 0);
-
-    // 2. 현재 함대 스킬 레벨 합산 (실제 총합을 구함)
-    if (result?.ships) {
-      result.ships.forEach((ship: any) => {
-        const shipCrew = [
-          ship.admiral, 
-          ...(ship.adventure || []), 
-          ...(ship.combat || [])
-        ].filter(Boolean);
-
-        shipCrew.forEach(sailor => {
-          Object.keys(MAX_SKILL_LEVELS).forEach(sk => {
-            const lv = getSailorSkillLevel(sailor, sk);
-            totals[sk] += lv;
-          });
-        });
-      });
-    }
-
-    // 3. 능력치 환산 시에만 상한(MAX 10) 적용
-    Object.keys(totals).forEach(sk => {
-      // 능력치 계산용 레벨 (최대 10)
-      const effectiveLevel = Math.min(totals[sk], 10);
-      
-      if (effectiveLevel > 0 && SKILL_STATS[sk] && SKILL_STATS[sk][effectiveLevel]) {
-        const s = SKILL_STATS[sk][effectiveLevel];
+    Object.entries(totals).forEach(([sk, level]) => {
+      const effectiveLevel = Number(level);
+      if (effectiveLevel > 0 && SKILL_STATS[sk] && SKILL_STATS[sk][effectiveLevel as keyof typeof SKILL_STATS[string]]) {
+        const s = SKILL_STATS[sk][effectiveLevel as keyof typeof SKILL_STATS[string]];
         stats.combat += s.combat;
         stats.observation += s.observation;
         stats.gathering += s.gathering;
@@ -61,7 +55,6 @@ export default function SkillDashboard({ result, targetLevels = {} }: Props) {
       }
     });
 
-    // skillTotals는 초과분이 포함된 totals를 그대로 반환합니다.
     return { skillTotals: totals, statSummary: stats };
   }, [result]);
 

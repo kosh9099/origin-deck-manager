@@ -7,6 +7,7 @@ export function fillFleetSlots(
   allSailors: Sailor[],
   usedIds: Set<number>,
   currentLevels: Record<string, number>,
+  expandedTargets: Record<string, number>,
   getPriority: (s: Sailor, isCombatSlot: boolean) => number
 ) {
   ships.forEach(ship => {
@@ -21,7 +22,7 @@ export function fillFleetSlots(
       if (best) {
         ship.combat[i] = best.s;
         usedIds.add(best.s.id);
-        Object.keys(MAX_SKILL_LEVELS).forEach(sk => {
+        Object.keys(expandedTargets).forEach(sk => {
           currentLevels[sk] += getSailorSkillLevel(best.s, sk);
         });
       }
@@ -38,7 +39,7 @@ export function fillFleetSlots(
       if (best) {
         ship.adventure[i] = best.s;
         usedIds.add(best.s.id);
-        Object.keys(MAX_SKILL_LEVELS).forEach(sk => {
+        Object.keys(expandedTargets).forEach(sk => {
           currentLevels[sk] += getSailorSkillLevel(best.s, sk);
         });
       }

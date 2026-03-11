@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Sailor, ShipConfig, OptimizerOptions } from '@/types';
-import { generateOptimizedFleet } from '@/lib/optimizer';
+import { autoDeployFleet } from '@/lib/optimizer';
 import { Play, Home, LayoutDashboard, Anchor, Users, Target, Menu, X, Camera } from 'lucide-react';
 import Link from 'next/link';
 import { captureAndDownload } from '@/lib/utils/capture';
@@ -123,7 +123,7 @@ export default function FleetMasterV2() {
     }
 
     try {
-      const res = generateOptimizedFleet(
+      const res = autoDeployFleet(
         sailors,
         essentialIds,
         bannedIds,
@@ -151,7 +151,7 @@ export default function FleetMasterV2() {
 
     if (selectedAdmiral) {
       try {
-        const res = generateOptimizedFleet(
+        const res = autoDeployFleet(
           sailors,
           nextEssential,
           nextBan,
