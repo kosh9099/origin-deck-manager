@@ -1,4 +1,4 @@
-import { Sailor, ShipConfig, OptimizerOptions, Ship, EXPLORATION_STATS } from '@/types';
+import { Sailor, ShipConfig, OptimizerOptions, Ship } from '@/types';
 import { filterSailors } from './filters';
 import { fillFleetSlots } from './placement';
 import { getSailorSkillLevel, calculateTierScore, calculateFleetSkills } from './scoring';
@@ -17,22 +17,17 @@ export function autoDeployFleet(
   const usedIds = new Set<number>();
   const currentLevels: Record<string, number> = {};
   
+  // targetLevels는 SkillSettings UI에서 스킬명을 키로 직접 저장하므로
+  // expandedTargets = targetLevels 그대로 사용 (EXPLORATION_STATS 카테고리 확장 불필요)
   const expandedTargets: Record<string, number> = { ...targetLevels };
-  Object.entries(EXPLORATION_STATS).forEach(([category, skills]) => {
-    const categoryGoal = targetLevels[category] || 0;
-    if (categoryGoal > 0) {
-      skills.forEach(skill => {
-        expandedTargets[skill.name] = Math.min(10, Math.max(expandedTargets[skill.name] || 0, categoryGoal));
-      });
-    }
-  });
 
   console.log("=== OPTIMIZER START ===");
   console.log("targetLevels received:", targetLevels);
   console.log("expandedTargets computed:", expandedTargets);
   console.log("options:", options);
 
-  Object.keys(expandedTargets).forEach(sk => currentLevels[sk] = 0);
+  // [Fix #3] 목표 설정 여부와 무관하게 전체 스킬 키를 기준으로 초기화
+  Object.keys(MAX_SKILL_LEVELS).forEach(sk => currentLevels[sk] = 0);
 
   const ships: Ship[] = fleetConfig.map(config => {
     const isFlagship = config.id === 1; 
@@ -49,8 +44,9 @@ export function autoDeployFleet(
   if (mainAdmiral && ships[0]) {
     ships[0].admiral = mainAdmiral;
     usedIds.add(mainAdmiral.id);
-    Object.keys(expandedTargets).forEach(sk => {
-      currentLevels[sk] += getSailorSkillLevel(mainAdmiral, sk);
+    // [Fix #3] 제독 스킬도 전체 스킬 키 기준으로 반영 (목표 미설정 스킬 누락 방지)
+    Object.keys(MAX_SKILL_LEVELS).forEach(sk => {
+      currentLevels[sk] = (currentLevels[sk] || 0) + getSailorSkillLevel(mainAdmiral, sk);
     });
   }
 
@@ -67,7 +63,8 @@ export function autoDeployFleet(
       // 전투 선실: 무조건 전투 타입 + (제독 또는 백병대) + (육탐 스킬 1개 이상)
       if (s.타입 !== '전투') return -1;
       
-      const isQualifiedRole = s.등급 === 'S+' || s.직업 === "백병대"; // 제독(S+) 또는 백병대
+      // 전투 선실: 등급 S+ (직업 무관) 또는 직업=백병대만 허용 (규칙: S+ 제독은 직업 상관없음)
+      const isQualifiedRole = s.등급 === 'S+' || s.직업 === '백병대';
       if (!isQualifiedRole) return -1;
       
       if (!hasExpSkill()) return -1; // 육탐 스킬이 한 개도 없으면 탈락

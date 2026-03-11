@@ -1,20 +1,9 @@
 import { Sailor, Ship } from '@/types';
-import { GRADE_RANK } from './rules';
+import { GRADE_RANK, MAX_SKILL_LEVELS } from './rules';
 
-export const SKILL_MAX_LEVELS: Record<string, number> = {
-  // [전리품]
-  "투쟁적인 탐험가": 10, "호전적인 탐험가": 10, "꼼꼼한 탐험가": 10, 
-  "주의깊은 탐험가": 10, "성실한 탐험가": 10, "부지런한 탐험가": 10,
-  // [전투]
-  "험지 평정": 2, "전투적인 채집": 7, "전투적인 관찰": 8, 
-  "해적 척결": 10, "맹수 척결": 10, "해적 사냥": 10, "맹수 사냥": 10,
-  // [관찰]
-  "관찰 공부": 10, "관측 후 채집": 4, "관측 후 전투": 6, 
-  "생물 관찰": 7, "관찰 채집": 8, "험지 관찰": 2, "관찰 심화": 8,
-  // [채집]
-  "생물 채집": 6, "채집 우선 전투": 9, "채집 우선 관찰": 6, 
-  "험지 채집": 2, "채집 심화": 5, "채집 공부": 10, "탐사의 기본": 10
-};
+// [Fix #1b] SKILL_MAX_LEVELS를 rules.ts에서 import하여 단일 진실의 원청으로 통합
+const SKILL_MAX_LEVELS = MAX_SKILL_LEVELS;
+
 
 /**
  * 선단 전체의 스킬 레벨을 합산하고 Max 제한(Clamping)을 적용하는 헬퍼 함수
@@ -64,12 +53,7 @@ export function getSailorSkillLevel(sailor: Sailor, skillName: string): number {
       const trimmedVal = val.trim();
       if (lv2Regex.test(trimmedVal)) return 2;
       if (baseRegex.test(trimmedVal)) return 1;
-      
-      // 혹시 단순 포함 여부로 체크해야 예약어 충돌이 적을 경우 대비 (후방 호환)
-      if (trimmedVal.toLowerCase().includes(skillName.toLowerCase())) {
-         if (/\s*LV2$/i.test(trimmedVal)) return 2;
-         return 1;
-      }
+      // [Fix #4] includes() fallback 제거: 부분 일치 오탐 방지 (실제 데이터는 page.tsx에서 숫자로 전처리됨)
     }
   }
 
@@ -87,6 +71,11 @@ export function calculateTierScore(
 ): number {
   let totalScore = 0;
   let hasContribution = false;
+  // [근본 원인 #1 수정] 목표 스킬이 있을 때 해당 스킬에 기여하는지 별도 추적
+  let contributesToTarget = false;
+
+  // 목표 스킬이 하나라도 설정되어 있는지 확인
+  const hasActiveTargets = Object.values(targetLevels).some(v => v > 0);
 
   // 모든 육탐 스킬에 대해 평가 수행
   for (const sk in SKILL_MAX_LEVELS) {
@@ -97,42 +86,48 @@ export function calculateTierScore(
     const target = targetLevels[sk] || 0;
     const current = currentLevels[sk] || 0;
 
-    // 1. 기여도 계산
-    // 아직 상한선(max)에 도달하지 않았을 때만 기여 인정
+    // 1. 기여도 계산 (상한선 미달성 시에만 기여 인정)
     const remainingToMax = Math.max(0, max - current);
     const contribution = Math.min(sailorLvl, remainingToMax);
 
     if (contribution > 0) {
       hasContribution = true;
-      // 가중치 계산: 사용자가 설정한 목표치(1~10)가 높을수록 더 높은 점수 부여
-      // 목표 설정이 없으면(0) 기본 가중치 1 적용
+      // 가중치: 목표 설정 스킬은 최대 100배, 미설정 스킬은 1배
       const weight = target > 0 ? (target * 10) : 1;
       totalScore += (contribution * 1000 * weight);
+
+      // [핵심] 이 스킬이 목표 스킬이고 기여도가 있으면 마킹
+      if (target > 0) {
+        contributesToTarget = true;
+      }
     }
 
-    // 2. 낭비 페널티 (Very Important)
-    // 이 선원을 넣었을 때 max를 초과하게 되면 페널티 부여
+    // 2. 낭비 페널티 (max 초과)
     const overflow = Math.max(0, (current + sailorLvl) - max);
     if (overflow > 0) {
-      // 낭비되는 양만큼 점수 삭감
       totalScore -= (overflow * 5000);
     }
-    
-    // 사용자가 설정한 목표치(target)를 초과하는 경우에도 약한 페널티 (딱 맞추기 권장)
+
+    // target 초과 페널티 (max 초과분과 중복 적용 방지)
     if (target > 0) {
-       const targetOverflow = Math.max(0, (current + sailorLvl) - target);
-       if (targetOverflow > 0) {
-         totalScore -= (targetOverflow * 1000);
-       }
+      const targetOverflow = Math.max(0, Math.min(current + sailorLvl, max) - target);
+      if (targetOverflow > 0) {
+        totalScore -= (targetOverflow * 1000);
+      }
     }
   }
 
+  // 기여 스킬 자체가 없으면 배제
   if (!hasContribution) return -1;
 
-  // 등급 점수 (S+ 등급 우선 순위 동점자 처리용)
+  // [근본 원인 #1 수정] 목표 스킬이 설정된 상태에서 목표 스킬에 기여가 전혀 없으면 배제
+  // → 목표 스킬 항해사가 소진되면 나머지 슬롯은 자동으로 공석이 됨 (근본 원인 #2도 해결)
+  if (hasActiveTargets && !contributesToTarget) return -1;
+
+  // 등급 보너스 (동점자 처리용)
   const gradeScore = GRADE_RANK[sailor.등급] || 0;
-  
-  // 최종 점수: 기본 100만점 + 가중치 합산 점수 + 등급 보너스
+
+  // 최종 점수: 기본 100만점 + 가중치 합산 + 등급 보너스
   return 1_000_000 + totalScore + gradeScore;
 }
 
