@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Sailor, ShipConfig, OptimizerOptions } from '@/types';
 import { generateOptimizedFleet } from '@/lib/optimizer';
-import { Play, Home, LayoutDashboard, Anchor, Users, Target, Menu, X } from 'lucide-react';
+import { Play, Home, LayoutDashboard, Anchor, Users, Target, Menu, X, Camera } from 'lucide-react';
 import Link from 'next/link';
+import { captureAndDownload } from '@/lib/utils/capture';
 
 // 컴포넌트 임포트
 import FleetSettings from '@/components/fleet/FleetSettings';
@@ -221,11 +222,21 @@ export default function FleetMasterV2() {
         
         {/* 1. 대시보드 뷰 */}
         {activeTab === 'dashboard' && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-white/90 mb-4 flex items-center gap-2">
-              <LayoutDashboard className="text-indigo-400" />
-              현재 대시보드 현황
-            </h2>
+          <div id="land-dashboard-capture-area" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-black text-white/90 flex items-center gap-2">
+                <LayoutDashboard className="text-indigo-400" />
+                현재 대시보드 현황
+              </h2>
+              <button
+                onClick={() => captureAndDownload('land-dashboard-capture-area')}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold border border-white/10 transition-all"
+                title="대시보드를 클립보드에 복사"
+              >
+                <Camera size={14} />
+                클립보드 복사
+              </button>
+            </div>
             <SkillDashboard result={result} targetLevels={targetLevels} />
             <div className="mt-8">
               <h3 className="text-xl font-bold text-white mb-4">함대 배치 결과</h3>
