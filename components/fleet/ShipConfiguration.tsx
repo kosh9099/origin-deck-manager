@@ -48,8 +48,8 @@ export default function ShipConfiguration({ fleetConfig, setFleetConfig }: Props
       
       {/* 배너 */}
       <div className="bg-indigo-600 px-4 py-2 rounded-t-xl border-b-2 border-indigo-400 shadow-lg">
-        <h2 className="text-[13px] font-black text-white uppercase tracking-widest flex items-center gap-2">
-          <Ship size={16} strokeWidth={2.5} />
+        <h2 className="text-[13px] font-black text-white uppercase tracking-widest flex items-center gap-2 whitespace-nowrap">
+          <Ship size={16} strokeWidth={2.5} className="shrink-0" />
           함대 설정 (Fleet Config)
         </h2>
       </div>
@@ -57,13 +57,13 @@ export default function ShipConfiguration({ fleetConfig, setFleetConfig }: Props
       <div className="bg-slate-900/90 rounded-b-xl p-3 border border-white/5 backdrop-blur-md">
         
         {/* 일괄 적용 패널 (버튼 제거 버전) */}
-        <div className="flex items-center justify-between bg-slate-800/80 p-2 mb-3 rounded-xl border border-white/10 shadow-inner mr-1">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-800/80 p-3 mb-3 rounded-xl border border-white/10 shadow-inner gap-3 sm:gap-0">
           
-          <span className="text-[13px] font-black text-indigo-400 border-r border-white/10 pr-3 pl-1 whitespace-nowrap">
-            전체 함대
+          <span className="text-[13px] font-black text-indigo-400 border-b sm:border-b-0 sm:border-r border-white/10 pb-2 sm:pb-0 pr-3 pl-1 whitespace-nowrap">
+            전체 함대 일괄설정
           </span>
           
-          <div className="flex items-center gap-1.5 pr-2"> 
+          <div className="flex items-center gap-2 sm:gap-4 sm:pr-2"> 
             
             {/* 총선실 컨트롤러 */}
             <NumberInput 
@@ -85,8 +85,8 @@ export default function ShipConfiguration({ fleetConfig, setFleetConfig }: Props
           </div>
         </div>
 
-        {/* 개별 함선 리스트 */}
-        <div className="space-y-1 max-h-[400px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-700">
+        {/* 개별 함선 리스트 (아코디언 형태) */}
+        <div className="space-y-1">
           {fleetConfig.map((ship) => (
             <ShipConfigRow 
               key={ship.id} 

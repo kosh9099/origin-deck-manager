@@ -50,6 +50,8 @@ const MAX_LEVELS: Record<string, number> = {
 const DEFAULT_MAX = 10;
 
 export default function SkillSettings({ targetLevels, setTargetLevels }: Props) {
+  const [activeTab, setActiveTab] = React.useState<string>('전리품');
+  
   const categories = [
     { name: '전리품', skills: ['투쟁적인 탐험가', '호전적인 탐험가', '꼼꼼한 탐험가', '주의깊은 탐험가', '성실한 탐험가', '부지런한 탐험가'] },
     { name: '전투', skills: ['험지 평정', '전투적인 채집', '전투적인 관찰', '해적 척결', '맹수 척결', '해적 사냥', '맹수 사냥'] },
@@ -74,75 +76,85 @@ export default function SkillSettings({ targetLevels, setTargetLevels }: Props) 
     });
     setTargetLevels({ ...targetLevels, ...updates });
   };
+  
+  const activeCategory = categories.find(cat => cat.name === activeTab) || categories[0];
 
   return (
-    <div className="relative z-0 mt-2">
-      {/* 배너 */}
-      <div className="bg-emerald-600 px-4 py-2 rounded-t-xl border-b-2 border-emerald-400 shadow-lg">
-        <h2 className="text-[13px] font-black text-white uppercase tracking-widest flex items-center gap-2">
-          <Mountain size={14} strokeWidth={3} />
-          스킬 설정 (Skill Targets)
-        </h2>
+    <div className="relative z-0">
+      
+      {/* 커스텀 탭 네비게이션 */}
+      <div className="flex overflow-x-auto scrollbar-none gap-2 mb-4 p-1">
+        {categories.map(cat => (
+          <button
+            key={cat.name}
+            onClick={() => setActiveTab(cat.name)}
+            className={`
+              flex-1 min-w-[80px] py-3 px-2 rounded-xl text-center font-black text-sm transition-all whitespace-nowrap
+              ${activeTab === cat.name 
+                ? 'bg-emerald-500 text-white shadow-[0_4px_15px_rgba(16,185,129,0.3)]' 
+                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-slate-200 border border-transparent'}
+            `}
+          >
+            {cat.name}
+          </button>
+        ))}
       </div>
 
-      <div className="bg-slate-900/90 rounded-b-xl p-3 border border-white/5 backdrop-blur-md">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          {categories.map(cat => (
-            <div key={cat.name} className="space-y-1">
-              {/* 카테고리 헤더 */}
-              <div className="flex items-center justify-between pb-1 border-b border-white/10 mb-1 h-[24px]">
-                <div className="flex items-center gap-2">
-                  <span className="w-1 h-3 bg-emerald-500 rounded-full" />
-                  <p className="text-[11px] font-black text-emerald-400 uppercase tracking-wider">{cat.name}</p>
-                </div>
-                
-                <div className="flex items-center gap-1">
-                  <button 
-                    onClick={() => handleBatchUpdate(cat.skills, true)}
-                    className="p-1 text-emerald-500 hover:text-white hover:bg-emerald-500/20 rounded transition-colors"
-                    title={`${cat.name} 전체 MAX`}
-                  >
-                    <ChevronsUp size={12} strokeWidth={3} />
-                  </button>
-                  <button 
-                    onClick={() => handleBatchUpdate(cat.skills, false)}
-                    className="p-1 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
-                    title={`${cat.name} 전체 초기화`}
-                  >
-                    <RotateCcw size={11} strokeWidth={3} />
-                  </button>
-                </div>
-              </div>
-              
-              {/* 스킬 리스트 */}
-              <div className="space-y-1">
-                {cat.skills.map(skill => {
-                  const maxLv = getMaxLevel(skill);
-                  return (
-                    <div key={skill} className="flex items-center justify-between h-[28px] px-2 bg-slate-800/60 rounded border border-white/5 group hover:border-emerald-500/30 transition-all">
-                      <div className="flex items-center gap-1.5 overflow-hidden mr-1">
-                        <span className="text-[11px] font-black text-slate-200 group-hover:text-white transition-colors truncate">
-                          {skill}
-                        </span>
-                        <span className="text-[10px] font-bold text-emerald-400">
-                          /{maxLv}
-                        </span>
-                      </div>
-                      
-                      <NumberInput 
-                        value={targetLevels[skill] || 0}
-                        min={0} 
-                        max={maxLv}
-                        onChange={(val) => handleChange(skill, val)}
-                        colorTheme="blue" 
-                        size="sm"
-                      />
-                    </div>
-                  );
-                })}
-              </div>
+      <div className="bg-slate-900/90 rounded-2xl p-4 border border-emerald-500/20 shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
+        <div className="max-w-md mx-auto space-y-2">
+          {/* 카테고리 헤더 컨트롤 */}
+          <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4 px-1">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-4 bg-emerald-500 rounded-full" />
+              <p className="text-[14px] font-black text-emerald-400 uppercase tracking-wider">{activeCategory.name} 스킬 설정</p>
             </div>
-          ))}
+            
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => handleBatchUpdate(activeCategory.skills, true)}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-emerald-100 bg-emerald-600/30 hover:bg-emerald-500 hover:text-white rounded-lg transition-all border border-emerald-500/30"
+                title={`${activeCategory.name} 전체 MAX`}
+              >
+                <ChevronsUp size={14} strokeWidth={2.5} /> 일괄 MAX
+              </button>
+              <button 
+                onClick={() => handleBatchUpdate(activeCategory.skills, false)}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-slate-300 bg-slate-800 hover:bg-red-500/90 hover:text-white rounded-lg transition-all border border-slate-700"
+                title={`${activeCategory.name} 전체 초기화`}
+              >
+                <RotateCcw size={13} strokeWidth={2.5} /> 일괄 리셋
+              </button>
+            </div>
+          </div>
+          
+          {/* 하위 스킬 리스트 (그리드 레이아웃 X, 세로 리스트형 O) */}
+          <div className="space-y-2.5">
+            {activeCategory.skills.map(skill => {
+              const maxLv = getMaxLevel(skill);
+              return (
+                <div key={skill} className="flex items-center justify-between py-2 px-4 bg-slate-800/60 rounded-xl border border-white/5 group hover:border-emerald-500/40 hover:bg-slate-800 transition-all shadow-sm">
+                  <div className="flex items-center gap-2 overflow-hidden mr-4">
+                    <span className="text-[13px] font-black text-slate-200 group-hover:text-white transition-colors truncate">
+                      {skill}
+                    </span>
+                    <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      최대 {maxLv}Lv
+                    </span>
+                  </div>
+                  
+                  <div className="shrink-0">
+                    <NumberInput 
+                      value={targetLevels[skill] || 0}
+                      min={0} 
+                      max={maxLv}
+                      onChange={(val) => handleChange(skill, val)}
+                      colorTheme="blue" 
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

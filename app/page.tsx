@@ -1,172 +1,101 @@
-'use client';
+import Link from 'next/link';
+import { Sword, Map, Settings2, Ship, Anchor, Compass } from 'lucide-react';
 
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Sailor, ShipConfig, OptimizerOptions } from '@/types';
-import { generateOptimizedFleet } from '@/lib/optimizer';
-import { Play } from 'lucide-react';
-
-// 컴포넌트 임포트
-import FleetSettings from '@/components/fleet/FleetSettings';
-import CrewManager from '@/components/crew/CrewManager';
-import SkillSettings from '@/components/skill/SkillSettings';
-import SkillDashboard from '@/components/skill/SkillDashboard';
-import FleetDisplay from '@/components/display/FleetDisplay';
-
-export default function FleetMasterV2() {
-  // --- 1. 상태 관리 (State) ---
-  const [sailors, setSailors] = useState<Sailor[]>([]);
-  
-  // 선장 설정 상태
-  const [admiralSearch, setAdmiralSearch] = useState('');
-  const [isAdmiralListOpen, setIsAdmiralListOpen] = useState(false);
-  const [selectedAdmiral, setSelectedAdmiral] = useState<number | null>(null);
-  
-  // 함대 설정 상태
-  const [fleetConfig, setFleetConfig] = useState<ShipConfig[]>(
-    Array.from({ length: 7 }, (_, i) => ({ id: i + 1, 총선실: 10, 전투선실: 3 }))
-  );
-  
-  // [참고] UI에서는 제거되었지만 엔진 계산을 위해 기본 설정값은 유지합니다.
-  const [options, setOptions] = useState<OptimizerOptions>({
-    includeBoarding: false,
-    includeSpecialForces: false,
-    includeTrade: false,
-    prioritizeSupply: false
-  });
-
-  // 스킬 및 결과 상태
-  const [targetLevels, setTargetLevels] = useState<Record<string, number>>({});
-  const [result, setResult] = useState<any>(null);
-
-  // 필수/금지 항해사 및 검색 상태
-  const [essentialIds, setEssentialIds] = useState<Set<number>>(new Set());
-  const [bannedIds, setBannedIds] = useState<Set<number>>(new Set());
-  const [crewSearch, setCrewSearch] = useState('');
-  const [isCrewSearchOpen, setIsCrewSearchOpen] = useState(false);
-
-  // --- 2. 데이터 보급 라인 ---
-  useEffect(() => {
-    async function fetchSailors() {
-      const { data, error } = await supabase.from('sailors').select('*').order('이름');
-      if (error) {
-        console.error("❌ 데이터 보급 실패:", error);
-      } else {
-        setSailors(data || []);
-      }
-    }
-    fetchSailors();
-  }, []);
-
-  // --- 3. 엔진 가동 함수 ---
-  const handleStart = () => {
-    if (!selectedAdmiral) {
-      alert("선장(제독)을 먼저 선택해야 함대가 출항할 수 있습니다!");
-      return;
-    }
-
-    try {
-      const res = generateOptimizedFleet(
-        sailors,
-        essentialIds,
-        bannedIds,
-        fleetConfig,
-        selectedAdmiral,
-        targetLevels,
-        options
-      );
-      setResult(res);
-    } catch (error: any) {
-      alert(error.message);
-    }
-  };
-
-  // --- 4. 덱에서 밴 처리 핸들러 (즉시 리필) ---
-  const handleBanFromDeck = (id: number) => {
-    const nextBan = new Set(bannedIds).add(id);
-    const nextEssential = new Set(essentialIds);
-    if (nextEssential.has(id)) nextEssential.delete(id);
-
-    setBannedIds(nextBan);
-    setEssentialIds(nextEssential);
-
-    if (selectedAdmiral) {
-      try {
-        const res = generateOptimizedFleet(
-          sailors,
-          nextEssential,
-          nextBan,
-          fleetConfig,
-          selectedAdmiral,
-          targetLevels,
-          options
-        );
-        setResult(res);
-      } catch (error: any) {
-        console.warn("밴 처리 후 재계산 실패:", error.message);
-      }
-    }
-  };
-
+export default function Home() {
   return (
-    <div className="min-h-screen bg-[#05070a] text-slate-100 p-2 font-sans">
-      {/* 최상단 헤더 */}
-      <header className="max-w-[1550px] mx-auto mb-6 flex justify-between items-end px-2 mt-4">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-end gap-3">
-            <h1 className="text-4xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-orange-400 to-indigo-400 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
-              호그와트 육탐 매니저 <span className="text-3xl not-italic text-indigo-400">V2</span>
-            </h1>
-            <span className="text-sm font-bold text-slate-300 mb-2 tracking-wide">by 고든이고든요</span>
+    <div className="min-h-screen bg-[#05070a] text-slate-100 flex flex-col items-center justify-center relative overflow-hidden font-sans py-12">
+      {/* Background Effects */}
+      <div className="absolute inset-0 z-0 pointer-events-none flex justify-center items-center">
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-blue-600/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-amber-600/10 rounded-full blur-[120px]" />
+      </div>
+
+      <div className="z-10 text-center mb-16 space-y-6">
+        <h1 className="text-5xl md:text-6xl lg:text-7xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-orange-400 to-indigo-400 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] flex items-center justify-center gap-4 md:gap-6">
+          <Anchor className="text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.5)] hidden sm:block" size={64} />
+          호그라나도 덱 매니저
+          <Compass className="text-indigo-400 drop-shadow-[0_0_15px_rgba(129,140,248,0.5)] hidden sm:block" size={64} />
+        </h1>
+        <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto font-medium tracking-wide border-t border-slate-800/50 pt-6 px-4">
+          원하시는 매니저를 선택하여 함대를 최적화하고<br className="md:hidden" /> 최고의 효율을 이끌어내세요.
+        </p>
+      </div>
+
+      <div className="z-10 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 max-w-6xl w-full px-6">
+        {/* 전투 매니저 (Disabled) */}
+        <div className="group relative rounded-3xl p-[1px] bg-gradient-to-b from-slate-800 to-slate-900 opacity-50 cursor-not-allowed overflow-hidden">
+          <div className="h-full w-full bg-[#0a0f16] rounded-[23px] py-10 px-8 flex flex-col items-center text-center space-y-6 relative border-t border-slate-800">
+            <div className="p-5 bg-red-500/10 rounded-2xl text-red-500 ring-1 ring-red-500/30 grayscale transition-all">
+              <Sword size={48} />
+            </div>
+            <div className="space-y-4">
+              <h2 className="text-2xl font-black text-slate-300 tracking-tight">전투 매니저</h2>
+              <p className="text-sm text-slate-500 leading-relaxed font-medium">가장 완벽한 전투 함대를 구성하기 위한 승무원 배치 최적화 도구입니다.</p>
+            </div>
+            <div className="mt-auto pt-8">
+              <span className="inline-flex items-center justify-center px-5 py-2 rounded-full bg-slate-800/80 text-xs font-bold text-slate-500 border border-slate-700/50 shadow-inner">
+                개발 중 (Coming Soon)
+              </span>
+            </div>
           </div>
         </div>
 
-        <button 
-          onClick={handleStart} 
-          className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl font-black text-lg text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] border border-blue-400/30 hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 group"
-        >
-          <Play size={20} fill="currentColor" className="group-hover:scale-110 transition-transform" />
-          덱 생성 START
-        </button>
-      </header>
+        {/* 육탐 매니저 (Active) */}
+        <Link href="/land" className="group relative rounded-3xl p-[1px] bg-gradient-to-b from-blue-400 via-indigo-500 to-purple-600 hover:-translate-y-2 lg:hover:-translate-y-3 transition-all duration-500 cursor-pointer shadow-[0_0_40px_rgba(79,70,229,0.2)] hover:shadow-[0_0_80px_rgba(79,70,229,0.4)] z-10">
+          <div className="absolute inset-0 bg-gradient-to-b from-blue-400/20 to-transparent blur-2xl rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="h-full w-full bg-[#0a0f16]/80 backdrop-blur-xl rounded-[23px] py-10 px-8 flex flex-col items-center text-center space-y-6 relative border border-white/10 overflow-hidden shadow-2xl">
+            {/* Hover shine effect */}
+            <div className="absolute inset-0 -translate-x-[100%] group-hover:animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12" />
+            
+            <div className="relative p-5 bg-blue-500/20 rounded-2xl text-blue-400 ring-2 ring-blue-500/40 group-hover:scale-110 group-hover:bg-blue-500/30 group-hover:text-amber-300 group-hover:ring-amber-500/50 transition-all duration-500 shadow-[0_0_30px_rgba(59,130,246,0.2)] group-hover:shadow-[0_0_40px_rgba(59,130,246,0.4)]">
+              <Map size={48} />
+              <div className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-amber-400 rounded-full animate-ping opacity-75" />
+              <div className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-amber-400 rounded-full shadow-[0_0_10px_rgba(251,191,36,0.8)]" />
+            </div>
+            <div className="space-y-4">
+              <h2 className="text-3xl font-black text-white group-hover:text-amber-200 transition-colors tracking-tight">육탐 매니저</h2>
+              <p className="text-sm text-slate-300 group-hover:text-white transition-colors leading-relaxed px-2 font-medium">육지 탐색에 특화된 함대를 구성하고<br/>모험 스킬의 효율을 최대로 끌어올립니다.</p>
+            </div>
+            <div className="mt-auto pt-8 w-full">
+              <div className="w-full py-4 bg-gradient-to-r from-blue-600/30 to-indigo-600/30 group-hover:from-blue-500 group-hover:to-indigo-500 rounded-xl text-blue-200 group-hover:text-white font-black transition-all duration-500 flex justify-center items-center gap-2 border border-blue-500/30 group-hover:border-transparent relative overflow-hidden shadow-[0_4px_15px_rgba(0,0,0,0.5)]">
+                <span className="relative z-10 flex items-center gap-2 text-lg tracking-wide">
+                  입장하기 <Settings2 size={22} className="group-hover:rotate-90 transition-transform duration-700" />
+                </span>
+              </div>
+            </div>
+          </div>
+        </Link>
 
-      <main className="max-w-[1550px] mx-auto grid grid-cols-12 gap-3">
-        {/* 좌측: 설정창 */}
-        <div className="col-span-3 space-y-3">
-          <FleetSettings 
-            sailors={sailors}
-            admiralSearch={admiralSearch}
-            setAdmiralSearch={setAdmiralSearch}
-            isAdmiralListOpen={isAdmiralListOpen}
-            setIsAdmiralListOpen={setIsAdmiralListOpen}
-            selectedAdmiral={selectedAdmiral}
-            setSelectedAdmiral={setSelectedAdmiral}
-            fleetConfig={fleetConfig}
-            setFleetConfig={setFleetConfig}
-          />
-
-          <CrewManager 
-            sailors={sailors}
-            essentialIds={essentialIds} setEssentialIds={setEssentialIds}
-            bannedIds={bannedIds} setBannedIds={setBannedIds}
-            crewSearch={crewSearch} setCrewSearch={setCrewSearch}
-            isCrewSearchOpen={isCrewSearchOpen} setIsCrewSearchOpen={setIsCrewSearchOpen}
-            /* [수정] 자식 컴포넌트 타입에 맞춰 options, setOptions 전달 제거 */
-          />
+        {/* 교역 매니저 (Disabled) */}
+        <div className="group relative rounded-3xl p-[1px] bg-gradient-to-b from-slate-800 to-slate-900 opacity-50 cursor-not-allowed overflow-hidden">
+          <div className="h-full w-full bg-[#0a0f16] rounded-[23px] py-10 px-8 flex flex-col items-center text-center space-y-6 relative border-t border-slate-800">
+            <div className="p-5 bg-emerald-500/10 rounded-2xl text-emerald-500 ring-1 ring-emerald-500/30 grayscale transition-all">
+              <Ship size={48} />
+            </div>
+            <div className="space-y-4">
+              <h2 className="text-2xl font-black text-slate-300 tracking-tight">교역 매니저</h2>
+              <p className="text-sm text-slate-500 leading-relaxed font-medium">수익을 극대화하는 교역품과 항로에 맞춘 완벽한 교역 함대를 설정합니다.</p>
+            </div>
+            <div className="mt-auto pt-8">
+              <span className="inline-flex items-center justify-center px-5 py-2 rounded-full bg-slate-800/80 text-xs font-bold text-slate-500 border border-slate-700/50 shadow-inner">
+                개발 중 (Coming Soon)
+              </span>
+            </div>
+          </div>
         </div>
+      </div>
+      
+      <div className="mt-12 text-slate-500 text-sm flex items-center justify-center gap-3 font-medium w-full relative z-10">
+        <span>Developer <b>고든이고든요</b></span>
+      </div>
 
-        {/* 우측: 대시보드 및 결과 */}
-        <div className="col-span-9 space-y-3">
-          <SkillSettings targetLevels={targetLevels} setTargetLevels={setTargetLevels} />
-          <SkillDashboard result={result} targetLevels={targetLevels} />
-          
-          <FleetDisplay 
-            result={result} 
-            fleetConfig={fleetConfig} 
-            onBan={handleBanFromDeck} 
-          />
-        </div>
-      </main>
+      {/* Global styles for animations */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(200%); }
+        }
+      `}} />
     </div>
   );
 }

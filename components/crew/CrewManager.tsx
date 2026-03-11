@@ -63,19 +63,19 @@ export default function CrewManager({
   };
 
   return (
-    <div className="relative z-10">
-      {/* [수정] 배너: 인원 설정 (기존 배치 설정 제거) */}
-      <div className="bg-indigo-600 px-4 py-2 rounded-t-xl border-b-2 border-indigo-400 shadow-lg">
-        <h2 className="text-[13px] font-black text-white uppercase tracking-widest flex items-center gap-2">
-          <Users size={16} strokeWidth={2.5} />
+    <div className="relative z-10 w-full mb-4">
+      {/* 배너: 인원 설정 */}
+      <div className="bg-indigo-600 px-4 py-3 sm:py-2 rounded-t-xl border-b-2 border-indigo-400 shadow-lg">
+        <h2 className="text-[14px] sm:text-[13px] font-black text-white uppercase tracking-widest flex items-center gap-2">
+          <Users size={18} strokeWidth={2.5} className="sm:w-4 sm:h-4" />
           인원 설정 (Crew Management)
         </h2>
       </div>
 
-      <div className="bg-slate-900/90 rounded-b-xl p-4 border border-white/5 backdrop-blur-md">
+      <div className="bg-slate-900/90 rounded-b-xl p-4 sm:p-5 border border-white/5 backdrop-blur-md">
         
-        {/* 1. 필수/금지 항해사 관리 (기존 자동 충원 옵션 섹션 삭제됨) */}
-        <div>
+        {/* 1. 필수/금지 항해사 관리 */}
+        <div className="space-y-4">
           <CrewSearch 
             search={crewSearch}
             setSearch={setCrewSearch}
@@ -84,13 +84,15 @@ export default function CrewManager({
             filtered={filteredCrews}
             onAdd={addEssential}
           />
-          <StatusLists 
-            sailors={sailors}
-            essentialIds={essentialIds}
-            bannedIds={bannedIds}
-            onRemoveEssential={removeEssential}
-            onRemoveBanned={removeBanned}
-          />
+          <div className="pt-2">
+            <StatusLists 
+              sailors={sailors}
+              essentialIds={essentialIds}
+              bannedIds={bannedIds}
+              onRemoveEssential={removeEssential}
+              onRemoveBanned={removeBanned}
+            />
+          </div>
         </div>
 
       </div>

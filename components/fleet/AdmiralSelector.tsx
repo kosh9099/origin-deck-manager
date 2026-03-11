@@ -71,8 +71,8 @@ export default function AdmiralSelector({
   return (
     <div className="relative z-[50]" ref={containerRef}>
       <div className="bg-amber-500 px-4 py-2 rounded-t-xl border-b-2 border-amber-300 shadow-lg relative z-[52]">
-        <h2 className="text-[13px] font-black text-amber-950 uppercase tracking-widest flex items-center gap-2">
-          <Crown size={16} strokeWidth={2.5} />
+        <h2 className="text-[13px] font-black text-amber-950 uppercase tracking-widest flex items-center gap-2 whitespace-nowrap">
+          <Crown size={16} strokeWidth={2.5} className="shrink-0" />
           선장 설정 (Admiral)
         </h2>
       </div>
