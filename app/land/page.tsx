@@ -159,57 +159,66 @@ export default function FleetMasterV2() {
 
       {/* --- 사이드바 (PC에서는 항시 표출, 모바일에서는 드로워 작동) --- */}
       <aside className={`
-        fixed md:sticky top-0 left-0 h-full w-72 bg-slate-900 border-r border-white/10 p-5 z-[110]
+        fixed md:sticky top-0 left-0 h-full w-64 bg-slate-900/50 border-r border-white/5 backdrop-blur-md z-[110]
         transform transition-transform duration-300 ease-in-out flex flex-col
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
         {/* 모바일 닫기 버튼 */}
-        <div className="md:hidden flex justify-end mb-4">
-          <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-400 hover:text-white">
-            <X size={24} />
+        <div className="md:hidden flex justify-end p-4">
+          <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-400 hover:text-white bg-white/5 rounded-lg border border-white/10">
+            <X size={20} />
           </button>
         </div>
 
         {/* 사이드바 헤더 (PC) */}
-        <div className="hidden md:flex flex-col gap-1 mb-8">
-          <h1 className="text-3xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-orange-400 to-indigo-400 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] py-1 pr-2">
-            육탐 매니저 V3
-          </h1>
-          <span className="text-xs font-bold text-slate-400 tracking-wide ml-1">by 고든이고든요</span>
+        <div className="p-6 border-b border-white/5 hidden md:block">
+          <Link href="/" className="inline-block group pb-1">
+            <h1 className="text-2xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-orange-400 to-indigo-400 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] flex items-center gap-2 group-hover:scale-105 transition-transform">
+              <Anchor className="text-amber-400 shrink-0" size={24} />
+              육탐 매니저 V3
+            </h1>
+          </Link>
+          <p className="text-xs text-slate-400 mt-2 font-medium tracking-wide">
+            함대 최적화 및 모험 스킬 분석
+          </p>
         </div>
 
         {/* 네비게이션 메뉴 */}
-        <nav className="flex flex-col gap-2 flex-grow">
-          <Link href="/" className="mb-4 inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors w-full text-sm font-semibold bg-slate-800/30 px-4 py-3 rounded-xl border border-slate-700/50 hover:bg-slate-700/50">
-            <Home size={18} /> 메인으로 돌아가기
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-700">
+          <Link 
+            href="/" 
+            className="flex items-center gap-3 w-full p-3 rounded-xl text-left text-sm font-bold transition-all text-slate-400 hover:bg-white/5 hover:text-white mb-4"
+          >
+            <Home size={18} className="shrink-0" /> 
+            <span className="truncate">메인으로 돌아가기</span>
           </Link>
           
-          <div className="h-px bg-white/10 w-full my-2"></div>
+          <div className="text-xs font-black text-slate-500 uppercase tracking-widest pl-2 mb-2">관리 메뉴</div>
 
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => handleTabChange(item.id)}
               className={`
-                flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition-all text-left
+                flex items-center gap-3 w-full p-3 rounded-xl text-left text-sm font-bold transition-all
                 ${activeTab === item.id 
-                  ? 'bg-gradient-to-r from-indigo-500/20 to-indigo-500/5 border border-indigo-500/30 text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.15)]' 
-                  : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}
+                  ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/10 text-amber-300 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)]' 
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white border border-transparent'}
               `}
             >
-              <div className={activeTab === item.id ? 'text-indigo-400' : 'text-slate-500'}>
+              <span className={`shrink-0 ${activeTab === item.id ? 'text-amber-400' : ''}`}>
                 {item.icon}
-              </div>
-              {item.label}
+              </span>
+              <span className="truncate">{item.label}</span>
             </button>
           ))}
         </nav>
 
         {/* 계산 시작 버튼 (사이드바 하단 고정) */}
-        <div className="mt-8 pt-4 border-t border-white/10">
+        <div className="mt-auto p-4 border-t border-white/5">
           <button 
             onClick={handleStart} 
-            className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl font-black text-lg text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] border border-blue-400/30 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 group"
+            className="w-full py-4 bg-gradient-to-r from-amber-600 to-orange-600 rounded-xl font-black text-lg text-white shadow-[0_0_20px_rgba(245,158,11,0.3)] border border-amber-400/30 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 group"
           >
             <Play size={20} fill="currentColor" className="group-hover:scale-110 transition-transform" />
             덱 생성 START

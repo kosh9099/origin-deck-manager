@@ -77,9 +77,9 @@ export default function TradeManagerPage() {
         </nav>
       </aside>
 
-      {/* 2. Mobile Header & Drawer */}
+      {/* 2. Mobile Header */}
       <div className="md:hidden flex flex-col z-30 shrink-0">
-        <header className="bg-slate-900/80 backdrop-blur-md border-b border-white/5 p-4 flex justify-between items-center shadow-lg">
+        <header className="bg-slate-900/50 backdrop-blur-md border-b border-white/5 p-4 flex justify-between items-center shadow-lg">
           <Link href="/" className="flex items-center gap-2">
             <Anchor className="text-emerald-400" size={20} />
             <h1 className="text-xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-500">
@@ -94,50 +94,9 @@ export default function TradeManagerPage() {
           </button>
         </header>
 
-        {/* Mobile Drawer Overlay */}
+        {/* Mobile Overlay */}
         {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-40 flex">
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
-            
-            <div className="relative w-[280px] max-w-[80vw] h-full bg-slate-900 border-r border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-left duration-300">
-              <div className="p-5 border-b border-white/5 flex justify-between items-center bg-slate-800/50">
-                <span className="text-sm font-black text-slate-300 uppercase tracking-widest">교역 메뉴</span>
-                <button 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-1.5 bg-white/5 rounded-md text-slate-400 hover:text-white transition-colors border border-white/10"
-                >
-                  <ArrowLeft size={16} />
-                </button>
-              </div>
-              
-              <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                <Link 
-                  href="/"
-                  className="flex items-center gap-3 w-full p-3 rounded-xl text-left text-sm font-bold transition-all text-slate-400 hover:bg-white/5 hover:text-white mb-4 bg-black/20"
-                >
-                  <Home size={18} />
-                  <span>메인으로 돌아가기</span>
-                </Link>
-
-                {navItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => handleTabChange(item.id)}
-                    className={`flex items-center gap-3 w-full p-3 rounded-xl text-left text-[15px] font-bold transition-all ${
-                      activeTab === item.id 
-                      ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-300 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.15)]' 
-                      : 'text-slate-400 hover:bg-white/5 hover:text-white border border-transparent'
-                    }`}
-                  >
-                    <span className={`${activeTab === item.id ? 'text-emerald-400' : ''}`}>
-                      {item.icon}
-                    </span>
-                    <span>{item.label}</span>
-                  </button>
-                ))}
-            </div>
-            </div>
-          </div>
+          <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
         )}
       </div>
 

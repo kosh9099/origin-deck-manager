@@ -43,7 +43,7 @@ export default function TradeDashboard() {
         // Items 병합 (부양 + 자동 대유행 모두 매칭)
         const allEvents = [...autoGenEvents, ...boostEvents];
         
-        dbItems.forEach(dbItem => {
+        dbItems.forEach((dbItem: any) => {
           const targetEvent = allEvents.find(e => e.id === dbItem.schedule_id);
           if (targetEvent) {
              targetEvent.items.push({
@@ -91,7 +91,7 @@ export default function TradeDashboard() {
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'trade_boosts' },
-          (payload) => {
+          (payload: any) => {
              console.log("New Boost Detected:", payload);
              // 구조가 바뀌었으므로 깔끔하게 전체 리로드 트리거 (간단 구현)
              // 의존성을 위해 fetchData 자체를 외부에 빼거나 reload 상태를 토글하는 방식으로 할 수 있지만,
@@ -102,7 +102,7 @@ export default function TradeDashboard() {
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'trade_items' },
-          (payload) => {
+          (payload: any) => {
              console.log("Item/Vote Changed:", payload);
              if (payload.eventType === 'UPDATE') {
                 handleVoteOptimistic(
