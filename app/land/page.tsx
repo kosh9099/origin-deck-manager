@@ -60,7 +60,50 @@ export default function FleetMasterV2() {
       if (error) {
         console.error("❌ 데이터 보급 실패:", error);
       } else {
-        setSailors(data || []);
+        const targetSkills = [
+          "투쟁적인 탐험가", "호전적인 탐험가", "꼼꼼한 탐험가", "주의깊은 탐험가", "성실한 탐험가", "부지런한 탐험가",
+          "험지 평정", "전투적인 채집", "전투적인 관찰", "해적 척결", "맹수 척결", "해적 사냥", "맹수 사냥",
+          "관찰 공부", "관측 후 채집", "관측 후 전투", "생물 관찰", "관찰 채집", "험지 관찰", "관찰 심화",
+          "생물 채집", "채집 우선 전투", "채집 우선 관찰", "험지 채집", "채집 심화", "채집 공부", "탐사의 기본"
+        ];
+        
+        const skillCols = [
+          'Lv 10 직업 효과', 'Lv 10 직업 효과.1', 'Lv 30 인물 효과', 'Lv 30 인물 효과.1',
+          'LV 50 직업 효과', 'LV 50 직업 효과.1', 'LV 70 인물 효과', 'LV 70 인물 효과.1',
+          '잠재 효과 1', '잠재 효과 2', '인연 연대기 추가 효과 1', '인연 연대기 추가 효과 2'
+        ];
+
+        const getLv = (val: any, skillName: string) => {
+          if (!val) return 0;
+          const strVal = String(val).trim();
+          if (strVal.includes(skillName)) {
+            if (strVal.includes("LV2") || strVal.includes("LV 2")) return 2;
+            return 1;
+          }
+          return 0;
+        };
+
+        const processedData = (data || []).map((row, index) => {
+          const item: any = { ...row };
+          // DB에서 id가 안 넘어오면 index를 사용해 고유값 보장
+          if (!item.id && item.id !== 0) {
+            item.id = index + 1;
+          }
+          item.제독여부 = String(row['등급']).trim() === 'S+';
+          
+          for (const skill of targetSkills) {
+            let lv = 0;
+            for (const col of skillCols) {
+              if (row[col]) {
+                lv = Math.max(lv, getLv(row[col], skill));
+              }
+            }
+            item[skill] = lv;
+          }
+          return item;
+        });
+
+        setSailors(processedData);
       }
     }
     fetchSailors();
@@ -68,6 +111,12 @@ export default function FleetMasterV2() {
 
   // --- 4. 엔진 가동 함수 ---
   const handleStart = () => {
+    console.log("Selected Admiral ID:", selectedAdmiral);
+    console.log("Total Sailors:", sailors.length);
+    if (selectedAdmiral) {
+      console.log("Admiral in sailors?", sailors.some(s => s.id === selectedAdmiral));
+      console.log("Admiral from sailors list:", sailors.find(s => s.id === selectedAdmiral));
+    }
     if (!selectedAdmiral) {
       alert("선장(제독)을 먼저 선택해야 함대가 출항할 수 있습니다!");
       return;

@@ -109,7 +109,7 @@ export default function AdmiralSelector({
 
                   return (
                     <div 
-                      key={adm.id}
+                      key={adm.id || adm.이름 || index}
                       onMouseDown={(e) => { 
                         e.preventDefault();
                         onSelect(adm.id);
