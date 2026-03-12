@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { 
+import {
   Home, Menu, X, Anchor, ArrowLeft, Download, RefreshCw, HandHeart
 } from 'lucide-react';
 import TradeDashboard from '@/components/trade/TradeDashboard';
@@ -32,7 +32,7 @@ export default function TradeManagerPage() {
 
   return (
     <div className="min-h-screen bg-[#05070a] text-slate-100 font-sans flex flex-col md:flex-row h-screen overflow-hidden">
-      
+
       {/* 1. Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-64 bg-slate-900/50 border-r border-white/5 backdrop-blur-md z-20 shrink-0">
         <div className="p-6 border-b border-white/5">
@@ -48,7 +48,7 @@ export default function TradeManagerPage() {
         </div>
 
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-700">
-          <Link 
+          <Link
             href="/"
             className="flex items-center gap-3 w-full p-3 rounded-xl text-left text-sm font-bold transition-all text-slate-400 hover:bg-white/5 hover:text-white mb-4"
           >
@@ -57,16 +57,15 @@ export default function TradeManagerPage() {
           </Link>
 
           <div className="text-xs font-black text-slate-500 uppercase tracking-widest pl-2 mb-2">교역 메뉴</div>
-          
+
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => handleTabChange(item.id)}
-              className={`flex items-center gap-3 w-full p-3 rounded-xl text-left text-sm font-bold transition-all ${
-                activeTab === item.id 
-                ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-300 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.15)]' 
-                : 'text-slate-400 hover:bg-white/5 hover:text-white border border-transparent'
-              }`}
+              className={`flex items-center gap-3 w-full p-3 rounded-xl text-left text-sm font-bold transition-all ${activeTab === item.id
+                  ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-300 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white border border-transparent'
+                }`}
             >
               <span className={`shrink-0 ${activeTab === item.id ? 'text-emerald-400' : ''}`}>
                 {item.icon}
@@ -86,7 +85,7 @@ export default function TradeManagerPage() {
               교역 매니저 V1
             </h1>
           </Link>
-          <button 
+          <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="p-2 bg-white/5 rounded-lg text-slate-300 hover:text-white transition-colors border border-white/10 active:scale-95"
           >
@@ -103,7 +102,7 @@ export default function TradeManagerPage() {
       {/* 3. Main Content Area */}
       <main className="flex-1 overflow-y-auto bg-gradient-to-b from-[#05070a] to-[#0a0f16] p-4 md:p-6 lg:p-8 flex flex-col w-full relative">
         <div className="max-w-[1400px] w-full mx-auto relative z-10 space-y-4 md:space-y-6 flex-1 flex flex-col pb-20 md:pb-0">
-          
+
           {/* Top Feature Bar & Controls */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-2">
             <div>
@@ -111,12 +110,12 @@ export default function TradeManagerPage() {
                 {activeTab === 'dashboard' ? '교역 스케줄' : '부양 등록 / 관리'}
               </h2>
               <p className="text-sm text-slate-400 mt-1 font-medium">
-                {activeTab === 'dashboard' ? '향후 36시간 대유행 및 실시간 제보 연동 병합 시간표' : '본인이 직접 발동한 부양 스케줄을 공유하세요.'}
+                {activeTab === 'dashboard' ? '향후 12시간 대유행 및 실시간 제보 연동 병합 시간표' : '본인이 직접 발동한 부양 스케줄을 공유하세요.'}
               </p>
             </div>
-            
+
             {activeTab === 'dashboard' && (
-              <button 
+              <button
                 onClick={handleCapture}
                 className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-[0_4px_15px_rgba(79,70,229,0.4)] transition-all active:scale-95 w-full sm:w-auto justify-center group shrink-0"
               >
@@ -131,18 +130,18 @@ export default function TradeManagerPage() {
             {activeTab === 'dashboard' && (
               <TradeDashboard />
             )}
-            
+
             {activeTab === 'boosts' && (
               <div className="flex justify-center items-center h-full w-full py-10 md:py-20 overflow-y-auto">
-                 <BoostForm />
+                <BoostForm />
               </div>
             )}
-            
+
           </div>
 
         </div>
       </main>
-      
+
     </div>
   );
 }

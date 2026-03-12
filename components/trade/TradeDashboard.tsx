@@ -17,13 +17,13 @@ export default function TradeDashboard() {
 
     async function fetchData() {
       // (1) 대유행 생성
-      const autoGenEvents = generateEpidemicSchedules(36);
-      
+      const autoGenEvents = generateEpidemicSchedules(12);
+
       try {
         // (2) 부양 & 아이템 가져오기
         const { getActiveBoosts, getTradeItems } = await import('@/lib/supabaseClient');
         const [dbBoosts, dbItems] = await Promise.all([
-          getActiveBoosts().catch(() => []), 
+          getActiveBoosts().catch(() => []),
           getTradeItems().catch(() => [])
         ]);
 
@@ -42,18 +42,18 @@ export default function TradeDashboard() {
 
         // Items 병합 (부양 + 자동 대유행 모두 매칭)
         const allEvents = [...autoGenEvents, ...boostEvents];
-        
+
         dbItems.forEach((dbItem: any) => {
           const targetEvent = allEvents.find(e => e.id === dbItem.schedule_id);
           if (targetEvent) {
-             targetEvent.items.push({
-               id: dbItem.id,
-               name: dbItem.item_name,
-               upvotes: dbItem.upvotes,
-               downvotes: dbItem.downvotes,
-               // isUserVoted는 ItemVotePanel 렌더링 시점에 LocalStorage에서 판단 처리
-               isUserVoted: null
-             });
+            targetEvent.items.push({
+              id: dbItem.id,
+              name: dbItem.item_name,
+              upvotes: dbItem.upvotes,
+              downvotes: dbItem.downvotes,
+              // isUserVoted는 ItemVotePanel 렌더링 시점에 LocalStorage에서 판단 처리
+              isUserVoted: null
+            });
           }
         });
 
@@ -82,49 +82,49 @@ export default function TradeDashboard() {
 
     // Supabase 인스턴스 지연 로드
     const setupSubscriptions = async () => {
-       const { supabase } = await import('@/lib/supabaseClient');
-       
-       if (!active) return;
-       
-       const channel = supabase
+      const { supabase } = await import('@/lib/supabaseClient');
+
+      if (!active) return;
+
+      const channel = supabase
         .channel('trade_changes')
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'trade_boosts' },
           (payload: any) => {
-             console.log("New Boost Detected:", payload);
-             // 구조가 바뀌었으므로 깔끔하게 전체 리로드 트리거 (간단 구현)
-             // 의존성을 위해 fetchData 자체를 외부에 빼거나 reload 상태를 토글하는 방식으로 할 수 있지만,
-             // 여기선 간단하게 페이지 새로고침을 유도하거나 상태 토글 플래그를 추가.
-             // V1 목적에 맞게 단순 알림 처리 후 추후 리팩토링 대비.
+            console.log("New Boost Detected:", payload);
+            // 구조가 바뀌었으므로 깔끔하게 전체 리로드 트리거 (간단 구현)
+            // 의존성을 위해 fetchData 자체를 외부에 빼거나 reload 상태를 토글하는 방식으로 할 수 있지만,
+            // 여기선 간단하게 페이지 새로고침을 유도하거나 상태 토글 플래그를 추가.
+            // V1 목적에 맞게 단순 알림 처리 후 추후 리팩토링 대비.
           }
         )
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'trade_items' },
           (payload: any) => {
-             console.log("Item/Vote Changed:", payload);
-             if (payload.eventType === 'UPDATE') {
-                handleVoteOptimistic(
-                  payload.new.schedule_id, 
-                  payload.new.id, 
-                  payload.new.upvotes > (payload.old as any).upvotes // up이 증가했으면 true, 아니면 false 간접추정
-                );
-             }
+            console.log("Item/Vote Changed:", payload);
+            if (payload.eventType === 'UPDATE') {
+              handleVoteOptimistic(
+                payload.new.schedule_id,
+                payload.new.id,
+                payload.new.upvotes > (payload.old as any).upvotes // up이 증가했으면 true, 아니면 false 간접추정
+              );
+            }
           }
         )
         .subscribe();
-        
-        return () => {
-           supabase.removeChannel(channel);
-        };
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     };
-    
+
     let cleanupFunc: (() => void) | void;
     setupSubscriptions().then(cleanup => { cleanupFunc = cleanup; });
 
-    return () => { 
-      active = false; 
+    return () => {
+      active = false;
       if (cleanupFunc) cleanupFunc();
     };
   }, []);
@@ -162,7 +162,7 @@ export default function TradeDashboard() {
   // 부양 삭제 (낙관적 UI 반영된 래퍼)
   const handleDeleteBoost = async (eventId: string) => {
     if (!window.confirm("이 일정을 삭제하시겠습니까?")) return;
-    
+
     // 낙관적 UI 업데이트
     setEvents(prev => prev.filter(ev => ev.id !== eventId));
 
@@ -195,7 +195,7 @@ export default function TradeDashboard() {
         setViewMode('table');
       }
     };
-    
+
     handleResize(); // 초기화
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -203,7 +203,7 @@ export default function TradeDashboard() {
 
   return (
     <div className="w-full flex-1 flex flex-col h-full relative" id="trade-dashboard-capture-area">
-      
+
       {/* 캡처 타이틀 헤더 영역 (캡처 시 표기됨) */}
       <div className="bg-gradient-to-r from-emerald-900/60 to-slate-900 p-4 rounded-xl border border-emerald-500/20 mb-4 shadow-lg flex items-center justify-between shrink-0 flex-wrap gap-2">
         <div>
@@ -215,21 +215,21 @@ export default function TradeDashboard() {
             <span>대유행 예측 및 유저 공유 부양 일정</span>
           </p>
         </div>
-        
+
         <div className="flex flex-col items-end gap-2">
           <span className="text-[11px] font-bold text-slate-500 bg-slate-800/80 px-2 py-1 rounded">
             기준 시각: {new Date().toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
           </span>
           <div className="flex bg-slate-800/80 rounded-xl p-1 border border-white/5 shadow-inner">
             <button
-               onClick={() => setViewMode('table')}
-               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'table' ? 'bg-emerald-500/20 text-emerald-400 shadow' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              onClick={() => setViewMode('table')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'table' ? 'bg-emerald-500/20 text-emerald-400 shadow' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
             >
               PC 뷰
             </button>
             <button
-               onClick={() => setViewMode('cards')}
-               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'cards' ? 'bg-emerald-500/20 text-emerald-400 shadow' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              onClick={() => setViewMode('cards')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'cards' ? 'bg-emerald-500/20 text-emerald-400 shadow' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
             >
               모바일 뷰
             </button>
@@ -244,27 +244,27 @@ export default function TradeDashboard() {
           </div>
         ) : (
           <div className="w-full animate-in fade-in duration-500">
-             {viewMode === 'table' ? (
-               <div className="block">
-                 <ScheduleTable 
-                    events={events} 
-                    onVoteOptimistic={handleVoteOptimistic}
-                    onAddOptimistic={handleAddOptimistic}
-                    onDeleteBoost={handleDeleteBoost}
-                    onDeleteItem={handleDeleteItem}
-                 />
-               </div>
-             ) : (
-               <div className="block">
-                 <ScheduleCards 
-                    events={events} 
-                    onVoteOptimistic={handleVoteOptimistic}
-                    onAddOptimistic={handleAddOptimistic}
-                    onDeleteBoost={handleDeleteBoost}
-                    onDeleteItem={handleDeleteItem}
-                 />
-               </div>
-             )}
+            {viewMode === 'table' ? (
+              <div className="block">
+                <ScheduleTable
+                  events={events}
+                  onVoteOptimistic={handleVoteOptimistic}
+                  onAddOptimistic={handleAddOptimistic}
+                  onDeleteBoost={handleDeleteBoost}
+                  onDeleteItem={handleDeleteItem}
+                />
+              </div>
+            ) : (
+              <div className="block">
+                <ScheduleCards
+                  events={events}
+                  onVoteOptimistic={handleVoteOptimistic}
+                  onAddOptimistic={handleAddOptimistic}
+                  onDeleteBoost={handleDeleteBoost}
+                  onDeleteItem={handleDeleteItem}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
