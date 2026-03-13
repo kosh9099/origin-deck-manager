@@ -16,7 +16,7 @@ const managers = [
     active: false,
   },
   {
-    href: '/land',
+    href: null,
     icon: Map,
     iconColor: 'text-amber-400',
     iconBg: 'bg-amber-500/15',
@@ -24,8 +24,8 @@ const managers = [
     gradient: 'from-amber-400 via-orange-500 to-rose-500',
     label: '육탐 매니저',
     desc: '육지 탐색 특화 함대 구성 및 모험 스킬 최적화.',
-    badge: null,
-    active: true,
+    badge: '긴급 점검 중',
+    active: false,
     glow: 'shadow-[0_0_40px_rgba(245,158,11,0.25)] hover:shadow-[0_0_70px_rgba(245,158,11,0.45)]',
   },
   {
@@ -127,7 +127,8 @@ export default function Home() {
         Developer <b className="text-slate-500">고든이고든요</b>
       </p>
 
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes shimmer { 0% { transform: translateX(-100%) skewX(-12deg); } 100% { transform: translateX(300%) skewX(-12deg); } }
       `}} />
     </div>
