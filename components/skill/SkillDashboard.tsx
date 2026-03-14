@@ -14,18 +14,15 @@ interface Props {
 }
 
 export default function SkillDashboard({ result, targetLevels = {} }: Props) {
-  
-  // [계산] 스킬 레벨 합계 및 능력치 총합 계산
+
   const { skillTotals, statSummary } = useMemo(() => {
-    // 1. 결과가 없을 때의 기본값
     if (!result?.ships) {
-      return { 
-        skillTotals: {}, 
-        statSummary: { combat: 0, observation: 0, gathering: 0, loot: 0, pirate: 0, beast: 0 } 
+      return {
+        skillTotals: {},
+        statSummary: { combat: 0, observation: 0, gathering: 0, loot: 0, pirate: 0, beast: 0 }
       };
     }
 
-    // 2. 현재 함대에 탑승한 모든 항해사 리스트 평탄화
     const allCrew: any[] = [];
     result.ships.forEach((ship: any) => {
       if (ship.admiral) allCrew.push(ship.admiral);
@@ -33,18 +30,16 @@ export default function SkillDashboard({ result, targetLevels = {} }: Props) {
       if (ship.combat) ship.combat.filter(Boolean).forEach((s: any) => allCrew.push(s));
     });
 
-    // 3. 중앙 집중형 계산기 호출 (Clamping 완료된 상태)
     const totals = calculateFleetSkills(allCrew);
 
-    // 4. 합산된 최종 레벨을 기반으로 함대 전체 부가 능력치 환산
-    const stats: SkillStat = { 
-      combat: 0, observation: 0, gathering: 0, 
-      loot: 0, pirate: 0, beast: 0 
+    const stats: SkillStat = {
+      combat: 0, observation: 0, gathering: 0,
+      loot: 0, pirate: 0, beast: 0
     };
 
     Object.entries(totals).forEach(([sk, level]) => {
       const effectiveLevel = Number(level);
-      if (effectiveLevel > 0 && SKILL_STATS[sk] && SKILL_STATS[sk][effectiveLevel as keyof typeof SKILL_STATS[string]]) {
+      if (effectiveLevel > 0 && SKILL_STATS[sk]?.[effectiveLevel as keyof typeof SKILL_STATS[string]]) {
         const s = SKILL_STATS[sk][effectiveLevel as keyof typeof SKILL_STATS[string]];
         stats.combat += s.combat;
         stats.observation += s.observation;
@@ -67,22 +62,23 @@ export default function SkillDashboard({ result, targetLevels = {} }: Props) {
 
   return (
     <div className="relative z-0 mt-4">
-      <div className="bg-[#E5D0AC] px-4 py-2 rounded-t-xl border-b-2 border-[#C8B28E] shadow-lg">
-        <h2 className="text-[13px] font-black text-[#5D4037] uppercase tracking-widest flex items-center gap-2">
+      {/* 패널 헤더 */}
+      <div className="bg-slate-700 px-4 py-2.5 rounded-t-xl border-b-2 border-slate-600 shadow-sm">
+        <h2 className="text-[13px] font-black text-white uppercase tracking-widest flex items-center gap-2">
           <BarChart2 size={16} strokeWidth={2.5} />
           스킬 현황 (Skill Status)
         </h2>
       </div>
 
-      <div className="bg-slate-900/90 rounded-b-xl p-3 border border-white/5 backdrop-blur-md shadow-2xl">
+      <div className="bg-slate-50 rounded-b-xl p-3 border border-slate-200 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
           {categories.map(cat => (
-            <SkillCategoryCard 
-              key={cat.name} 
-              title={cat.name} 
-              skills={cat.skills} 
-              totals={skillTotals} // 이제 초과된 숫자가 그대로 전달됩니다.
-              targets={targetLevels} 
+            <SkillCategoryCard
+              key={cat.name}
+              title={cat.name}
+              skills={cat.skills}
+              totals={skillTotals}
+              targets={targetLevels}
             />
           ))}
           <StatSummaryCard stats={statSummary} />

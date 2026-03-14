@@ -81,7 +81,12 @@ export function getSailorStatContribution(
 
     if (!statsAfter) continue;
 
-    result.combat += statsAfter.combat - (statsBefore?.combat ?? 0);
+    // [Fix] pirate와 beast도 전투 비중에 포함
+    // → 해적 척결/사냥, 맹수 척결/사냥은 SKILL_STATS에서 combat=0, pirate/beast에만 기여
+    // → 사용자가 "전투 비중"을 올리면 이 스킬들도 우선 배치되어야 함
+    result.combat += (statsAfter.combat - (statsBefore?.combat ?? 0))
+      + (statsAfter.pirate - (statsBefore?.pirate ?? 0))
+      + (statsAfter.beast - (statsBefore?.beast ?? 0));
     result.observation += statsAfter.observation - (statsBefore?.observation ?? 0);
     result.gathering += statsAfter.gathering - (statsBefore?.gathering ?? 0);
   }
@@ -153,42 +158,55 @@ export function calculateTierScore(
 /**
  * [모드 B — 능력치 종합 설정]
  * 전투/관찰/채집 비중 가중치 기반 배치 점수를 반환합니다.
- * contributesToTarget 게이트 없음 — 슬롯을 꽉 채우는 방향으로 동작합니다.
+ *
+ * 점수 구조:
+ *   1순위 — 사용자 비중에 따른 능력치 기여 점수 (statScore)
+ *   2순위 — 등급 보너스 (동점자 처리)
+ *
+ * [Fix] 전리품 스킬 항해사 처리:
+ *   전리품 스킬은 combat/observation/gathering에 직접 기여하지 않음
+ *   → contrib 합이 0이어도 탈락시키지 않고 최저 등급 점수 부여
+ *   → 비중 기여 항해사들이 먼저 배치되고, 남은 슬롯을 전리품 항해사가 채움
  */
 export function calculateStatWeightScore(
   sailor: Sailor,
   currentLevels: Record<string, number>,
   statConfig: StatWeightConfig
 ): number {
-  // 육탐 스킬이 하나라도 없으면 배제
+  // 육탐 스킬이 하나도 없으면 완전 배제
   const hasExpSkill = Object.keys(SKILL_MAX_LEVELS).some(
     sk => getSailorSkillLevel(sailor, sk) > 0
   );
   if (!hasExpSkill) return -1;
 
   const contrib = getSailorStatContribution(sailor, currentLevels);
-
-  // 기여가 전혀 없으면 배제 (모든 스킬이 이미 캡에 도달한 경우)
-  if (contrib.combat === 0 && contrib.observation === 0 && contrib.gathering === 0) return -1;
-
   const weightTotal = statConfig.combat + statConfig.observation + statConfig.gathering;
 
   let statScore = 0;
-  if (weightTotal > 0) {
-    // 비중(%)을 0~1 비율로 정규화해서 능력치 기여에 곱함
-    statScore =
-      contrib.combat * (statConfig.combat / weightTotal) +
-      contrib.observation * (statConfig.observation / weightTotal) +
-      contrib.gathering * (statConfig.gathering / weightTotal);
-  } else {
-    // 비중 미설정 시 단순 합산 (균등 취급)
-    statScore = contrib.combat + contrib.observation + contrib.gathering;
+
+  if (contrib.combat > 0 || contrib.observation > 0 || contrib.gathering > 0) {
+    // 능력치 기여가 있는 경우 → 비중 적용
+    if (weightTotal > 0) {
+      statScore =
+        contrib.combat * (statConfig.combat / weightTotal) +
+        contrib.observation * (statConfig.observation / weightTotal) +
+        contrib.gathering * (statConfig.gathering / weightTotal);
+    } else {
+      // 비중 미설정 시 단순 합산
+      statScore = contrib.combat + contrib.observation + contrib.gathering;
+    }
   }
+  // 능력치 기여 0 (전리품 스킬 등) → statScore = 0
+  // 탈락시키지 않고 등급 보너스만으로 최저 순위에 배치
 
-  const gradeScore = GRADE_RANK[sailor.등급] || 0;
+  // [스케일 설계]
+  // statScore * 10,000 → 능력치 1포인트 기여 = 10,000점
+  // gradeScore * 100   → S+(5,000) / S(4,000) / A(3,000) / B(2,000) / C(1,000)
+  //   → 같은 statScore일 때 등급 순서로 정렬
+  //   → statScore 차이가 있으면 등급이 역전되지 않음
+  const gradeScore = (GRADE_RANK[sailor.등급] || 0) * 100;
 
-  // 스킬 모드 기본점수(1,000,000)와 스케일 맞춤
-  return Math.max(1, 1_000_000 + statScore * 10_000 + gradeScore);
+  return Math.max(1, 1_000_000 + Math.round(statScore * 10_000) + gradeScore);
 }
 
 // 기존 인터페이스 유지

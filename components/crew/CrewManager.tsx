@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { Sailor } from '@/types';
 import CrewSearch from './CrewSearch';
 import StatusLists from './StatusLists';
-import { Users } from 'lucide-react'; // 아이콘 변경
+import { Users } from 'lucide-react';
 
 interface Props {
   sailors: Sailor[];
@@ -16,21 +16,18 @@ interface Props {
   setCrewSearch: (q: string) => void;
   isCrewSearchOpen: boolean;
   setIsCrewSearchOpen: (open: boolean) => void;
-  // options와 setOptions Props를 완전히 제거했습니다.
 }
 
-export default function CrewManager({ 
+export default function CrewManager({
   sailors,
-  essentialIds, setEssentialIds, 
-  bannedIds, setBannedIds, 
-  crewSearch, setCrewSearch, 
+  essentialIds, setEssentialIds,
+  bannedIds, setBannedIds,
+  crewSearch, setCrewSearch,
   isCrewSearchOpen, setIsCrewSearchOpen
 }: Props) {
 
-  // 검색 및 필터 로직
   const filteredCrews = useMemo(() => {
     const q = crewSearch.replace(/\s/g, "").toLowerCase();
-    
     return sailors
       .filter(s => !essentialIds.has(s.id) && !bannedIds.has(s.id))
       .filter(s => !q || s.이름.replace(/\s/g, "").toLowerCase().includes(q))
@@ -38,14 +35,13 @@ export default function CrewManager({
       .slice(0, 20);
   }, [sailors, crewSearch, essentialIds, bannedIds]);
 
-  // 필수 항해사 추가
   const addEssential = (id: number) => {
     const next = new Set(essentialIds);
     next.add(id);
     if (bannedIds.has(id)) {
-        const nextBan = new Set(bannedIds);
-        nextBan.delete(id);
-        setBannedIds(nextBan);
+      const nextBan = new Set(bannedIds);
+      nextBan.delete(id);
+      setBannedIds(nextBan);
     }
     setEssentialIds(next);
   };
@@ -64,19 +60,17 @@ export default function CrewManager({
 
   return (
     <div className="relative z-10 w-full mb-4">
-      {/* 배너: 인원 설정 */}
-      <div className="bg-indigo-600 px-4 py-3 sm:py-2 rounded-t-xl border-b-2 border-indigo-400 shadow-lg">
-        <h2 className="text-[14px] sm:text-[13px] font-black text-white uppercase tracking-widest flex items-center gap-2">
-          <Users size={18} strokeWidth={2.5} className="sm:w-4 sm:h-4" />
+      {/* 헤더 */}
+      <div className="bg-indigo-600 px-4 py-2.5 rounded-t-xl border-b-2 border-indigo-500 shadow-sm">
+        <h2 className="text-[13px] font-black text-white uppercase tracking-widest flex items-center gap-2">
+          <Users size={16} strokeWidth={2.5} />
           인원 설정 (Crew Management)
         </h2>
       </div>
 
-      <div className="bg-slate-900/90 rounded-b-xl p-4 sm:p-5 border border-white/5 backdrop-blur-md">
-        
-        {/* 1. 필수/금지 항해사 관리 */}
+      <div className="bg-slate-50 rounded-b-xl p-4 border border-slate-200">
         <div className="space-y-4">
-          <CrewSearch 
+          <CrewSearch
             search={crewSearch}
             setSearch={setCrewSearch}
             isOpen={isCrewSearchOpen}
@@ -85,7 +79,7 @@ export default function CrewManager({
             onAdd={addEssential}
           />
           <div className="pt-2">
-            <StatusLists 
+            <StatusLists
               sailors={sailors}
               essentialIds={essentialIds}
               bannedIds={bannedIds}
@@ -94,7 +88,6 @@ export default function CrewManager({
             />
           </div>
         </div>
-
       </div>
     </div>
   );

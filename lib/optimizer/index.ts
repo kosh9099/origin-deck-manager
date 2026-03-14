@@ -69,6 +69,10 @@ export function autoDeployFleet(
     const getPriority = (s: Sailor, isCombatSlot: boolean): number => {
       if (usedIds.has(s.id)) return -1;
 
+      // [핵심 Fix] 목표 스킬이 하나도 설정되지 않은 경우
+      // → 필수 지정 항해사만 배치, 나머지는 전부 건너뜀
+      if (!hasActiveTargets && !essentialIds.has(s.id)) return -1;
+
       if (isCombatSlot) {
         if (s.타입 !== '전투') return -1;
         if (essentialIds.has(s.id)) return 20_000_000;
