@@ -19,7 +19,23 @@ const MAX_LEVELS: Record<string, number> = {
   '험지 채집': 2, '채집 심화': 5, '채집 공부': 10, '탐사의 기본': 10,
 };
 
-const CATEGORY_COLORS = {
+// ✅ 1. 어떤 색상이든 담을 수 있는 공통 컬러 테마 타입을 정의합니다.
+export interface CategoryColorTheme {
+  tab: string;
+  inactive: string;
+  header: string;
+  accent: string;
+  badge: string;
+  resetHover: string;
+  maxBadge: string;
+  rowHover: string;
+  btnActive: string;
+  btnBase: string;
+  valueActive: string;
+}
+
+// ✅ 2. CATEGORY_COLORS가 이 공통 타입을 따르도록 지정하고, 'as const'는 제거합니다.
+const CATEGORY_COLORS: Record<string, CategoryColorTheme> = {
   '전리품': {
     tab: 'bg-amber-500 text-white',
     inactive: 'bg-white text-amber-700 border border-amber-200 hover:bg-amber-50',
@@ -72,7 +88,7 @@ const CATEGORY_COLORS = {
     btnBase: 'bg-white text-green-600 border-green-200 hover:bg-green-50',
     valueActive: 'text-green-700 font-black',
   },
-} as const;
+};
 
 // ── 인라인 숫자 조절기 컴포넌트 ─────────────────────────────────
 interface NumberStepperProps {
@@ -80,7 +96,7 @@ interface NumberStepperProps {
   min: number;
   max: number;
   onChange: (val: number) => void;
-  colors: typeof CATEGORY_COLORS['전리품'];
+  colors: CategoryColorTheme; // ✅ 3. 특정 색상 객체가 아닌 범용 테마 타입을 받도록 수정합니다.
 }
 
 function NumberStepper({ value, min, max, onChange, colors }: NumberStepperProps) {
