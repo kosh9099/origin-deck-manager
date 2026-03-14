@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Sailor, ShipConfig, OptimizerOptions } from '@/types';
-import { autoDeployFleet } from '@/lib/optimizer';
-import { Play, Home, LayoutDashboard, Anchor, Users, Target, Menu, X, Camera } from 'lucide-react';
+import { autoDeployFleet, OptimizerMode } from '@/lib/optimizer';
+import { Play, Home, LayoutDashboard, Anchor, Users, Target, Menu, X, Camera, SlidersHorizontal, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 import { captureAndDownload } from '@/lib/utils/capture';
 
@@ -14,6 +14,7 @@ import CrewManager from '@/components/crew/CrewManager';
 import SkillSettings from '@/components/skill/SkillSettings';
 import SkillDashboard from '@/components/skill/SkillDashboard';
 import FleetDisplay from '@/components/display/FleetDisplay';
+import StatWeightSettings, { StatWeightConfig, DEFAULT_STAT_WEIGHT_CONFIG } from '@/components/skill/StatWeightSettings';
 
 type TabType = 'dashboard' | 'fleet' | 'crew' | 'skills';
 
@@ -24,17 +25,17 @@ export default function FleetMasterV2() {
 
   // --- 2. 상태 관리 (State) ---
   const [sailors, setSailors] = useState<Sailor[]>([]);
-  
+
   // 선장 설정 상태
   const [admiralSearch, setAdmiralSearch] = useState('');
   const [isAdmiralListOpen, setIsAdmiralListOpen] = useState(false);
   const [selectedAdmiral, setSelectedAdmiral] = useState<number | null>(null);
-  
+
   // 함대 설정 상태
   const [fleetConfig, setFleetConfig] = useState<ShipConfig[]>(
     Array.from({ length: 7 }, (_, i) => ({ id: i + 1, 총선실: 10, 전투선실: 3 }))
   );
-  
+
   // 엔진 계산을 위해 기본 설정값은 유지
   const [options, setOptions] = useState<OptimizerOptions>({
     includeBoarding: false,
@@ -44,7 +45,9 @@ export default function FleetMasterV2() {
   });
 
   // 스킬 및 결과 상태
+  const [optimizerMode, setOptimizerMode] = useState<OptimizerMode>('skill');
   const [targetLevels, setTargetLevels] = useState<Record<string, number>>({});
+  const [statConfig, setStatConfig] = useState<StatWeightConfig>(DEFAULT_STAT_WEIGHT_CONFIG);
   const [result, setResult] = useState<any>(null);
 
   // 필수/금지 항해사 및 검색 상태
@@ -60,7 +63,7 @@ export default function FleetMasterV2() {
       if (error) {
         console.error("❌ 데이터 보급 실패:", error);
       } else {
-        
+
         const processedData = (data || []).map((row, index) => {
           const item: any = { ...row };
           // DB에서 id가 안 넘어오면 index를 사용해 고유값 보장
@@ -99,12 +102,14 @@ export default function FleetMasterV2() {
         bannedIds,
         fleetConfig,
         selectedAdmiral,
+        optimizerMode,
         targetLevels,
-        options
+        options,
+        optimizerMode === 'stat' ? statConfig : undefined
       );
       setResult(res);
       setActiveTab('dashboard'); // 계산 완료 후 대시보드로 자동 이동
-      if(isMobileMenuOpen) setIsMobileMenuOpen(false);
+      if (isMobileMenuOpen) setIsMobileMenuOpen(false);
     } catch (error: any) {
       alert(error.message);
     }
@@ -127,8 +132,10 @@ export default function FleetMasterV2() {
           nextBan,
           fleetConfig,
           selectedAdmiral,
+          optimizerMode,
           targetLevels,
-          options
+          options,
+          optimizerMode === 'stat' ? statConfig : undefined
         );
         setResult(res);
       } catch (error: any) {
@@ -152,7 +159,7 @@ export default function FleetMasterV2() {
 
   return (
     <div className="min-h-screen bg-[#05070a] text-slate-100 font-sans flex flex-col md:flex-row">
-      
+
       {/* --- 모바일 헤더 --- */}
       <div className="md:hidden flex items-center justify-between p-4 border-b border-white/10 bg-slate-900 z-50 sticky top-0">
         <div className="flex items-end gap-2">
@@ -160,7 +167,7 @@ export default function FleetMasterV2() {
             육탐 V3
           </h1>
         </div>
-        <button 
+        <button
           onClick={() => setIsMobileMenuOpen(true)}
           className="p-2 bg-slate-800 rounded-lg text-white hover:bg-slate-700"
         >
@@ -170,7 +177,7 @@ export default function FleetMasterV2() {
 
       {/* --- 모바일 드로워 오버레이 --- */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="md:hidden fixed inset-0 bg-black/60 z-[100] backdrop-blur-sm"
           onClick={() => setIsMobileMenuOpen(false)}
         />
@@ -204,14 +211,14 @@ export default function FleetMasterV2() {
 
         {/* 네비게이션 메뉴 */}
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-700">
-          <Link 
-            href="/" 
+          <Link
+            href="/"
             className="flex items-center gap-3 w-full p-3 rounded-xl text-left text-sm font-bold transition-all text-slate-400 hover:bg-white/5 hover:text-white mb-4"
           >
-            <Home size={18} className="shrink-0" /> 
+            <Home size={18} className="shrink-0" />
             <span className="truncate">메인으로 돌아가기</span>
           </Link>
-          
+
           <div className="text-xs font-black text-slate-500 uppercase tracking-widest pl-2 mb-2">관리 메뉴</div>
 
           {navItems.map((item) => (
@@ -220,8 +227,8 @@ export default function FleetMasterV2() {
               onClick={() => handleTabChange(item.id)}
               className={`
                 flex items-center gap-3 w-full p-3 rounded-xl text-left text-sm font-bold transition-all
-                ${activeTab === item.id 
-                  ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/10 text-amber-300 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)]' 
+                ${activeTab === item.id
+                  ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/10 text-amber-300 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
                   : 'text-slate-400 hover:bg-white/5 hover:text-white border border-transparent'}
               `}
             >
@@ -235,8 +242,8 @@ export default function FleetMasterV2() {
 
         {/* 계산 시작 버튼 (사이드바 하단 고정) */}
         <div className="mt-auto p-4 border-t border-white/5">
-          <button 
-            onClick={handleStart} 
+          <button
+            onClick={handleStart}
             className="w-full py-4 bg-gradient-to-r from-amber-600 to-orange-600 rounded-xl font-black text-lg text-white shadow-[0_0_20px_rgba(245,158,11,0.3)] border border-amber-400/30 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 group"
           >
             <Play size={20} fill="currentColor" className="group-hover:scale-110 transition-transform" />
@@ -247,7 +254,7 @@ export default function FleetMasterV2() {
 
       {/* --- 메인 콘텐츠 뷰 영역 --- */}
       <main className="flex-1 p-4 md:p-8 overflow-y-auto max-w-[1200px] mx-auto w-full">
-        
+
         {/* 1. 대시보드 뷰 */}
         {activeTab === 'dashboard' && (
           <div id="land-dashboard-capture-area" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -269,10 +276,10 @@ export default function FleetMasterV2() {
             <div className="mt-8">
               <h3 className="text-xl font-bold text-white mb-4">함대 배치 결과</h3>
               {result ? (
-                <FleetDisplay 
-                  result={result} 
-                  fleetConfig={fleetConfig} 
-                  onBan={handleBanFromDeck} 
+                <FleetDisplay
+                  result={result}
+                  fleetConfig={fleetConfig}
+                  onBan={handleBanFromDeck}
                 />
               ) : (
                 <div className="bg-slate-900 border border-white/10 rounded-xl p-8 flex flex-col items-center justify-center text-slate-500 min-h-[200px]">
@@ -292,7 +299,7 @@ export default function FleetMasterV2() {
               함대 및 선장 설정
             </h2>
             <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5 shadow-lg">
-              <FleetSettings 
+              <FleetSettings
                 sailors={sailors}
                 admiralSearch={admiralSearch}
                 setAdmiralSearch={setAdmiralSearch}
@@ -315,7 +322,7 @@ export default function FleetMasterV2() {
               필수/금지 인원 설정
             </h2>
             <div className="bg-slate-900/50 p-4 rounded-2xl border border-white/5 shadow-lg">
-              <CrewManager 
+              <CrewManager
                 sailors={sailors}
                 essentialIds={essentialIds} setEssentialIds={setEssentialIds}
                 bannedIds={bannedIds} setBannedIds={setBannedIds}
@@ -331,11 +338,61 @@ export default function FleetMasterV2() {
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h2 className="text-2xl font-black text-white/90 mb-4 flex items-center gap-2">
               <Target className="text-indigo-400" />
-              스킬 목표 설정
+              배치 모드 설정
             </h2>
-            <div className="bg-slate-900/50 p-2 md:p-6 rounded-2xl border border-white/5 shadow-lg">
-              <SkillSettings targetLevels={targetLevels} setTargetLevels={setTargetLevels} />
+
+            {/* 모드 선택 토글 */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => {
+                  setOptimizerMode('skill');
+                  // [Fix Bug 1] 능력치 모드 설정 초기화 → 이전 설정이 영향을 주지 않도록
+                  setStatConfig(DEFAULT_STAT_WEIGHT_CONFIG);
+                }}
+                className={`flex flex-col items-center gap-2 p-4 rounded-2xl border font-black transition-all
+                  ${optimizerMode === 'skill'
+                    ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.2)]'
+                    : 'bg-slate-800/50 border-white/5 text-slate-500 hover:border-white/20 hover:text-slate-300'}`}
+              >
+                <SlidersHorizontal size={22} />
+                <span className="text-sm">스킬 개별 설정</span>
+                <span className="text-[10px] font-normal text-current opacity-70">
+                  스킬별 목표 레벨 지정
+                </span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setOptimizerMode('stat');
+                  // [Fix Bug 1] 스킬 목표 설정 초기화 → 이전 설정이 영향을 주지 않도록
+                  setTargetLevels({});
+                }}
+                className={`flex flex-col items-center gap-2 p-4 rounded-2xl border font-black transition-all
+                  ${optimizerMode === 'stat'
+                    ? 'bg-indigo-500/15 border-indigo-500/50 text-indigo-300 shadow-[0_0_20px_rgba(99,102,241,0.2)]'
+                    : 'bg-slate-800/50 border-white/5 text-slate-500 hover:border-white/20 hover:text-slate-300'}`}
+              >
+                <BarChart3 size={22} />
+                <span className="text-sm">능력치 종합 설정</span>
+                <span className="text-[10px] font-normal text-current opacity-70">
+                  전투/관찰/채집 비중 슬라이더
+                </span>
+              </button>
             </div>
+
+            {/* 모드 A: 스킬 개별 설정 */}
+            {optimizerMode === 'skill' && (
+              <div className="bg-slate-900/50 p-2 md:p-6 rounded-2xl border border-emerald-500/20 shadow-lg">
+                <SkillSettings targetLevels={targetLevels} setTargetLevels={setTargetLevels} />
+              </div>
+            )}
+
+            {/* 모드 B: 능력치 종합 설정 */}
+            {optimizerMode === 'stat' && (
+              <div className="bg-slate-900/50 p-2 md:p-6 rounded-2xl border border-indigo-500/20 shadow-lg">
+                <StatWeightSettings config={statConfig} onChange={setStatConfig} />
+              </div>
+            )}
           </div>
         )}
 
