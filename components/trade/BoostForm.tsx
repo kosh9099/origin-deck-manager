@@ -258,7 +258,7 @@ function BulkForm() {
 
       const rows = parsePastedText(text);
       const existing = await getActiveBoosts().catch(() => []);
-      const newExistingKeys = new Set(existing.map((b: any) => {
+      const newExistingKeys = new Set<string>(existing.map((b: any) => {
         const t = new Date(b.start_time);
         return `${b.city}|${b.type}|${t.getFullYear()}-${t.getMonth()}-${t.getDate()}-${t.getHours()}`;
       }));
