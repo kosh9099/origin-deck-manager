@@ -1,33 +1,60 @@
-import { toBlob } from 'html-to-image';
+// lib/utils/capture.ts
+// 설치 필요: npm install html-to-image
 
-/**
- * 특정 DOM 요소를 캡처하여 클립보드에 복사합니다.
- */
-export const captureAndDownload = async (elementId: string, _filename?: string) => {
+export async function captureAndDownload(
+  elementId: string,
+  filename?: string
+): Promise<void> {
   const element = document.getElementById(elementId);
-
   if (!element) {
-    alert('캡처 대상을 찾을 수 없습니다.');
+    console.error(`캡처 대상 요소를 찾을 수 없습니다: #${elementId}`);
     return;
   }
 
   try {
-    // ClipboardItem에 Promise를 직접 전달하여
-    // 비동기 처리 중에도 사용자 제스처 컨텍스트를 유지합니다.
-    const blobPromise: Promise<Blob> = toBlob(element, {
-      pixelRatio: 2,
-      backgroundColor: '#0a0f16',
-      cacheBust: true,
-    }).then(b => { if (!b) throw new Error('blob 생성 실패'); return b; });
+    const { toPng } = await import('html-to-image');
 
-    await navigator.clipboard.write([
-      new ClipboardItem({ 'image/png': blobPromise }),
-    ]);
+    // 웹폰트 완전 로딩 대기 (한글 깨짐 방지)
+    await document.fonts.ready;
 
-    alert('📋 클립보드에 복사됐습니다! (Ctrl+V로 붙여넣기)');
+    // 첫 번째 렌더링은 폰트 캐시를 위한 워밍업
+    await toPng(element);
+
+    // 두 번째 렌더링이 실제 결과 — 폰트가 캐시되어 정상 렌더링됨
+    const dataUrl = await toPng(element, {
+      quality: 1,
+      pixelRatio: window.devicePixelRatio || 2,
+      backgroundColor: '#ffffff',
+      // 폰트 임베딩 강제
+      fontEmbedCSS: '',
+      // 캡처 전 스타일 고정
+      style: {
+        overflow: 'visible',
+      },
+    });
+
+    // 클립보드 복사 시도
+    try {
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': blob }),
+      ]);
+      return;
+    } catch {
+      // 클립보드 실패 시 다운로드로 fallback
+    }
+
+    // 파일 다운로드
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = filename || `capture-${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
 
   } catch (error) {
-    console.error('캡처 중 오류 발생:', error);
-    alert('클립보드 복사 중 오류가 발생했습니다.\n브라우저가 클립보드 이미지 복사를 지원하지 않을 수 있습니다.');
+    console.error('캡처 오류:', error);
+    alert('캡처 중 오류가 발생했습니다.');
   }
-};
+}

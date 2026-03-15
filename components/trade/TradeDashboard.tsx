@@ -1,135 +1,159 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { TradeEvent } from '@/types/trade';
 import { generateEpidemicSchedules } from '@/lib/trade/epidemic';
 import ScheduleTable from './ScheduleTable';
-import ScheduleCards from './ScheduleCards';
-import { Flame } from 'lucide-react';
+import { Flame, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
+import {
+  fetchZoneSheet,
+  fetchCitySheet,
+  SheetItemMap,
+  normalizeZoneName,
+} from '@/lib/trade/sheetSync';
+
+type SheetLoadStatus = 'loading' | 'ok' | 'error' | 'idle';
+
+function mergeSheetItems(
+  events: TradeEvent[],
+  zoneMap: SheetItemMap,
+  cityMap: SheetItemMap
+): TradeEvent[] {
+  return events.map(ev => {
+    const existingNames = new Set(ev.items.map(it => it.name));
+    let recommended: string[] = [];
+
+    if (ev.isBoost) {
+      const cityKey = ev.city || ev.zone || '';
+      recommended = cityMap[`${cityKey}|${ev.type}`] || [];
+    } else {
+      const fullZone = normalizeZoneName(ev.zone || '');
+      recommended = zoneMap[`${fullZone}|${ev.type}`] || [];
+    }
+
+    const newItems = recommended
+      .filter(name => !existingNames.has(name))
+      .map((name, i) => ({
+        id: `sheet-${ev.id}-${i}`,
+        name,
+        upvotes: 0,
+        downvotes: 0,
+        isUserVoted: null as null,
+      }));
+
+    if (newItems.length === 0) return ev;
+    return { ...ev, items: [...ev.items, ...newItems] };
+  });
+}
 
 export default function TradeDashboard() {
   const [events, setEvents] = useState<TradeEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 1. 초기 렌더링 및 DB 스케줄(부양, 아이템 투표) 로딩
-  useEffect(() => {
-    let active = true;
+  const [zoneMap, setZoneMap] = useState<SheetItemMap>({});
+  const [cityMap, setCityMap] = useState<SheetItemMap>({});
+  const [sheetStatus, setSheetStatus] = useState<{
+    zone: SheetLoadStatus;
+    city: SheetLoadStatus;
+  }>({ zone: 'idle', city: 'idle' });
 
-    async function fetchData() {
-      // (1) 대유행 생성
-      const autoGenEvents = generateEpidemicSchedules(12);
+  const loadSheets = useCallback(async () => {
+    setSheetStatus({ zone: 'loading', city: 'loading' });
+    const [zoneResult, cityResult] = await Promise.allSettled([
+      fetchZoneSheet(),
+      fetchCitySheet(),
+    ]);
 
-      try {
-        // (2) 부양 & 아이템 가져오기
-        const { getActiveBoosts, getTradeItems } = await import('@/lib/supabaseClient');
-        const [dbBoosts, dbItems] = await Promise.all([
-          getActiveBoosts().catch(() => []),
-          getTradeItems().catch(() => [])
-        ]);
+    let newZone: SheetItemMap = zoneMap;
+    let newCity: SheetItemMap = cityMap;
 
-        if (!active) return; // 언마운트 시 무시
-
-        // DB 부양 데이터 규격화 (실제 DB 컬럼: city, type 사용)
-        const boostEvents: TradeEvent[] = dbBoosts.map((b: any) => ({
-          id: b.id,
-          zone: b.city || b.zone || "미상",
-          city: b.city || undefined,
-          type: b.type,
-          isBoost: true,
-          startTime: new Date(b.start_time).getTime(),
-          items: []
-        }));
-
-        // Items 병합 (부양 + 자동 대유행 모두 매칭)
-        const allEvents = [...autoGenEvents, ...boostEvents];
-
-        dbItems.forEach((dbItem: any) => {
-          const targetEvent = allEvents.find(e => e.id === dbItem.schedule_id);
-          if (targetEvent) {
-            targetEvent.items.push({
-              id: dbItem.id,
-              name: dbItem.item_name,
-              upvotes: dbItem.upvotes,
-              downvotes: dbItem.downvotes,
-              // isUserVoted는 ItemVotePanel 렌더링 시점에 LocalStorage에서 판단 처리
-              isUserVoted: null
-            });
-          }
-        });
-
-        // 결과 정렬 (시간순 -> 득표순)
-        allEvents.sort((a, b) => a.startTime - b.startTime);
-        allEvents.forEach(e => e.items.sort((x, y) => y.upvotes - x.upvotes));
-
-        setEvents(allEvents);
-      } catch (e) {
-        console.error("Failed to load DB events", e);
-        // DB 오류 시 대유행만이라도 렌더링
-        setEvents(autoGenEvents);
-      } finally {
-        setIsLoading(false);
-      }
+    if (zoneResult.status === 'fulfilled') {
+      newZone = zoneResult.value;
+      setZoneMap(newZone);
+      setSheetStatus(s => ({ ...s, zone: 'ok' }));
+    } else {
+      setSheetStatus(s => ({ ...s, zone: 'error' }));
+      console.warn('❌ 해역별 시트 실패:', zoneResult.reason);
     }
 
-    fetchData();
+    if (cityResult.status === 'fulfilled') {
+      newCity = cityResult.value;
+      setCityMap(newCity);
+      setSheetStatus(s => ({ ...s, city: 'ok' }));
+    } else {
+      setSheetStatus(s => ({ ...s, city: 'error' }));
+      console.warn('❌ 도시별 시트 실패:', cityResult.reason);
+    }
 
-    return () => { active = false; };
+    return { newZone, newCity };
   }, []);
 
-  // 2. Realtime 구독 (부양 및 아이템 투표 변동 시 자동 갱신)
+  const fetchData = useCallback(async (
+    overrideZone?: SheetItemMap,
+    overrideCity?: SheetItemMap
+  ) => {
+    setIsLoading(true);
+    const autoGenEvents = generateEpidemicSchedules(12);
+    const useZone = overrideZone ?? zoneMap;
+    const useCity = overrideCity ?? cityMap;
+
+    try {
+      const { getActiveBoosts, getTradeItems } = await import('@/lib/supabaseClient');
+      const [dbBoosts, dbItems] = await Promise.all([
+        getActiveBoosts().catch(() => []),
+        getTradeItems().catch(() => []),
+      ]);
+
+      const boostEvents: TradeEvent[] = dbBoosts.map((b: any) => ({
+        id: b.id,
+        zone: b.city || b.zone || '미상',
+        city: b.city || undefined,
+        type: b.type,
+        isBoost: true,
+        startTime: new Date(b.start_time).getTime(),
+        items: [],
+      }));
+
+      const allEvents = [...autoGenEvents, ...boostEvents];
+
+      dbItems.forEach((dbItem: any) => {
+        const target = allEvents.find(e => e.id === dbItem.schedule_id);
+        if (target) {
+          target.items.push({
+            id: dbItem.id,
+            name: dbItem.item_name,
+            upvotes: dbItem.upvotes,
+            downvotes: dbItem.downvotes,
+            isUserVoted: null,
+          });
+        }
+      });
+
+      const merged = mergeSheetItems(allEvents, useZone, useCity);
+      merged.sort((a, b) => a.startTime - b.startTime);
+      merged.forEach(e => e.items.sort((x, y) => y.upvotes - x.upvotes));
+      setEvents(merged);
+    } catch (e) {
+      console.error('DB load failed:', e);
+      const merged = mergeSheetItems(autoGenEvents, useZone, useCity);
+      setEvents(merged);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [zoneMap, cityMap]);
+
   useEffect(() => {
-    let active = true;
-
-    // Supabase 인스턴스 지연 로드
-    const setupSubscriptions = async () => {
-      const { supabase } = await import('@/lib/supabaseClient');
-
-      if (!active) return;
-
-      const channel = supabase
-        .channel('trade_changes')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'trade_boosts' },
-          (payload: any) => {
-            console.log("New Boost Detected:", payload);
-            // 구조가 바뀌었으므로 깔끔하게 전체 리로드 트리거 (간단 구현)
-            // 의존성을 위해 fetchData 자체를 외부에 빼거나 reload 상태를 토글하는 방식으로 할 수 있지만,
-            // 여기선 간단하게 페이지 새로고침을 유도하거나 상태 토글 플래그를 추가.
-            // V1 목적에 맞게 단순 알림 처리 후 추후 리팩토링 대비.
-          }
-        )
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'trade_items' },
-          (payload: any) => {
-            console.log("Item/Vote Changed:", payload);
-            if (payload.eventType === 'UPDATE') {
-              handleVoteOptimistic(
-                payload.new.schedule_id,
-                payload.new.id,
-                payload.new.upvotes > (payload.old as any).upvotes // up이 증가했으면 true, 아니면 false 간접추정
-              );
-            }
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    };
-
-    let cleanupFunc: (() => void) | void;
-    setupSubscriptions().then(cleanup => { cleanupFunc = cleanup; });
-
-    return () => {
-      active = false;
-      if (cleanupFunc) cleanupFunc();
-    };
+    (async () => {
+      const { newZone, newCity } = await loadSheets();
+      await fetchData(newZone, newCity);
+    })();
   }, []);
 
-  // 낙관적 UI 업데이트 (투표)
+  const handleRefresh = async () => {
+    const { newZone, newCity } = await loadSheets();
+    await fetchData(newZone, newCity);
+  };
+
   const handleVoteOptimistic = (eventId: string, itemId: string, isUp: boolean) => {
     setEvents(prev => prev.map(ev => {
       if (ev.id !== eventId) return ev;
@@ -137,46 +161,31 @@ export default function TradeDashboard() {
         ...ev,
         items: ev.items.map(it => {
           if (it.id !== itemId) return it;
-          return {
-            ...it,
-            upvotes: isUp ? it.upvotes + 1 : it.upvotes,
-            downvotes: !isUp ? it.downvotes + 1 : it.downvotes,
-            isUserVoted: (isUp ? 'up' : 'down') as 'up' | 'down'
-          };
-        }).sort((a, b) => b.upvotes - a.upvotes) // 투표 후 즉시 정렬 (추천순)
+          return { ...it, upvotes: isUp ? it.upvotes + 1 : it.upvotes, downvotes: !isUp ? it.downvotes + 1 : it.downvotes, isUserVoted: (isUp ? 'up' : 'down') as 'up' | 'down' };
+        }).sort((a, b) => b.upvotes - a.upvotes),
       };
     }));
   };
 
-  // 낙관적 UI 업데이트 (품목 추가)
   const handleAddOptimistic = (eventId: string, newItem: typeof events[0]['items'][0]) => {
     setEvents(prev => prev.map(ev => {
       if (ev.id !== eventId) return ev;
-      return {
-        ...ev,
-        items: [...ev.items, newItem].sort((a, b) => b.upvotes - a.upvotes)
-      };
+      return { ...ev, items: [...ev.items, newItem].sort((a, b) => b.upvotes - a.upvotes) };
     }));
   };
 
-  // 부양 삭제 (낙관적 UI 반영된 래퍼)
   const handleDeleteBoost = async (eventId: string) => {
-    if (!window.confirm("이 일정을 삭제하시겠습니까?")) return;
-
-    // 낙관적 UI 업데이트
+    if (!window.confirm('이 일정을 삭제하시겠습니까?')) return;
     setEvents(prev => prev.filter(ev => ev.id !== eventId));
-
     try {
       const { deleteBoost } = await import('@/lib/supabaseClient');
       await deleteBoost(eventId);
     } catch (e) {
-      console.error("Failed to delete boost", e);
-      alert("삭제 중 오류가 발생했습니다. (자신이 등록한 일정이 아닐 수 있습니다)");
-      // 원래 상태로 되돌리기 로직은 생략 (V1 단순화)
+      console.error('Delete failed:', e);
+      alert('삭제 중 오류가 발생했습니다.');
     }
   };
 
-  // 추천 품목 삭제 (낙관적 UI 반영)
   const handleDeleteItem = (eventId: string, itemId: string) => {
     setEvents(prev => prev.map(ev => {
       if (ev.id !== eventId) return ev;
@@ -184,87 +193,65 @@ export default function TradeDashboard() {
     }));
   };
 
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
-
-  useEffect(() => {
-    // 반응형에 따라 초기 뷰 설정
-    const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setViewMode('cards');
-      } else {
-        setViewMode('table');
-      }
-    };
-
-    handleResize(); // 초기화
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const StatusBadge = ({ label, status }: { label: string; status: SheetLoadStatus }) => {
+    if (status === 'loading') return (
+      <span className="flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
+        <div className="w-2 h-2 border border-amber-400 border-t-transparent rounded-full animate-spin" />{label}
+      </span>
+    );
+    if (status === 'ok') return (
+      <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+        <CheckCircle size={10} /> {label} ✓
+      </span>
+    );
+    if (status === 'error') return (
+      <span className="flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded">
+        <XCircle size={10} /> {label} 실패
+      </span>
+    );
+    return null;
+  };
 
   return (
     <div className="w-full flex-1 flex flex-col h-full relative" id="trade-dashboard-capture-area">
 
-      {/* 캡처 타이틀 헤더 영역 (캡처 시 표기됨) */}
-      <div className="bg-gradient-to-r from-emerald-900/60 to-slate-900 p-4 rounded-xl border border-emerald-500/20 mb-4 shadow-lg flex items-center justify-between shrink-0 flex-wrap gap-2">
+      {/* 헤더 */}
+      <div className="bg-emerald-600 px-4 py-3 rounded-xl border border-emerald-500 mb-4 shadow-sm flex items-center justify-between shrink-0 flex-wrap gap-2">
         <div>
-          <h3 className="text-lg font-black text-emerald-400 flex items-center gap-2">
-            <Flame size={20} className="text-amber-500 animate-pulse" />
+          <h3 className="text-[15px] font-black text-white flex items-center gap-2">
+            <Flame size={18} className="text-amber-300 animate-pulse" />
             교역 스케줄 현황
           </h3>
-          <p className="text-xs text-slate-400 mt-1 flex gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide">
-            <span>대유행 예측 및 유저 공유 부양 일정</span>
-          </p>
+          <p className="text-[11px] text-emerald-100 mt-0.5">대유행 예측 및 유저 공유 부양 일정</p>
         </div>
 
-        <div className="flex flex-col items-end gap-2">
-          <span className="text-[11px] font-bold text-slate-500 bg-slate-800/80 px-2 py-1 rounded">
-            기준 시각: {new Date().toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+        <div className="flex items-center gap-2 flex-wrap">
+          <StatusBadge label="해역별" status={sheetStatus.zone} />
+          <StatusBadge label="도시별" status={sheetStatus.city} />
+          <button onClick={handleRefresh} disabled={isLoading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-black bg-white/20 text-white border border-white/30 hover:bg-white/30 transition-all disabled:opacity-50">
+            <RefreshCw size={13} className={isLoading ? 'animate-spin' : ''} /> 새로고침
+          </button>
+          <span className="text-[11px] font-bold text-emerald-100 bg-emerald-700/50 px-2 py-1 rounded hidden sm:block">
+            {new Date().toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
           </span>
-          <div className="flex bg-slate-800/80 rounded-xl p-1 border border-white/5 shadow-inner">
-            <button
-              onClick={() => setViewMode('table')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'table' ? 'bg-emerald-500/20 text-emerald-400 shadow' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-            >
-              PC 뷰
-            </button>
-            <button
-              onClick={() => setViewMode('cards')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'cards' ? 'bg-emerald-500/20 text-emerald-400 shadow' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-            >
-              모바일 뷰
-            </button>
-          </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-700 pb-10">
+      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 pb-10">
         {isLoading ? (
           <div className="flex justify-center items-center h-40">
-            <div className="w-8 h-8 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+            <div className="w-8 h-8 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin" />
           </div>
         ) : (
-          <div className="w-full animate-in fade-in duration-500">
-            {viewMode === 'table' ? (
-              <div className="block">
-                <ScheduleTable
-                  events={events}
-                  onVoteOptimistic={handleVoteOptimistic}
-                  onAddOptimistic={handleAddOptimistic}
-                  onDeleteBoost={handleDeleteBoost}
-                  onDeleteItem={handleDeleteItem}
-                />
-              </div>
-            ) : (
-              <div className="block">
-                <ScheduleCards
-                  events={events}
-                  onVoteOptimistic={handleVoteOptimistic}
-                  onAddOptimistic={handleAddOptimistic}
-                  onDeleteBoost={handleDeleteBoost}
-                  onDeleteItem={handleDeleteItem}
-                />
-              </div>
-            )}
+          <div className="animate-in fade-in duration-500">
+            <ScheduleTable
+              events={events}
+              onVoteOptimistic={handleVoteOptimistic}
+              onAddOptimistic={handleAddOptimistic}
+              onDeleteBoost={handleDeleteBoost}
+              onDeleteItem={handleDeleteItem}
+            />
           </div>
         )}
       </div>

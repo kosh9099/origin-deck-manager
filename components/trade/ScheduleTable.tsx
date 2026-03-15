@@ -18,107 +18,123 @@ interface Props {
 }
 
 const typeColors: Record<string, string> = {
-  '사치':   'bg-pink-500/15 text-pink-300 border-pink-500/30',
-  '호황':   'bg-amber-400/15 text-amber-300 border-amber-400/30',
-  '개발':   'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-  '후원':   'bg-purple-500/15 text-purple-300 border-purple-500/30',
-  '전쟁':   'bg-red-500/15 text-red-300 border-red-500/30',
-  '홍수':   'bg-sky-500/15 text-sky-300 border-sky-500/30',
-  '전염병': 'bg-stone-400/15 text-stone-300 border-stone-400/30',
-  '축제':   'bg-yellow-400/15 text-yellow-200 border-yellow-400/30',
+  '사치': 'bg-pink-100 text-pink-700 border-pink-200',
+  '호황': 'bg-amber-100 text-amber-700 border-amber-200',
+  '개발': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  '후원': 'bg-purple-100 text-purple-700 border-purple-200',
+  '전쟁': 'bg-red-100 text-red-700 border-red-200',
+  '홍수': 'bg-sky-100 text-sky-700 border-sky-200',
+  '전염병': 'bg-stone-100 text-stone-700 border-stone-200',
+  '축제': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+};
+
+const typeIndicators: Record<string, string> = {
+  '사치': 'bg-pink-400', '호황': 'bg-amber-400', '개발': 'bg-emerald-500',
+  '후원': 'bg-purple-400', '전쟁': 'bg-red-500', '홍수': 'bg-sky-400',
+  '전염병': 'bg-stone-400', '축제': 'bg-yellow-400',
 };
 
 export default function ScheduleTable({ events, onVoteOptimistic, onAddOptimistic, onDeleteBoost, onDeleteItem }: Props) {
   if (events.length === 0) {
     return (
-      <div className="w-full bg-slate-900/60 rounded-2xl border border-white/5 overflow-hidden">
-        <div className="text-center py-16 text-slate-500 text-sm">표시할 스케줄이 없습니다.</div>
+      <div className="w-full bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+        <div className="text-center py-16 text-slate-400 text-sm">표시할 스케줄이 없습니다.</div>
       </div>
     );
   }
 
   return (
-    <div className="w-full bg-slate-900/60 rounded-2xl border border-white/5 overflow-hidden">
-      {/* 헤더 */}
-      <div className="grid grid-cols-[72px_1fr_130px_2fr] gap-0 bg-slate-800/90 border-b border-white/10 text-slate-400 text-[11px] font-bold tracking-widest uppercase px-1">
-        <div className="px-3 py-3">시간</div>
-        <div className="px-3 py-3">해역 / 항구</div>
-        <div className="px-3 py-3">이벤트</div>
-        <div className="px-3 py-3">추천 품목</div>
-      </div>
+    <div className="w-full bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm overflow-x-auto">
+      <table className="w-full min-w-[480px] border-collapse table-fixed">
+        <colgroup><col style={{ width: '72px' }} /><col style={{ width: '100px' }} /><col style={{ width: '120px' }} /><col style={{ minWidth: '120px' }} /></colgroup>
 
-      {/* 행 목록 */}
-      <div className="divide-y divide-white/5">
-        {events.map(event => {
-          const isBoost = event.isBoost;
-          const boostType = isBoost ? getBoostType(event.type) : null;
-          const tooltip = isBoost
-            ? '유저 등록 스케줄'
-            : (APPLIED_PANDEMIC_ITEMS[event.type] ? `고정 품목: ${APPLIED_PANDEMIC_ITEMS[event.type].join(', ')}` : undefined);
+        <thead>
+          <tr className="bg-slate-100 border-b border-slate-200">
+            <th className="px-3 py-2.5 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">시간</th>
+            <th className="px-3 py-2.5 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">해역 / 항구</th>
+            <th className="px-3 py-2.5 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">이벤트</th>
+            <th className="px-3 py-2.5 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">추천 품목</th>
+          </tr>
+        </thead>
 
-          const badgeCls = isBoost
-            ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/40'
-            : (typeColors[event.type] || 'bg-slate-700/20 text-slate-300 border-slate-600/40');
+        <tbody className="divide-y divide-slate-100">
+          {events.map(event => {
+            const isBoost = event.isBoost;
+            const boostType = isBoost ? getBoostType(event.type) : null;
+            const tooltip = isBoost
+              ? '유저 등록 스케줄'
+              : (APPLIED_PANDEMIC_ITEMS[event.type] ? `고정 품목: ${APPLIED_PANDEMIC_ITEMS[event.type].join(', ')}` : undefined);
 
-          return (
-            <div
-              key={event.id}
-              className={`grid grid-cols-[72px_1fr_130px_2fr] gap-0 px-1 transition-colors ${isBoost ? 'hover:bg-indigo-500/5' : 'hover:bg-white/[0.02]'}`}
-            >
-              {/* 시간 */}
-              <div className="px-3 py-2 flex flex-col justify-center relative">
-                <div className={`absolute left-0 top-2 bottom-2 w-[3px] rounded-full ${isBoost ? 'bg-indigo-500' : 'bg-slate-700/50'}`} />
-                <span className="text-[10px] text-slate-500 font-semibold leading-tight">
-                  {format(event.startTime, 'M.d(EEE)', { locale: ko })}
-                </span>
-                <span className="text-base font-black text-white tabular-nums leading-tight">
-                  {format(event.startTime, 'HH')}시
-                </span>
-              </div>
+            const badgeCls = isBoost
+              ? 'bg-indigo-100 text-indigo-700 border-indigo-200'
+              : (typeColors[event.type] || 'bg-slate-100 text-slate-600 border-slate-200');
 
-              {/* 해역/항구 */}
-              <div className="px-3 py-2 flex flex-col justify-center">
-                <span className="text-sm font-bold text-slate-200 break-keep leading-snug">
-                  {isBoost ? (event.city || event.zone || '항구 미상') : event.zone}
-                </span>
-                {isBoost && <span className="text-[10px] text-slate-500 mt-0.5">유저</span>}
-              </div>
+            const indicatorCls = isBoost
+              ? 'bg-indigo-500'
+              : (typeIndicators[event.type] || 'bg-slate-300');
 
-              {/* 이벤트 + 삭제 버튼 통합 */}
-              <div className="px-3 py-2 flex flex-col gap-1 justify-center">
-                <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border whitespace-nowrap w-fit cursor-default ${badgeCls}`}
-                  title={tooltip}
-                >
-                  {isBoost
-                    ? <>{event.type || '?'} <span className="opacity-60 text-[10px]">{boostType}</span></>
-                    : event.type}
-                </span>
-                {/* 삭제 버튼 (부양 이벤트에만 표시) */}
-                {isBoost && (
-                  <button
-                    onClick={() => onDeleteBoost(event.id)}
-                    title="이 스케줄 삭제"
-                    className="inline-flex items-center gap-1 text-[10px] text-slate-500 hover:text-red-400 transition-colors w-fit px-1"
+            return (
+              <tr
+                key={event.id}
+                className={`transition-colors ${isBoost ? 'bg-indigo-50/40 hover:bg-indigo-50' : 'hover:bg-slate-50'}`}
+              >
+                {/* 시간 */}
+                <td className="px-3 py-2.5 relative align-middle">
+                  <div className={`absolute left-0 top-3 bottom-3 w-[3px] rounded-full ${indicatorCls}`} />
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-slate-400 font-semibold leading-tight whitespace-nowrap">
+                      {format(event.startTime, 'M.d(EEE)', { locale: ko })}
+                    </span>
+                    <span className="text-[15px] font-black text-slate-800 tabular-nums leading-tight">
+                      {format(event.startTime, 'HH')}시
+                    </span>
+                  </div>
+                </td>
+
+                {/* 해역/항구 */}
+                <td className="px-3 py-2.5 align-middle">
+                  <span className="text-sm font-bold text-slate-700 break-keep">
+                    {isBoost ? (event.city || event.zone || '항구 미상') : event.zone}
+                  </span>
+                  {isBoost && (
+                    <div className="text-[10px] text-indigo-500 font-bold mt-0.5">유저 등록</div>
+                  )}
+                </td>
+
+                {/* 이벤트 */}
+                <td className="px-3 py-2.5 align-middle">
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border whitespace-nowrap ${badgeCls}`}
+                    title={tooltip}
                   >
-                    <Trash2 size={11} />
-                    삭제
-                  </button>
-                )}
-              </div>
+                    {isBoost
+                      ? <>{event.type || '?'}<span className="opacity-60 text-[10px] ml-0.5">{boostType}</span></>
+                      : event.type}
+                  </span>
+                  {isBoost && (
+                    <button
+                      onClick={() => onDeleteBoost(event.id)}
+                      className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-red-500 transition-colors mt-1"
+                    >
+                      <Trash2 size={10} /> 삭제
+                    </button>
+                  )}
+                </td>
 
-              <div className="px-3 py-2">
-                <ItemVotePanel
-                  event={event}
-                  onVoteOptimistic={(itemId, isUp) => onVoteOptimistic(event.id, itemId, isUp)}
-                  onAddOptimistic={(item) => onAddOptimistic(event.id, item)}
-                  onDeleteItem={(itemId) => onDeleteItem(event.id, itemId)}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
+                {/* 추천 품목 */}
+                <td className="px-3 py-2.5 align-middle">
+                  <ItemVotePanel
+                    event={event}
+                    onVoteOptimistic={(itemId, isUp) => onVoteOptimistic(event.id, itemId, isUp)}
+                    onAddOptimistic={(item) => onAddOptimistic(event.id, item)}
+                    onDeleteItem={(itemId) => onDeleteItem(event.id, itemId)}
+                  />
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
