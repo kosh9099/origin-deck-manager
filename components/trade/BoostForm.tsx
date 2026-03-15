@@ -309,7 +309,7 @@ function BulkForm() {
         </p>
         <div className="mt-2 bg-white border border-blue-200 rounded-lg px-3 py-2 font-mono text-[11px] text-slate-600">
           부양&nbsp;&nbsp;&nbsp;&nbsp;식료품&nbsp;&nbsp;&nbsp;&nbsp;2026/03/15 14:09&nbsp;&nbsp;&nbsp;&nbsp;나사우<br />
-          부양&nbsp;&nbsp;&nbsp;&nbsp;조미료&nbsp;&nbsp;&nbsp;&nbsp;2026/03/15 16:01&nbsp;&nbsp;&nbsp;&nbsp;캘리마느
+          부양&nbsp;&nbsp;&nbsp;&nbsp;조미료&nbsp;&nbsp;&nbsp;&nbsp;2026/03/15 16:01&nbsp;&nbsp;&nbsp;&nbsp;켈리마느
         </div>
       </div>
 
