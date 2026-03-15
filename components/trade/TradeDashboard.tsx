@@ -11,6 +11,7 @@ import {
   SheetItemMap,
   normalizeZoneName,
 } from '@/lib/trade/sheetSync';
+import { getBoostType } from '@/constants/tradeData';
 
 type SheetLoadStatus = 'loading' | 'ok' | 'error' | 'idle';
 
@@ -25,7 +26,13 @@ function mergeSheetItems(
 
     if (ev.isBoost) {
       const cityKey = ev.city || ev.zone || '';
-      recommended = cityMap[`${cityKey}|${ev.type}`] || [];
+      // 급매는 ev.type이 품목명 자체이므로 "도시명|급매" 키로 조회
+      // 부양은 ev.type이 카테고리명이므로 "도시명|카테고리" 키로 조회
+      const isFlash = getBoostType(ev.type) === '급매';
+      const lookupKey = isFlash
+        ? `${cityKey}|급매`
+        : `${cityKey}|${ev.type}`;
+      recommended = cityMap[lookupKey] || [];
     } else {
       const fullZone = normalizeZoneName(ev.zone || '');
       recommended = zoneMap[`${fullZone}|${ev.type}`] || [];

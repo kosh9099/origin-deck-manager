@@ -1,4 +1,4 @@
-'use client'; // ✅ 이 컴포넌트가 클라이언트 측에서 실행되도록 명시합니다.
+'use client';
 
 import Link from 'next/link';
 import { Sword, Map, Ship, Anchor, Compass, ArrowRight, X, Clock, Sparkles, Bug, Wrench } from 'lucide-react';
@@ -50,8 +50,26 @@ const managers = [
 
 const UPDATE_LOGS = [
   {
-    version: 'v3.2',
+    version: 'v1.1',
+    label: '교역 매니저',
     date: '2026.03.15',
+    labelColor: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+    items: [
+      { type: 'new', text: '부양 일괄 붙여넣기 등록 — AI 변환 결과를 한 번에 붙여넣어 중복 제거 후 일괄 등록' },
+      { type: 'new', text: '구글 시트 자동 연동 — 해역별/도시별 추천 품목을 시트에서 실시간 가져와 자동 매핑' },
+      { type: 'new', text: '추천 품목 수동 입력 제거 — 구글 시트로 완전 대체' },
+      { type: 'new', text: '스케줄 뷰 단일화 — PC/모바일 통합 반응형 테이블로 전환' },
+      { type: 'fix', text: '해역명 줄임말 정규화 — 코드 내 줄임말과 시트 전체이름 매핑 불일치 수정' },
+      { type: 'fix', text: '추천 품목 파싱 오류 수정 — 대유행종류가 품목으로 잘못 표시되던 버그 수정' },
+      { type: 'fix', text: 'API 캐시 제거 — 구글 시트 수정 즉시 반영' },
+      { type: 'improve', text: '교역 매니저 UI 라이트 테마 통일 — 육탐 매니저와 동일한 디자인 시스템 적용' },
+    ],
+  },
+  {
+    version: 'v3.2',
+    label: '육탐 매니저',
+    date: '2026.03.15',
+    labelColor: 'text-amber-700 bg-amber-50 border-amber-200',
     items: [
       { type: 'new', text: '능력치 종합 설정 모드 추가 — 전투/관찰/채집 비중 슬라이더로 배치 우선순위 결정' },
       { type: 'new', text: '전리품 먼저 맥스 옵션 추가 — 전리품 6종 달성 후 남은 선실을 비중대로 채움' },
@@ -61,8 +79,8 @@ const UPDATE_LOGS = [
       { type: 'fix', text: '전투 비중 적용 시 해적/맹수 전투 스킬도 전투력으로 집계되도록 수정' },
       { type: 'fix', text: '필수 항해사가 전투 선실 자격 조건 검사 전에 우선 배치되도록 수정' },
       { type: 'fix', text: '목표 스킬 초과 페널티 이중 계산 버그 수정 (Fix D)' },
-      { type: 'fix', text: '맥스레벨 낮은 스킬(험지 평정 등)의 가중치 불이익 해소 — 달성 비율 기반으로 변경 (Fix E)' },
-      { type: 'fix', text: '유효 항해사가 과도한 페널티로 탈락하는 현상 방지 — 최소 1점 보장 (Fix F)' },
+      { type: 'fix', text: '맥스레벨 낮은 스킬의 가중치 불이익 해소 — 달성 비율 기반으로 변경 (Fix E)' },
+      { type: 'fix', text: '유효 항해사 음수 점수로 탈락하는 현상 방지 — 최소 1점 보장 (Fix F)' },
       { type: 'fix', text: 'lootFirst 페이즈1 완료 후 페이즈2가 기존 슬롯 덮어쓰는 버그 수정' },
       { type: 'improve', text: '전체 UI 라이트 테마로 전환 — 밝은 크림 배경 + 딥 네이비 사이드바' },
       { type: 'improve', text: '스킬 설정 카테고리별 컬러 시스템 적용 (전리품=앰버, 전투=레드, 관찰=블루, 채집=그린)' },
@@ -208,7 +226,10 @@ export default function Home() {
             {UPDATE_LOGS.map(log => (
               <div key={log.version}>
                 {/* 버전 헤더 */}
-                <div className="flex items-center gap-3 mb-3">
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
+                  <span className={`text-[11px] font-black px-2 py-0.5 rounded-lg border ${log.labelColor}`}>
+                    {log.label}
+                  </span>
                   <span className="text-[13px] font-black text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-lg">
                     {log.version}
                   </span>

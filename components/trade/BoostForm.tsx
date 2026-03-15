@@ -108,7 +108,8 @@ function SingleForm() {
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value as keyof typeof BOOST_EVENT_TYPES;
     setPopType(newType);
-    setCategory(BOOST_EVENT_TYPES[newType]?.[0] || '');
+    // 급매로 전환 시 직접 입력하도록 카테고리 초기화
+    setCategory(newType === '급매' ? '' : (BOOST_EVENT_TYPES[newType]?.[0] || ''));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -172,11 +173,23 @@ function SingleForm() {
           </select>
         </div>
         <div className="space-y-1.5 flex-1">
-          <label className="text-[12px] font-black text-slate-600 uppercase tracking-wider">카테고리</label>
-          <select value={category} onChange={(e) => setCategory(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-emerald-400">
-            {BOOST_EVENT_TYPES[popType]?.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <label className="text-[12px] font-black text-slate-600 uppercase tracking-wider">
+            {popType === '급매' ? '품목명 직접 입력' : '카테고리'}
+          </label>
+          {popType === '급매' ? (
+            <input
+              type="text"
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+              placeholder="급매 품목명 입력..."
+              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-emerald-400 placeholder:text-slate-400"
+            />
+          ) : (
+            <select value={category} onChange={(e) => setCategory(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-emerald-400">
+              {BOOST_EVENT_TYPES[popType]?.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          )}
         </div>
       </div>
 
