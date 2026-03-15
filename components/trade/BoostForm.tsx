@@ -6,6 +6,25 @@ import { REGION_PORTS } from '@/lib/trade/cities';
 import { BOOST_EVENT_TYPES } from '@/constants/tradeData';
 import { Search, Plus, CheckCircle, XCircle, AlertTriangle, Loader2, Upload } from 'lucide-react';
 
+// ── 시트에서 급매 목록 가져오기 ──────────────────────────────────
+async function fetchFlashItems(): Promise<string[]> {
+  try {
+    const res = await fetch('/api/sheet?gid=647153257', { cache: 'no-store' });
+    if (!res.ok) return [];
+    const text = await res.text();
+    const lines = text.split('\n').slice(1); // 헤더 스킵
+    const items = new Set<string>();
+    for (const line of lines) {
+      const cols = line.split(',');
+      const flashItem = cols[9]?.replace(/"/g, '').trim(); // J열 = 급매1
+      if (flashItem && flashItem.length > 0) items.add(flashItem);
+    }
+    return Array.from(items).sort();
+  } catch {
+    return ['흑요석', '수정세공', '네베르스로이드', '일렉트럼']; // fallback
+  }
+}
+
 const ALL_PORTS = Object.values(REGION_PORTS).flat();
 const POP_TYPES = ["부양", "급매"];
 
@@ -74,6 +93,14 @@ function SingleForm() {
 
   const [popType, setPopType] = useState<keyof typeof BOOST_EVENT_TYPES>('부양');
   const [category, setCategory] = useState(BOOST_EVENT_TYPES['부양'][0]);
+  const [flashItems, setFlashItems] = useState<string[]>([]);
+
+  // 급매 목록 시트에서 로딩
+  useEffect(() => {
+    fetchFlashItems().then(items => {
+      setFlashItems(items);
+    });
+  }, []);
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [day, setDay] = useState(now.getDate());
@@ -84,7 +111,7 @@ function SingleForm() {
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value as keyof typeof BOOST_EVENT_TYPES;
     setPopType(newType);
-    setCategory(newType === '급매' ? '' : (BOOST_EVENT_TYPES[newType]?.[0] || ''));
+    setCategory(newType === '급매' ? (flashItems[0] || '') : (BOOST_EVENT_TYPES[newType]?.[0] || ''));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -150,9 +177,12 @@ function SingleForm() {
             {popType === '급매' ? '품목명 직접 입력' : '카테고리'}
           </label>
           {popType === '급매' ? (
-            <input type="text" value={category} onChange={e => setCategory(e.target.value)}
-              placeholder="급매 품목명 입력..."
-              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-emerald-400 placeholder:text-slate-400" />
+            <select value={category} onChange={e => setCategory(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-emerald-400">
+              {flashItems.length > 0
+                ? flashItems.map(c => <option key={c} value={c}>{c}</option>)
+                : <option value="">로딩 중...</option>}
+            </select>
           ) : (
             <select value={category} onChange={e => setCategory(e.target.value)}
               className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-emerald-400">
