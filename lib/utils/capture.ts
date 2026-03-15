@@ -14,23 +14,61 @@ export async function captureAndDownload(
   try {
     const { toPng } = await import('html-to-image');
 
-    // 웹폰트 완전 로딩 대기 (한글 깨짐 방지)
+    // 웹폰트 완전 로딩 대기
     await document.fonts.ready;
 
-    // 첫 번째 렌더링은 폰트 캐시를 위한 워밍업
+    // ── 캡처 전: 요소와 내부 스크롤 컨테이너의 높이 제한 제거 ──
+    // 스크롤되어 잘리는 현상 방지
+    const originalStyles = new Map<HTMLElement, { overflow: string; height: string; maxHeight: string }>();
+
+    const expandForCapture = (el: HTMLElement) => {
+      originalStyles.set(el, {
+        overflow: el.style.overflow,
+        height: el.style.height,
+        maxHeight: el.style.maxHeight,
+      });
+      el.style.overflow = 'visible';
+      el.style.height = 'auto';
+      el.style.maxHeight = 'none';
+    };
+
+    // 캡처 루트 요소
+    expandForCapture(element);
+
+    // 내부 스크롤 가능한 자식 요소들도 모두 확장
+    const scrollables = element.querySelectorAll<HTMLElement>('*');
+    scrollables.forEach(child => {
+      const computed = window.getComputedStyle(child);
+      if (
+        computed.overflow === 'auto' ||
+        computed.overflow === 'scroll' ||
+        computed.overflowY === 'auto' ||
+        computed.overflowY === 'scroll' ||
+        computed.overflow === 'hidden'
+      ) {
+        expandForCapture(child);
+      }
+    });
+
+    // 렌더링 반영 대기
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
+    // 워밍업 (폰트 캐시)
     await toPng(element);
 
-    // 두 번째 렌더링이 실제 결과 — 폰트가 캐시되어 정상 렌더링됨
+    // 실제 캡처
     const dataUrl = await toPng(element, {
       quality: 1,
       pixelRatio: window.devicePixelRatio || 2,
       backgroundColor: '#ffffff',
-      // 폰트 임베딩 강제
-      fontEmbedCSS: '',
-      // 캡처 전 스타일 고정
-      style: {
-        overflow: 'visible',
-      },
+    });
+
+    // ── 캡처 후: 원래 스타일 복원 ──
+    originalStyles.forEach((styles, el) => {
+      el.style.overflow = styles.overflow;
+      el.style.height = styles.height;
+      el.style.maxHeight = styles.maxHeight;
     });
 
     // 클립보드 복사 시도
@@ -42,7 +80,7 @@ export async function captureAndDownload(
       ]);
       return;
     } catch {
-      // 클립보드 실패 시 다운로드로 fallback
+      // 클립보드 실패 시 다운로드 fallback
     }
 
     // 파일 다운로드
@@ -54,6 +92,7 @@ export async function captureAndDownload(
     document.body.removeChild(a);
 
   } catch (error) {
+    // 오류 발생 시에도 스타일 복원 보장
     console.error('캡처 오류:', error);
     alert('캡처 중 오류가 발생했습니다.');
   }
