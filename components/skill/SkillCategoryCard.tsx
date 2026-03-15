@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { MAX_SKILL_LEVELS } from '@/lib/optimizer/rules';
-import { Target, Trophy, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 
 interface Props {
   title: string;
@@ -26,8 +26,7 @@ export default function SkillCategoryCard({ title, skills, totals, targets }: Pr
 
       {/* 카테고리 헤더 */}
       <div className={`${style.header} px-3 py-2 flex justify-between items-center`}>
-        <span className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-1.5">
-          <Trophy size={12} strokeWidth={2.5} />
+        <span className="text-xs font-black text-white uppercase tracking-widest">
           {title}
         </span>
         <span className="text-[9px] font-bold text-white/80 bg-white/20 px-1.5 py-0.5 rounded">
@@ -43,75 +42,89 @@ export default function SkillCategoryCard({ title, skills, totals, targets }: Pr
           const overflow = Math.max(0, raw - max);
           const target = targets[skill] || 0;
 
-          const isTargetMet = target > 0 && current >= target;
-          const isMaxed = current >= max;
           const isOverflow = overflow > 0;
+          const isOverTarget = target > 0 && current > target;
+          const isUnderTarget = target > 0 && current < target;
+          const overTargetAmt = isOverTarget ? current - target : 0;
           const percent = Math.min(100, (current / max) * 100);
+          const targetPercent = target > 0 ? Math.min(100, (target / max) * 100) : 0;
 
           return (
             <div key={skill} className="group">
-              <div className="flex justify-between items-end mb-1">
-                {/* 스킬명 */}
-                <span className={`text-[11px] font-bold transition-colors
-                  ${isOverflow ? 'text-red-500' :
-                    isTargetMet ? style.text :
-                      'text-slate-500 group-hover:text-slate-700'}`}>
-                  {skill}
-                </span>
+              <div className="flex items-center gap-2 mb-1">
+                {/* 스킬명 + MAX 배지 */}
+                <div className="flex items-center flex-1 min-w-0">
+                  <span className="text-[11px] font-bold text-slate-600 group-hover:text-slate-800 transition-colors truncate">
+                    {skill}
+                  </span>
+                </div>
 
-                <div className="flex items-center gap-1">
-                  {/* 목표 레벨 배지 */}
-                  {target > 0 && (
-                    <span className={`text-[9px] flex items-center gap-0.5 px-1 rounded border
-                      ${isTargetMet
-                        ? 'text-green-600 bg-green-50 border-green-200'
-                        : 'text-red-500 bg-red-50 border-red-200'}`}>
-                      <Target size={8} /> {target}
-                    </span>
-                  )}
-
-                  {/* 레벨 표기 */}
+                {/* 현재 / 목표 — 색상: 미달=보라, 달성=초록, 초과=주황, 맥스초과=빨강 */}
+                <div className="flex items-center gap-0.5 shrink-0">
                   {isOverflow ? (
-                    <span className="text-[10px] font-black flex items-center gap-0.5">
-                      <span className="text-amber-600">{max}</span>
-                      <span className="text-slate-400 text-[9px]">/ {max}</span>
-                      <span className="text-red-500 bg-red-50 border border-red-200 px-1 rounded flex items-center gap-0.5 ml-0.5">
+                    <>
+                      <span className="text-[12px] font-black text-red-500">{max}</span>
+                      <span className="text-[10px] text-slate-300">/</span>
+                      <span className="text-[11px] font-bold text-slate-400">{target > 0 ? target : max}</span>
+                      <span className="text-red-500 bg-red-50 border border-red-200 px-1 rounded flex items-center gap-0.5 ml-0.5 text-[9px] font-black">
                         <AlertTriangle size={8} />+{overflow}
                       </span>
-                    </span>
+                    </>
+                  ) : isOverTarget ? (
+                    <>
+                      <span className="text-[12px] font-black text-orange-500">{current}</span>
+                      <span className="text-[10px] text-slate-300">/</span>
+                      <span className="text-[11px] font-bold text-slate-400">{target}</span>
+                      <span className="text-orange-500 bg-orange-50 border border-orange-200 px-1 rounded flex items-center gap-0.5 ml-0.5 text-[9px] font-black">
+                        <AlertTriangle size={8} />+{overTargetAmt}
+                      </span>
+                    </>
+                  ) : target > 0 ? (
+                    <>
+                      <span className={`text-[12px] font-black ${current >= target ? 'text-emerald-500' : 'text-violet-500'}`}>{current}</span>
+                      <span className="text-[10px] text-slate-300">/</span>
+                      <span className="text-[11px] font-bold text-slate-400">{target}</span>
+                    </>
                   ) : (
-                    <span className={`text-[10px] font-black ${isMaxed ? style.text : 'text-slate-600'}`}>
-                      {current} <span className="text-slate-400 text-[9px]">/ {max}</span>
-                    </span>
+                    <>
+                      <span className={`text-[12px] font-black ${current >= max ? 'text-emerald-500' : current > 0 ? 'text-violet-500' : 'text-slate-400'}`}>{current}</span>
+                      <span className="text-[10px] text-slate-300">/</span>
+                      <span className="text-[11px] font-bold text-slate-400">{max}</span>
+                    </>
                   )}
                 </div>
               </div>
 
               {/* 진행바 */}
               <div className={`h-1.5 w-full bg-slate-100 rounded-full overflow-hidden relative border
-                ${isOverflow ? 'border-red-200' : 'border-slate-200'}`}>
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ease-out
-                    ${isOverflow
-                      ? 'bg-gradient-to-r from-amber-400 to-red-400'
-                      : isMaxed
-                        ? style.barMaxed
-                        : style.bar}`}
-                  style={{ width: `${percent}%` }}
-                />
-                {target > 0 && (
+                ${isOverflow ? 'border-red-200' : isOverTarget ? 'border-orange-200' : 'border-slate-200'}`}>
+                {isOverTarget ? (
+                  <>
+                    <div className={`absolute h-full ${style.barMaxed}`} style={{ width: `${targetPercent}%` }} />
+                    <div className="absolute h-full bg-orange-400" style={{ left: `${targetPercent}%`, width: `${percent - targetPercent}%` }} />
+                  </>
+                ) : (
                   <div
-                    className="absolute top-0 bottom-0 w-0.5 bg-red-400 z-10"
-                    style={{ left: `${(target / max) * 100}%` }}
+                    className={`h-full rounded-full transition-all duration-500 ease-out
+                      ${isOverflow ? 'bg-gradient-to-r from-amber-400 to-red-400' : style.bar}`}
+                    style={{ width: `${percent}%` }}
                   />
+                )}
+                {/* 목표 마커선 */}
+                {target > 0 && !isOverTarget && (
+                  <div className="absolute top-0 bottom-0 w-0.5 bg-slate-400 z-10" style={{ left: `${targetPercent}%` }} />
                 )}
               </div>
 
-              {/* 초과 경고 */}
+              {/* 초과 경고 메시지 */}
               {isOverflow && (
                 <p className="text-[9px] text-red-500 mt-0.5 flex items-center gap-0.5">
-                  <AlertTriangle size={7} />
-                  맥스 초과 — {overflow}레벨 낭비 중
+                  <AlertTriangle size={7} /> 맥스 초과 — {overflow}레벨 낭비 중
+                </p>
+              )}
+              {isOverTarget && !isOverflow && (
+                <p className="text-[9px] text-orange-500 mt-0.5 flex items-center gap-0.5">
+                  <AlertTriangle size={7} /> 목표 초과 배치 — {overTargetAmt} 초과
                 </p>
               )}
             </div>
