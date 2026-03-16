@@ -13,6 +13,7 @@ import { getGoldBonuses, isCurrentlyActive, isEventInHottime, BONUS_ITEMS } from
 interface Props {
   events: TradeEvent[];
   now: number;
+  cityMap: Record<string, string[]>;
   onVoteOptimistic: (eventId: string, itemId: string, isUp: boolean) => void;
   onAddOptimistic: (eventId: string, item: TradeItem) => void;
   onDeleteBoost: (eventId: string) => Promise<void>;
@@ -36,7 +37,7 @@ const typeIndicators: Record<string, string> = {
   '전염병': 'bg-stone-400', '축제': 'bg-yellow-400',
 };
 
-export default function ScheduleTable({ events, now, onVoteOptimistic, onAddOptimistic, onDeleteBoost, onDeleteItem }: Props) {
+export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, onAddOptimistic, onDeleteBoost, onDeleteItem }: Props) {
   if (events.length === 0) {
     return (
       <div className="w-full bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
@@ -69,10 +70,11 @@ export default function ScheduleTable({ events, now, onVoteOptimistic, onAddOpti
               : (typeColors[event.type] || 'bg-slate-100 text-slate-600 border-slate-200');
             const indicatorCls = isBoost ? 'bg-indigo-500' : (typeIndicators[event.type] || 'bg-slate-300');
 
-            // 금색 반짝임: ① 지금 진행 중 ② 핫타임 시간대 ③ 공예품/귀금속 포함
+            // 금빛 테두리: 핫타임 시간대 + 공예품/귀금속 포함이면 항상 표시
             const isActive = isCurrentlyActive(event);
-            const bonuses = getGoldBonuses(event); // 내부에서 핫타임 체크 포함
-            const isGold = isActive && bonuses.length > 0;
+            const bonuses = getGoldBonuses(event, cityMap);
+            const isGold = bonuses.length > 0;
+            const isUpcoming = !isActive && isGold;
 
             return (
               <tr
@@ -119,13 +121,15 @@ export default function ScheduleTable({ events, now, onVoteOptimistic, onAddOpti
 
                 {/* 추천 품목 */}
                 <td className="px-1.5 py-2.5 align-top pt-3">
-                  {/* 할증 배지 (앞에 배치) */}
+                  {/* 할증 배지 — 진행 중(✦ 컬러) 또는 예정(◇ 회색) */}
                   {bonuses.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-1.5">
                       {bonuses.map(b => (
                         <span key={b}
-                          className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-black border whitespace-nowrap ${BONUS_ITEMS[b].color}`}>
-                          ✦ {b} {BONUS_ITEMS[b].label}
+                          className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-black border whitespace-nowrap
+                            ${isActive ? BONUS_ITEMS[b].color : 'text-slate-400 bg-slate-50 border-slate-200'}`}>
+                          {isActive ? '✦' : '◇'} {b} {BONUS_ITEMS[b].label}
+                          {!isActive && <span className="opacity-60 ml-0.5 text-[9px]">예정</span>}
                         </span>
                       ))}
                     </div>

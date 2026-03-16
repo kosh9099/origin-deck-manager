@@ -80,9 +80,10 @@ export function parseZoneCsv(csvText: string): SheetItemMap {
 }
 
 // ── 도시별 CSV 파싱 ──────────────────────────────────────────────
-// 구조: 해역, 항구명, 부양1, 추천품목1순위, 추천품목2순위, 추천품목3순위,
-//                    부양2, 추천품목1순위, 추천품목2순위, 급매1
+// 구조: 해역, 항구명, 부양1, 추천품목1~3, 부양2, 추천품목1~2, 급매1, 분류(급매1)
 // 키:   "더블린|식료품" → ["사고", "카마스"]
+//       "더블린|급매"   → ["일렉트럼"]  (급매1 품목명)
+//       "더블린|귀금속" → ["일렉트럼"]  (분류(급매1) 카테고리로도 매핑)
 export function parseCityCsv(csvText: string): SheetItemMap {
     const result: SheetItemMap = {};
     const lines = csvText.split('\n').map(l => l.trim()).filter(Boolean);
@@ -117,12 +118,22 @@ export function parseCityCsv(csvText: string): SheetItemMap {
             }
         }
 
-        // 급매1 (J열=index9 카테고리 - 품목 열이 없으면 카테고리 자체를 품목으로)
-        const flash1Cat = cols[9]?.trim();
-        if (flash1Cat) {
+        // 급매1 (J열=index9 품목명, K열=index10 분류)
+        const flash1Item = cols[9]?.trim();  // 품목명 (예: 일렉트럼)
+        const flash1Cat = cols[10]?.trim(); // 분류   (예: 귀금속)
+
+        if (flash1Item) {
+            // "도시명|급매" 키로 품목명 저장 (기존 방식 유지)
             result[`${city}|급매`] = result[`${city}|급매`]
-                ? [...result[`${city}|급매`], flash1Cat]
-                : [flash1Cat];
+                ? [...result[`${city}|급매`], flash1Item]
+                : [flash1Item];
+
+            // "도시명|분류" 키로도 저장 (부양 카테고리와 동일하게 매핑)
+            if (flash1Cat) {
+                result[`${city}|${flash1Cat}`] = result[`${city}|${flash1Cat}`]
+                    ? [...result[`${city}|${flash1Cat}`], flash1Item]
+                    : [flash1Item];
+            }
         }
     }
 

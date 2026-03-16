@@ -54,14 +54,31 @@ export const BONUS_ITEMS: Record<string, { label: string; color: string }> = {
 };
 
 /** 이벤트가 공예품/귀금속을 포함하는지 확인
- *  단, 핫타임 시간대의 이벤트에만 적용 */
-export function getGoldBonuses(event: TradeEvent): string[] {
-  // ① 이벤트 시작 시각이 핫타임 시간대여야 함
+ *  핫타임 시간대 이벤트에만 적용 */
+export function getGoldBonuses(
+  event: TradeEvent,
+  cityMap?: Record<string, string[]>
+): string[] {
   if (!isEventInHottime(event.startTime)) return [];
 
   const bonusKeys = Object.keys(BONUS_ITEMS);
+
   if (event.isBoost) {
-    return bonusKeys.filter(k => event.type === k);
+    // 1) ev.type이 직접 공예품/귀금속인 경우 (부양 카테고리)
+    const direct = bonusKeys.filter(k => event.type === k);
+    if (direct.length > 0) return direct;
+
+    // 2) 급매인 경우 — cityMap에서 해당 도시의 분류 역조회
+    // "도시명|귀금속" → ["일렉트럼"] 형태로 저장되어 있으므로
+    // 도시명+보너스키 조합으로 값에 ev.type이 포함되어 있으면 매칭
+    if (cityMap) {
+      const cityKey = event.city || event.zone || '';
+      return bonusKeys.filter(k => {
+        const items = cityMap[`${cityKey}|${k}`] || [];
+        return items.includes(event.type);
+      });
+    }
+    return [];
   } else {
     const items = APPLIED_PANDEMIC_ITEMS[event.type] || [];
     return bonusKeys.filter(k => items.includes(k));
@@ -285,6 +302,7 @@ export default function TradeDashboard() {
             <ScheduleTable
               events={events}
               now={now}
+              cityMap={cityMap}
               onVoteOptimistic={handleVoteOptimistic}
               onAddOptimistic={handleAddOptimistic}
               onDeleteBoost={handleDeleteBoost}
