@@ -100,10 +100,10 @@ export function parseCityCsv(csvText: string): SheetItemMap {
         const boost1Cat = cols[2]?.trim();
         if (boost1Cat) {
             const items = [cols[3], cols[4], cols[5]]
-                .map(c => c?.trim() || '')
-                .filter(Boolean);
+                .map(c => c?.trim() || '').filter(Boolean);
             if (items.length > 0) {
-                result[`${city}|${boost1Cat}`] = items;
+                const key = `${city}|${boost1Cat}`;
+                result[key] = [...new Set([...(result[key] || []), ...items])];
             }
         }
 
@@ -111,10 +111,10 @@ export function parseCityCsv(csvText: string): SheetItemMap {
         const boost2Cat = cols[6]?.trim();
         if (boost2Cat) {
             const items = [cols[7], cols[8]]
-                .map(c => c?.trim() || '')
-                .filter(Boolean);
+                .map(c => c?.trim() || '').filter(Boolean);
             if (items.length > 0) {
-                result[`${city}|${boost2Cat}`] = items;
+                const key = `${city}|${boost2Cat}`;
+                result[key] = [...new Set([...(result[key] || []), ...items])];
             }
         }
 
@@ -123,16 +123,16 @@ export function parseCityCsv(csvText: string): SheetItemMap {
         const flash1Cat = cols[10]?.trim(); // 분류   (예: 귀금속)
 
         if (flash1Item) {
-            // "도시명|급매" 키로 품목명 저장 (기존 방식 유지)
-            result[`${city}|급매`] = result[`${city}|급매`]
-                ? [...result[`${city}|급매`], flash1Item]
-                : [flash1Item];
+            // "도시명|급매" 키로 품목명 저장
+            const flashKey = `${city}|급매`;
+            const existing1 = result[flashKey] || [];
+            result[flashKey] = [...new Set([...existing1, flash1Item])];
 
-            // "도시명|분류" 키로도 저장 (부양 카테고리와 동일하게 매핑)
+            // "도시명|분류" 키로도 저장 (중복 제거)
             if (flash1Cat) {
-                result[`${city}|${flash1Cat}`] = result[`${city}|${flash1Cat}`]
-                    ? [...result[`${city}|${flash1Cat}`], flash1Item]
-                    : [flash1Item];
+                const catKey = `${city}|${flash1Cat}`;
+                const existing2 = result[catKey] || [];
+                result[catKey] = [...new Set([...existing2, flash1Item])];
             }
         }
     }
