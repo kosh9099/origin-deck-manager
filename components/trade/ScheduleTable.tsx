@@ -127,7 +127,7 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
                       {bonuses.map(b => (
                         <span key={b}
                           className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-black border whitespace-nowrap
-                            ${isActive ? BONUS_ITEMS[b].color : 'text-slate-400 bg-slate-50 border-slate-200'}`}>
+                            ${isActive ? BONUS_ITEMS[b].color : `${BONUS_ITEMS[b].color} opacity-60`}`}>
                           {isActive ? '✦' : '◇'} {b} {BONUS_ITEMS[b].label}
                           {!isActive && <span className="opacity-60 ml-0.5 text-[9px]">예정</span>}
                         </span>
