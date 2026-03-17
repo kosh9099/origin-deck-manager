@@ -13,17 +13,16 @@ import {
 } from '@/lib/trade/sheetSync';
 import { getBoostType } from '@/constants/tradeData';
 import { APPLIED_PANDEMIC_ITEMS } from '@/lib/trade/cities';
+import { getInGameTimeInfo } from '@/lib/trade/time';
 
 // ── 핫타임 설정 ──────────────────────────────────────────────────
-// 날짜/시간 범위와 할증 품목 정의
 export const HOTTIME_CONFIG = {
   startDate: new Date('2026-03-11'),
   endDate: new Date('2026-04-07'),
-  startHour: 17,   // 17시 시작
-  endHour: 22,   // 22시 종료 (22시 미만)
+  startHour: 17,
+  endHour: 22,
 };
 
-/** 지금 현재 시각이 핫타임 시간대인지 확인 */
 export function isNowHottime(): boolean {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -36,7 +35,6 @@ export function isNowHottime(): boolean {
   );
 }
 
-/** 이벤트 시작 시각이 핫타임 시간대에 해당하는지 확인 */
 export function isEventInHottime(timestampMs: number): boolean {
   const d = new Date(timestampMs);
   const dateOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -48,13 +46,12 @@ export function isEventInHottime(timestampMs: number): boolean {
     hour < HOTTIME_CONFIG.endHour
   );
 }
+
 export const BONUS_ITEMS: Record<string, { label: string; color: string }> = {
   '공예품': { label: '+판매할증 10%', color: 'text-amber-700 bg-amber-50 border-amber-300' },
   '귀금속': { label: '+판매할증 30%', color: 'text-yellow-700 bg-yellow-50 border-yellow-400' },
 };
 
-/** 이벤트가 공예품/귀금속을 포함하는지 확인
- *  핫타임 시간대 이벤트에만 적용 */
 export function getGoldBonuses(
   event: TradeEvent,
   cityMap?: Record<string, string[]>
@@ -64,13 +61,9 @@ export function getGoldBonuses(
   const bonusKeys = Object.keys(BONUS_ITEMS);
 
   if (event.isBoost) {
-    // 1) ev.type이 직접 공예품/귀금속인 경우 (부양 카테고리)
     const direct = bonusKeys.filter(k => event.type === k);
     if (direct.length > 0) return direct;
 
-    // 2) 급매인 경우 — cityMap에서 해당 도시의 분류 역조회
-    // "도시명|귀금속" → ["일렉트럼"] 형태로 저장되어 있으므로
-    // 도시명+보너스키 조합으로 값에 ev.type이 포함되어 있으면 매칭
     if (cityMap) {
       const cityKey = event.city || event.zone || '';
       return bonusKeys.filter(k => {
@@ -85,11 +78,10 @@ export function getGoldBonuses(
   }
 }
 
-/** 이벤트가 현재 시간대에 진행 중인지 확인 */
 export function isCurrentlyActive(event: TradeEvent): boolean {
   const now = Date.now();
   const start = event.startTime;
-  const end = start + 3600 * 1000; // 1시간
+  const end = start + 3600 * 1000;
   return now >= start && now < end;
 }
 
@@ -140,7 +132,6 @@ export default function TradeDashboard() {
     zone: SheetLoadStatus; city: SheetLoadStatus;
   }>({ zone: 'idle', city: 'idle' });
 
-  // 1분마다 현재 시각 갱신 (활성 이벤트 하이라이트 갱신)
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(timer);
@@ -231,6 +222,8 @@ export default function TradeDashboard() {
     return null;
   };
 
+  const inGameTime = getInGameTimeInfo(now);
+
   return (
     <div className="w-full flex-1 flex flex-col h-full relative" id="trade-dashboard-capture-area">
 
@@ -240,6 +233,15 @@ export default function TradeDashboard() {
           <h3 className="text-[15px] font-black text-white flex items-center gap-2">
             <Flame size={18} className="text-amber-300 animate-pulse" />
             교역 스케줄 현황
+            {/* 💡 월과 계절을 분리하고 글자를 키운 뒤 시인성을 높였습니다! */}
+            <div className="ml-1.5 flex items-center gap-1.5">
+              <span className="px-2 py-0.5 rounded-md bg-white border border-emerald-200 text-[12px] font-black text-emerald-700 shadow-sm leading-tight">
+                {inGameTime.month}월
+              </span>
+              <span className="px-2 py-0.5 rounded-md bg-emerald-700 border border-emerald-500 text-[12px] font-black text-white shadow-sm leading-tight">
+                {inGameTime.seasonName}
+              </span>
+            </div>
           </h3>
           <p className="text-[11px] text-emerald-100 mt-0.5">대유행 예측 및 유저 공유 부양 일정</p>
         </div>
@@ -256,7 +258,7 @@ export default function TradeDashboard() {
         </div>
       </div>
 
-      {/* 핫타임 이벤트 일정 공지 (기간 내 항상 표시) */}
+      {/* 핫타임 이벤트 일정 공지 */}
       {(() => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -312,7 +314,6 @@ export default function TradeDashboard() {
         )}
       </div>
 
-      {/* 금색 반짝임 애니메이션 CSS */}
       <style>{`
         @keyframes goldShimmer {
           0%, 100% { box-shadow: 0 0 6px 1px rgba(234,179,8,0.5), 0 0 0 2px rgba(234,179,8,0.4); }

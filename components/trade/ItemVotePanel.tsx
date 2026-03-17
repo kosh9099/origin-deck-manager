@@ -2,16 +2,17 @@
 
 import React from 'react';
 import { TradeEvent, TradeItem } from '@/types/trade';
-import { deleteTradeItem } from '@/lib/supabaseClient';
 
 interface Props {
   event: TradeEvent;
   onVoteOptimistic: (itemId: string, isUp: boolean) => void;
   onAddOptimistic: (item: TradeItem) => void;
   onDeleteItem?: (itemId: string) => void;
+  // 💡 팝업을 띄우기 위해 클릭 이벤트를 부모로 전달하는 prop 추가
+  onItemClick?: (itemName: string) => void;
 }
 
-export default function ItemVotePanel({ event, onDeleteItem }: Props) {
+export default function ItemVotePanel({ event, onItemClick }: Props) {
   if (event.items.length === 0) {
     return <span className="text-[11px] text-slate-400 italic">추천 품목 없음</span>;
   }
@@ -19,12 +20,14 @@ export default function ItemVotePanel({ event, onDeleteItem }: Props) {
   return (
     <div className="flex flex-wrap items-center gap-1">
       {event.items.map(item => (
-        <span
+        <button
           key={item.id}
-          className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-semibold border border-slate-200 whitespace-nowrap"
+          // 💡 클릭 시 품목 이름을 부모 컴포넌트(ScheduleTable)로 전달
+          onClick={() => onItemClick?.(item.name)}
+          className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-semibold border border-slate-200 whitespace-nowrap transition-all hover:bg-slate-200 hover:border-slate-300 active:scale-95 cursor-pointer"
         >
           {item.name}
-        </span>
+        </button>
       ))}
     </div>
   );
