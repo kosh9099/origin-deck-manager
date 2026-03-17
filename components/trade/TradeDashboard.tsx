@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { TradeEvent } from '@/types/trade';
+import { TradeEvent, TradeItem } from '@/types/trade';
 import { generateEpidemicSchedules } from '@/lib/trade/epidemic';
 import ScheduleTable from './ScheduleTable';
 import { Flame, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
@@ -222,6 +222,7 @@ export default function TradeDashboard() {
     return null;
   };
 
+  // 💡 time.ts에서 month만 가져옵니다.
   const inGameTime = getInGameTimeInfo(now);
 
   return (
@@ -233,13 +234,10 @@ export default function TradeDashboard() {
           <h3 className="text-[15px] font-black text-white flex items-center gap-2">
             <Flame size={18} className="text-amber-300 animate-pulse" />
             교역 스케줄 현황
-            {/* 💡 월과 계절을 분리하고 글자를 키운 뒤 시인성을 높였습니다! */}
-            <div className="ml-1.5 flex items-center gap-1.5">
+            {/* 💡 계절 배지를 제거하고 '인게임 월' 배지만 남겼습니다. */}
+            <div className="ml-1.5 flex items-center">
               <span className="px-2 py-0.5 rounded-md bg-white border border-emerald-200 text-[12px] font-black text-emerald-700 shadow-sm leading-tight">
-                {inGameTime.month}월
-              </span>
-              <span className="px-2 py-0.5 rounded-md bg-emerald-700 border border-emerald-500 text-[12px] font-black text-white shadow-sm leading-tight">
-                {inGameTime.seasonName}
+                인게임 {inGameTime.month}월
               </span>
             </div>
           </h3>
@@ -258,7 +256,7 @@ export default function TradeDashboard() {
         </div>
       </div>
 
-      {/* 핫타임 이벤트 일정 공지 */}
+      {/* 핫타임 이벤트 일정 공지 (이하 기존과 동일) */}
       {(() => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
