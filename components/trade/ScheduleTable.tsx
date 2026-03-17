@@ -21,20 +21,32 @@ interface Props {
 }
 
 const typeColors: Record<string, string> = {
-  '사치': 'bg-pink-100 text-pink-700 border-pink-200',
-  '호황': 'bg-amber-100 text-amber-700 border-amber-200',
-  '개발': 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  '후원': 'bg-purple-100 text-purple-700 border-purple-200',
-  '전쟁': 'bg-red-100 text-red-700 border-red-200',
-  '홍수': 'bg-sky-100 text-sky-700 border-sky-200',
-  '전염병': 'bg-stone-100 text-stone-700 border-stone-200',
-  '축제': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  '사치': 'bg-pink-100 text-pink-800 border-pink-300',
+  '호황': 'bg-amber-100 text-amber-800 border-amber-300',
+  '개발': 'bg-blue-100 text-blue-800 border-blue-300',
+  '후원': 'bg-purple-100 text-purple-800 border-purple-300',
+  '전쟁': 'bg-red-100 text-red-800 border-red-300',
+  '홍수': 'bg-sky-100 text-sky-800 border-sky-300',
+  '전염병': 'bg-slate-200 text-slate-800 border-slate-400',
+  '축제': 'bg-green-100 text-green-800 border-green-300',
 };
 
 const typeIndicators: Record<string, string> = {
-  '사치': 'bg-pink-400', '호황': 'bg-amber-400', '개발': 'bg-emerald-500',
-  '후원': 'bg-purple-400', '전쟁': 'bg-red-500', '홍수': 'bg-sky-400',
-  '전염병': 'bg-stone-400', '축제': 'bg-yellow-400',
+  '사치': 'bg-pink-500', '호황': 'bg-amber-500', '개발': 'bg-blue-500',
+  '후원': 'bg-purple-500', '전쟁': 'bg-red-500', '홍수': 'bg-sky-500',
+  '전염병': 'bg-slate-500', '축제': 'bg-green-500',
+};
+
+// 💡 1. 100에 투명도 80%(/80)를 적용하여 50과 100 사이의 완벽한 중간 농도를 만들었습니다!
+const typeRowColors: Record<string, string> = {
+  '사치': 'bg-emerald-100/80 hover:bg-emerald-200/80',
+  '호황': 'bg-emerald-100/80 hover:bg-emerald-200/80',
+  '개발': 'bg-emerald-100/80 hover:bg-emerald-200/80',
+  '후원': 'bg-emerald-100/80 hover:bg-emerald-200/80',
+  '전쟁': 'bg-emerald-100/80 hover:bg-emerald-200/80',
+  '홍수': 'bg-emerald-100/80 hover:bg-emerald-200/80',
+  '전염병': 'bg-emerald-100/80 hover:bg-emerald-200/80',
+  '축제': 'bg-emerald-100/80 hover:bg-emerald-200/80',
 };
 
 export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, onAddOptimistic, onDeleteBoost, onDeleteItem }: Props) {
@@ -65,21 +77,35 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
             const tooltip = isBoost ? '유저 등록 스케줄'
               : (APPLIED_PANDEMIC_ITEMS[event.type] ? `고정 품목: ${APPLIED_PANDEMIC_ITEMS[event.type].join(', ')}` : undefined);
 
-            const badgeCls = isBoost
-              ? 'bg-indigo-100 text-indigo-700 border-indigo-200'
-              : (typeColors[event.type] || 'bg-slate-100 text-slate-600 border-slate-200');
-            const indicatorCls = isBoost ? 'bg-indigo-500' : (typeIndicators[event.type] || 'bg-slate-300');
+            let badgeCls = typeColors[event.type] || 'bg-slate-200 text-slate-800 border-slate-400';
+            let indicatorCls = typeIndicators[event.type] || 'bg-slate-400';
+            let rowColorCls = typeRowColors[event.type] || 'bg-emerald-100/80 hover:bg-emerald-200/80';
+            let textColorCls = '';
 
-            // 금빛 테두리: 핫타임 시간대 + 공예품/귀금속 포함이면 항상 표시
+            if (isBoost) {
+              if (boostType === '급매') {
+                // 💡 2. 급매에도 투명도 80%를 주어 눈이 덜 피로하게 조절했습니다.
+                badgeCls = 'bg-orange-100 text-orange-800 border-orange-300';
+                indicatorCls = 'bg-orange-500';
+                rowColorCls = 'bg-orange-100/80 hover:bg-orange-200/80';
+                textColorCls = 'text-orange-600';
+              } else {
+                // 💡 3. 부양에도 투명도 80%를 적용했습니다.
+                badgeCls = 'bg-violet-100 text-violet-800 border-violet-300';
+                indicatorCls = 'bg-violet-500';
+                rowColorCls = 'bg-violet-100/80 hover:bg-violet-200/80';
+                textColorCls = 'text-violet-600';
+              }
+            }
+
             const isActive = isCurrentlyActive(event);
             const bonuses = getGoldBonuses(event, cityMap);
             const isGold = bonuses.length > 0;
-            const isUpcoming = !isActive && isGold;
 
             return (
               <tr
                 key={event.id}
-                className={`transition-colors ${isGold ? 'gold-shimmer' : isBoost ? 'bg-indigo-50/40 hover:bg-indigo-50' : 'hover:bg-slate-50'}`}
+                className={`transition-colors ${rowColorCls} ${isGold ? 'gold-shimmer' : ''}`}
                 style={isGold ? { borderWidth: 2, borderStyle: 'solid' } : undefined}
               >
                 {/* 시간 */}
@@ -103,7 +129,7 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
                   <span className="text-[12px] font-bold text-slate-700 break-keep">
                     {isBoost ? (event.city || event.zone || '항구 미상') : event.zone}
                   </span>
-                  {isBoost && <div className="text-[10px] text-indigo-500 font-bold mt-0.5">유저 등록</div>}
+                  {isBoost && <div className={`text-[10px] font-bold mt-0.5 ${textColorCls}`}>유저 등록</div>}
                 </td>
 
                 {/* 이벤트 */}
@@ -121,7 +147,6 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
 
                 {/* 추천 품목 */}
                 <td className="px-1.5 py-2.5 align-top pt-3">
-                  {/* 할증 배지 — 진행 중(✦ 컬러) 또는 예정(◇ 회색) */}
                   {bonuses.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-1.5">
                       {bonuses.map(b => (

@@ -12,12 +12,7 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* 기기 설정에 따른 자동 다크 모드 전환 코드(@media)를 삭제했습니다! */
 
 body {
   background: var(--background);
