@@ -10,8 +10,8 @@ import { getBoostType } from '@/constants/tradeData';
 import { Trash2 } from 'lucide-react';
 import { getGoldBonuses, isCurrentlyActive, BONUS_ITEMS } from './TradeDashboard';
 
-// 💡 추가된 import: 기후 판별 및 팝업 컴포넌트
-import { getInGameTimeInfo, getClimateStatus } from '@/lib/trade/time';
+// 💡 기후 판별 함수(getClimateStatus)는 내부 계산용으로만 남기고 UI용 import에서는 제거 가능합니다.
+import { getInGameTimeInfo } from '@/lib/trade/time';
 import BarterDetailModal from './BarterDetailModal';
 
 interface Props {
@@ -53,7 +53,6 @@ const typeRowColors: Record<string, string> = {
 };
 
 export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, onAddOptimistic, onDeleteBoost, onDeleteItem }: Props) {
-  // 💡 1. 팝업 관리를 위한 상태 추가
   const [selectedItem, setSelectedItem] = React.useState<string | null>(null);
 
   if (events.length === 0) {
@@ -64,7 +63,6 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
     );
   }
 
-  // 💡 2. 현재 인게임 시간 정보 가져오기
   const inGameTime = getInGameTimeInfo(now);
 
   return (
@@ -109,14 +107,6 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
             const bonuses = getGoldBonuses(event, cityMap);
             const isGold = bonuses.length > 0;
 
-            // 💡 3. 해당 행의 항구 기후 판별
-            const climate = getClimateStatus(event.zone || '', event.city || '', inGameTime.month);
-            let climateColor = 'bg-slate-50 text-slate-600 border-slate-200';
-            if (climate?.includes('우기')) climateColor = 'bg-blue-50 text-blue-600 border-blue-200';
-            if (climate?.includes('건기')) climateColor = 'bg-orange-50 text-orange-600 border-orange-200';
-            if (climate?.includes('열대')) climateColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-            if (climate?.includes('한대')) climateColor = 'bg-cyan-50 text-cyan-700 border-cyan-200';
-
             return (
               <tr
                 key={event.id}
@@ -139,17 +129,12 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
                   </div>
                 </td>
 
-                {/* 해역/항구 & 기후 배지 */}
+                {/* 💡 해역/항구 (기후 배지 제거됨) */}
                 <td className="px-1.5 py-2.5 align-middle">
                   <div className="flex flex-col gap-1">
                     <span className="text-[12px] font-bold text-slate-700 break-keep">
                       {isBoost ? (event.city || event.zone || '항구 미상') : event.zone}
                     </span>
-                    {climate && (
-                      <span className={`w-fit text-[9px] font-black px-1.5 py-0.5 rounded border ${climateColor}`}>
-                        {climate}
-                      </span>
-                    )}
                   </div>
                   {isBoost && <div className={`text-[10px] font-bold mt-0.5 ${textColorCls}`}>유저 등록</div>}
                 </td>
@@ -174,7 +159,7 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
                       {bonuses.map(b => (
                         <button
                           key={b}
-                          onClick={() => setSelectedItem(b)} // 💡 품목 클릭 시 팝업 열기
+                          onClick={() => setSelectedItem(b)}
                           className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-black border whitespace-nowrap transition-transform active:scale-95
                             ${isActive ? BONUS_ITEMS[b].color : `${BONUS_ITEMS[b].color} opacity-60`}`}>
                           {isActive ? '✦' : '◇'} {b} {BONUS_ITEMS[b].label}
@@ -182,7 +167,6 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
                       ))}
                     </div>
                   )}
-                  {/* 💡 ItemVotePanel에도 클릭 기능 전달 (내부에서 품목 클릭 시 setSelectedItem 호출하도록 함) */}
                   <ItemVotePanel
                     event={event}
                     onVoteOptimistic={(itemId, isUp) => onVoteOptimistic(event.id, itemId, isUp)}
@@ -197,7 +181,6 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
         </tbody>
       </table>
 
-      {/* 💡 4. 최종 팝업(모달) 렌더링 */}
       {selectedItem && (
         <BarterDetailModal
           itemName={selectedItem}
