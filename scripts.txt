@@ -1,0 +1,407 @@
+
+    document.addEventListener('DOMContentLoaded', function() {
+
+        // 페이지 상단 [MM/DD ~ MM/DD] 날짜 설정
+        const today = new Date();
+        const dayOfWeek = today.getDay();
+        const monday = new Date(today);
+        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        monday.setDate(today.getDate() - diff);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        const weekRangeString = `[${monday.getMonth() + 1}/${monday.getDate()} ~ ${sunday.getMonth() + 1}/${sunday.getDate()}]`;
+        document.getElementById('week-range').textContent = weekRangeString;
+
+        // API로 항구 조합식 검색
+        function executeSearch(searchTerm) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>검색 중...</p>';
+            fetch('/api/search', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ query: searchTerm })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server responded with status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    resultsDiv.innerHTML = `<p style="color: red;">${data.error}</p>`;
+                } else {
+                    resultsDiv.innerHTML = `<p><strong>쉬움:</strong> ${data['쉬움']}</p><p><strong>보통:</strong> ${data['보통']}</p><p><strong>어려움:</strong> ${data['어려움']}</p>`;
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                resultsDiv.innerHTML = `<p style="color: red;">데이터를 불러오는 중 오류가 발생했습니다.<br>(데이터가 없거나 서버 오류일 수 있습니다)</p>`;
+            });
+        }
+
+        // 검색창(form) 제출 시 executeSearch 함수 실행
+        document.getElementById('search-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            executeSearch(document.getElementById('query').value);
+        });
+
+        // 모달창 관련 전역 변수
+        const feedbackModal = document.getElementById('feedback-modal');
+        const buoyancyModal = document.getElementById('buoyancy-modal');
+        const openFeedbackBtn = document.getElementById('open-feedback-btn');
+        const closeFeedbackBtn = document.getElementById('close-feedback');
+        const openBuoyancyBtn = document.getElementById('open-buoyancy-btn');
+        const closeBuoyancyBtn = document.getElementById('close-buoyancy');
+        const mobileOpenFeedbackBtn = document.getElementById('mobile-open-feedback-btn');
+        const mobileOpenBuoyancyBtn = document.getElementById('mobile-open-buoyancy-btn');
+
+        // 모달 열기/닫기 함수
+        function openFeedback() { feedbackModal.style.display = 'block'; }
+        function closeFeedback() { feedbackModal.style.display = 'none'; }
+        function openBuoyancy(e) { e.preventDefault(); buoyancyModal.style.display = 'block'; }
+        function closeBuoyancy() { buoyancyModal.style.display = 'none'; }
+
+        // 모달 이벤트 리스너 할당
+        if (openFeedbackBtn) openFeedbackBtn.addEventListener('click', openFeedback);
+        if (mobileOpenFeedbackBtn) mobileOpenFeedbackBtn.addEventListener('click', openFeedback);
+        if (closeFeedbackBtn) closeFeedbackBtn.addEventListener('click', closeFeedback);
+        if (openBuoyancyBtn) openBuoyancyBtn.addEventListener('click', openBuoyancy);
+        if (mobileOpenBuoyancyBtn) mobileOpenBuoyancyBtn.addEventListener('click', openBuoyancy);
+        if (closeBuoyancyBtn) closeBuoyancyBtn.addEventListener('click', closeBuoyancy);
+
+        // 모달 바깥쪽 클릭 시 닫기
+        window.addEventListener('click', event => {
+            if (event.target == buoyancyModal) buoyancyModal.style.display = 'none';
+            if (event.target == feedbackModal) feedbackModal.style.display = 'none';
+        });
+
+        // 건의사항 제출
+        document.getElementById('feedback-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const feedbackText = document.getElementById('feedback-text').value;
+            fetch('/api/feedback', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ feedback: feedbackText })
+            }).then(res => res.json()).then(data => {
+                alert(data.message); // 사용자 피드백
+                if (data.status === 'success') {
+                    feedbackModal.style.display = 'none';
+                    this.reset();
+                }
+            });
+        });
+
+        // 부양 일정 등록 모달 - 날짜/시간 select 채우기
+        const dateSelect = document.getElementById('buoyancy-date');
+        const todayForSelect = new Date();
+        const sundayForSelect = new Date(todayForSelect);
+        sundayForSelect.setDate(todayForSelect.getDate() + (7 - todayForSelect.getDay()) % 7); // 이번 주 일요일
+
+        let currentDateForSelect = new Date(todayForSelect);
+
+        // 오늘부터 이번 주 일요일까지만
+        while (currentDateForSelect <= sundayForSelect) {
+            const option = document.createElement('option');
+            const dateString = `${currentDateForSelect.getMonth() + 1}/${currentDateForSelect.getDate()}(${'일월화수목금토'[currentDateForSelect.getDay()]})`;
+            option.value = dateString;
+            option.textContent = dateString;
+            dateSelect.appendChild(option);
+            currentDateForSelect.setDate(currentDateForSelect.getDate() + 1);
+        }
+
+        const timeSelect = document.getElementById('buoyancy-time');
+        for (let i = 0; i < 24; i++) {
+            const option = document.createElement('option');
+            const time = i.toString().padStart(2, '0') + ":00";
+            option.value = time;
+            option.textContent = time;
+            timeSelect.appendChild(option);
+        }
+
+        // 부양 일정 제출
+        document.getElementById('buoyancy-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const scheduleData = {
+                date: dateSelect.value, time: timeSelect.value,
+                port: document.getElementById('buoyancy-port').value,
+                type: document.getElementById('buoyancy-type').value
+            };
+            fetch('/api/register-buoyancy', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(scheduleData)
+            }).then(res => res.json()).then(data => {
+                if (data.status === 'success') {
+                    buoyancyModal.style.display = 'none';
+                    this.reset();
+                    initializeSchedules(); // 일정 다시 불러오기
+                } else {
+                    alert('등록 실패: ' + data.message); // 사용자 피드백
+                }
+            });
+        });
+
+        // 등록된 부양 일정 관련 전역 변수
+        let allSortedDates = [];
+        let schedulesByDate = {};
+        let currentDateIndex = 0;
+        const COLUMNS_PER_PAGE = 2;
+        const prevBtn = document.getElementById('prev-schedule-btn');
+        const nextBtn = document.getElementById('next-schedule-btn');
+        const container = document.getElementById('schedule-list-container');
+        const noScheduleMessage = document.getElementById('no-schedule-message');
+
+        // --- ★★★ [복원됨] 등록된 부양 일정 화면에 그리기 (툴팁 기능 없음) ★★★ ---
+        function renderSchedules() {
+            container.innerHTML = '';
+            const datesToShow = allSortedDates.slice(currentDateIndex, currentDateIndex + COLUMNS_PER_PAGE);
+
+            if (datesToShow.length === 0) {
+                noScheduleMessage.style.display = 'block';
+            } else {
+                noScheduleMessage.style.display = 'none';
+            }
+
+            datesToShow.forEach(date => {
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'schedule-date-group';
+
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'schedule-date-title';
+                titleDiv.textContent = date;
+
+                const listDiv = document.createElement('div');
+                listDiv.className = 'schedule-list';
+
+                const uniquePortItems = new Map();
+                //[수정] schedulesByDate[date]가 undefined일 경우 빈 배열 사용
+                (schedulesByDate[date] || []).forEach(item => {
+                    const portKey = item.port || 'unknown_port';
+                    if (!uniquePortItems.has(portKey)) {
+                        uniquePortItems.set(portKey, item);
+                    }
+                });
+
+                const filteredAndSortedList = Array.from(uniquePortItems.values());
+                //[수정] item.time이 undefined일 경우 빈 문자열 사용
+                filteredAndSortedList.sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+
+                filteredAndSortedList.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'schedule-item';
+
+                    const portName = item.port || '항구 불명';
+                    const timeStr = item.time || '시간 불명';
+                    const typeStr = item.type || '종류 불명';
+
+                    // [복원됨] 툴팁 기능이 없는 원래 코드로 수정
+                    itemDiv.innerHTML = `
+                        <span class="schedule-time">${timeStr}</span>
+                        <span class="schedule-port"><a href="#" class="port-link" data-port="${portName}">[${portName}]</a></span>
+                        <span class="schedule-type">${typeStr}</span>`;
+
+                    listDiv.appendChild(itemDiv);
+                });
+
+                groupDiv.appendChild(titleDiv);
+                groupDiv.appendChild(listDiv);
+                container.appendChild(groupDiv);
+
+                // 항구명 너비 맞춤
+                const portElements = listDiv.querySelectorAll('.schedule-port');
+                if (portElements.length > 0) {
+                    let maxWidth = 0;
+                    portElements.forEach(portEl => {
+                        maxWidth = Math.max(maxWidth, portEl.offsetWidth);
+                    });
+                    portElements.forEach(portEl => {
+                        portEl.style.width = `${maxWidth}px`;
+                    });
+                }
+            });
+            prevBtn.disabled = (currentDateIndex === 0);
+            nextBtn.disabled = (currentDateIndex + COLUMNS_PER_PAGE >= allSortedDates.length);
+        }
+
+        // 서버에서 부양 일정 데이터 가져오기
+        function initializeSchedules() {
+            fetch('/api/get-schedules', { cache: 'no-cache' }) // 캐시 방지
+                .then(response => response.json())
+                .then(schedules => {
+                    if (!schedules || schedules.length === 0) {
+                        allSortedDates = [];
+                        schedulesByDate = {};
+                        renderSchedules();
+                        return;
+                    }
+
+                    schedulesByDate = {}; // 초기화
+
+                    schedules.forEach(schedule => {
+                        if (!schedule.date) return; // 날짜 없는 데이터 제외
+                        if (!schedulesByDate[schedule.date]) {
+                            schedulesByDate[schedule.date] = [];
+                        }
+                        schedulesByDate[schedule.date].push(schedule);
+                    });
+
+                    allSortedDates = Object.keys(schedulesByDate).sort((a, b) => {
+                        try {
+                            const dateAParts = a.split('(')[0].split('/');
+                            const dateBParts = b.split('(')[0].split('/');
+                            const dateA = new Date(new Date().getFullYear(), parseInt(dateAParts[0]) - 1, parseInt(dateAParts[1]));
+                            const dateB = new Date(new Date().getFullYear(), parseInt(dateBParts[0]) - 1, parseInt(dateBParts[1]));
+                            return dateA - dateB;
+                        } catch (e) {
+                            return 0; // 파싱 실패 시 순서 변경 안함
+                        }
+                    });
+
+                    currentDateIndex = 0;
+                    renderSchedules();
+                });
+        }
+
+        // 부양 일정 이전/다음 버튼
+        prevBtn.addEventListener('click', () => {
+            currentDateIndex -= COLUMNS_PER_PAGE;
+            if (currentDateIndex < 0) currentDateIndex = 0;
+            renderSchedules();
+        });
+        nextBtn.addEventListener('click', () => {
+            currentDateIndex += COLUMNS_PER_PAGE;
+            renderSchedules();
+        });
+
+        // 부양 일정 항구 이름 클릭 시 검색창에 자동 입력
+        document.getElementById('schedule-list-container').addEventListener('click', function(event) {
+            if (event.target && event.target.classList.contains('port-link')) {
+                event.preventDefault();
+                const portName = event.target.dataset.port;
+                document.getElementById('query').value = portName;
+                executeSearch(portName);
+                document.getElementById('query').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+
+        // 좌측 퀵서치 버튼 클릭 시 검색창에 자동 입력
+        const quickSearchContainer = document.querySelector('.desktop-quick-search');
+        if (quickSearchContainer) {
+            quickSearchContainer.addEventListener('click', function(event) {
+                if (event.target && event.target.classList.contains('quick-port-btn')) {
+                    event.preventDefault();
+                    const portName = event.target.dataset.port;
+
+                    document.getElementById('query').value = portName;
+                    executeSearch(portName);
+                    document.getElementById('query').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+        }
+
+        // --- ★★★ [수정됨] 3일치 테이블 캘린더 생성 (요청하신 축 기준) ★★★ ---
+        function generateSeasonCalendars() {
+
+            // [1] 설정: 사람이 관리하기 편한 형태 (시즌명: [월 목록])
+            const hwangmaConfig = {
+                '성수기': [6,7,8],
+                '평수기': [],
+                '비수기': [12,1,2]
+            };
+
+            const aguayoConfig = {
+                '성수기': [6,7,8],
+                '평수기': [],
+                '비수기': [12,1,2]
+            };
+
+            const chokgeumConfig = {
+                '성수기': [5,6,7,8,9,10,11],
+                '평수기': [],
+                '비수기': [12,1,2,3,4]
+            };
+
+            // [2] 변환 함수: 설정을 {월: '시즌명'} 형태로 자동 변환
+            function createSeasonMap(config) {
+                const map = {};
+                for (const [season, months] of Object.entries(config)) {
+                    months.forEach(month => {
+                        map[month] = season;
+                    });
+                }
+                return map;
+            }
+
+            // [3] 실제 로직에서 사용할 맵 생성 (기존 로직과 호환됨)
+            const hwangmaSeasons = createSeasonMap(hwangmaConfig);
+            const aguayoSeasons = createSeasonMap(aguayoConfig);
+            const chokgeumSeasons = createSeasonMap(chokgeumConfig);
+
+            // 시즌별 CSS 클래스 매핑
+            const seasonToClass = {
+                '성수기': 'season-peak',
+                '비수기': 'season-offpeak',
+                '평수기': 'season-normal'
+            };
+            const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+
+            // 인게임 월 계산 기준 (2025년 11월 5일 = 10월)
+            const baseRealDate = new Date(2025, 10, 5); // 10 = 11월
+            const baseGameMonth = 10; // 10월
+
+            // 실제 날짜를 기준으로 인게임 월 계산
+            function getGameMonth(currentRealDate) {
+                const oneDay = 24 * 60 * 60 * 1000;
+                const baseDate = new Date(baseRealDate.getFullYear(), baseRealDate.getMonth(), baseRealDate.getDate());
+                const currentDate = new Date(currentRealDate.getFullYear(), currentRealDate.getMonth(), currentRealDate.getDate());
+
+                const daysDiff = Math.round((currentDate - baseDate) / oneDay);
+                let monthIndex = (baseGameMonth - 1) + daysDiff;
+
+                let gameMonth = (monthIndex % 12);
+                if (gameMonth < 0) {
+                    gameMonth += 12;
+                }
+                return gameMonth + 1; // 1 ~ 12
+            }
+
+            // --- [신규] 3일 캘린더 로직 ---
+            const todayForCalendar = new Date();
+
+            for (let i = 0; i < 3; i++) { // 0:오늘, 1:내일, 2:모레
+                const currentDate = new Date(todayForCalendar);
+                currentDate.setDate(todayForCalendar.getDate() + i);
+
+                // "11/10(월)" 형식
+                const dateStr = `${currentDate.getMonth() + 1}/${currentDate.getDate()}(${dayNames[currentDate.getDay()]})`;
+
+                // 1. 가로축 날짜 헤더 채우기
+                const headerCell = document.getElementById(`cal-day-${i}`);
+                if (headerCell) headerCell.textContent = dateStr;
+
+                // 2. 인게임 월 계산
+                const gameMonth = getGameMonth(currentDate);
+
+                // 3. 시즌 클래스 계산 (이제 hwangmaSeasons[1] 형태로 조회가 가능해짐)
+                const hSeason = hwangmaSeasons[gameMonth] || '평수기';
+                const aSeason = aguayoSeasons[gameMonth] || '평수기';
+                const cSeason = chokgeumSeasons[gameMonth] || '평수기';
+
+                // 4. 셀에 클래스 적용 (ID는 그대로 사용)
+                const hwangmaCell = document.getElementById(`hwangma-${i}`);
+                const aguayoCell = document.getElementById(`aguayo-${i}`);
+                const chokgeumCell = document.getElementById(`chokgeum-${i}`);
+
+                if (hwangmaCell) hwangmaCell.className = seasonToClass[hSeason];
+                if (aguayoCell) aguayoCell.className = seasonToClass[aSeason];
+                if (chokgeumCell) chokgeumCell.className = seasonToClass[cSeason];
+            }
+        }
+
+        // 페이지 로드 시 함수 실행
+        initializeSchedules();
+        generateSeasonCalendars();
+    });
+    

@@ -13,6 +13,8 @@ import { getGoldBonuses, isCurrentlyActive, BONUS_ITEMS } from './TradeDashboard
 // 💡 기후 판별 함수(getClimateStatus)는 내부 계산용으로만 남기고 UI용 import에서는 제거 가능합니다.
 import { getInGameTimeInfo } from '@/lib/trade/time';
 import BarterDetailModal from './BarterDetailModal';
+import CityCombinationModal from './CityCombinationModal';
+import combinationsData from '@/constants/combinations.json';
 
 interface Props {
   events: TradeEvent[];
@@ -54,6 +56,7 @@ const typeRowColors: Record<string, string> = {
 
 export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, onAddOptimistic, onDeleteBoost, onDeleteItem }: Props) {
   const [selectedItem, setSelectedItem] = React.useState<string | null>(null);
+  const [selectedCity, setSelectedCity] = React.useState<string | null>(null);
 
   if (events.length === 0) {
     return (
@@ -129,11 +132,27 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
                   </div>
                 </td>
 
-                {/* 💡 해역/항구 (기후 배지 제거됨) */}
+                {/* 💡 해역/항구 */}
                 <td className="px-1.5 py-2.5 align-middle">
                   <div className="flex flex-col gap-1">
                     <span className="text-[12px] font-bold text-slate-700 break-keep">
-                      {isBoost ? (event.city || event.zone || '항구 미상') : event.zone}
+                      {(() => {
+                        const cityName = isBoost ? (event.city || event.zone || '항구 미상') : event.zone;
+                        const hasCombination = cityName in combinationsData;
+                        
+                        if (hasCombination) {
+                          return (
+                            <button 
+                              onClick={() => setSelectedCity(cityName)}
+                              className="text-indigo-600 hover:text-indigo-800 hover:underline underline-offset-2 transition-colors inline-flex items-center gap-1 active:scale-95"
+                              title={`${cityName} 조합식 보기`}
+                            >
+                              {cityName}
+                            </button>
+                          );
+                        }
+                        return cityName;
+                      })()}
                     </span>
                   </div>
                   {isBoost && <div className={`text-[10px] font-bold mt-0.5 ${textColorCls}`}>유저 등록</div>}
@@ -186,6 +205,13 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
           itemName={selectedItem}
           month={inGameTime.month}
           onClose={() => setSelectedItem(null)}
+        />
+      )}
+
+      {selectedCity && (
+        <CityCombinationModal
+          cityName={selectedCity}
+          onClose={() => setSelectedCity(null)}
         />
       )}
     </div>

@@ -7,6 +7,8 @@ import ItemVotePanel from './ItemVotePanel';
 import { APPLIED_PANDEMIC_ITEMS } from '@/lib/trade/cities';
 import { getBoostType } from '@/constants/tradeData';
 import { Trash2 } from 'lucide-react';
+import CityCombinationModal from './CityCombinationModal';
+import combinationsData from '@/constants/combinations.json';
 
 interface Props {
   events: TradeEvent[];
@@ -34,6 +36,8 @@ const typeIndicators: Record<string, string> = {
 };
 
 export default function ScheduleCards({ events, onVoteOptimistic, onAddOptimistic, onDeleteBoost, onDeleteItem }: Props) {
+  const [selectedCity, setSelectedCity] = React.useState<string | null>(null);
+
   if (events.length === 0) {
     return (
       <div className="w-full text-center py-10 text-slate-400 bg-white rounded-xl border border-slate-200 shadow-sm">
@@ -92,7 +96,23 @@ export default function ScheduleCards({ events, onVoteOptimistic, onAddOptimisti
                     {isBoost ? `${event.type || '?'} ${getBoostType(event.type)}` : event.type}
                   </span>
                   <span className="font-bold text-sm text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 text-right break-keep">
-                    {isBoost ? (event.city || event.zone || '항구미상') : event.zone}
+                    {(() => {
+                      const cityName = isBoost ? (event.city || event.zone || '항구미상') : event.zone;
+                      const hasCombination = cityName in combinationsData;
+                      
+                      if (hasCombination) {
+                        return (
+                          <button 
+                            onClick={() => setSelectedCity(cityName)}
+                            className="text-indigo-600 hover:text-indigo-800 hover:underline underline-offset-2 transition-colors inline-flex items-center gap-1 active:scale-95"
+                            title={`${cityName} 조합식 보기`}
+                          >
+                            {cityName}
+                          </button>
+                        );
+                      }
+                      return cityName;
+                    })()}
                   </span>
                   {isBoost && (
                     <span className="text-[9px] text-indigo-500 font-bold">유저 등록</span>
@@ -116,6 +136,13 @@ export default function ScheduleCards({ events, onVoteOptimistic, onAddOptimisti
           </div>
         );
       })}
+
+      {selectedCity && (
+        <CityCombinationModal
+          cityName={selectedCity}
+          onClose={() => setSelectedCity(null)}
+        />
+      )}
     </div>
   );
 }
