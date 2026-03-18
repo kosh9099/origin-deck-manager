@@ -134,3 +134,12 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Dev-only scripts and files
+*.py
+*.xlsx
+cross_validation_report.txt
+scripts.txt
+temp_html.txt
+tsc_output*.txt
+항구명.txt

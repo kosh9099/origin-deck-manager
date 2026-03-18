@@ -17,11 +17,12 @@ export async function loadCsvData(url: string): Promise<any[]> {
 }
 
 export async function initBarterSystem() {
-    const [rawBarter, rawItemInfo, rawCityClimate, rawSchedule] = await Promise.all([
+    const [rawBarter, rawItemInfo, rawCityClimate, rawSchedule, rawPortSeason] = await Promise.all([
         loadCsvData('/data/barter_materials.csv'),
         loadCsvData('/data/item_info.csv'),
         loadCsvData('/data/city_climate.csv'),
         loadCsvData('/data/season_schedule.csv'),
+        loadCsvData('/data/port_season.csv'),
     ]);
 
     const recipes: Record<string, string[]> = {};
@@ -68,5 +69,20 @@ export async function initBarterSystem() {
         }
     });
 
-    return { recipes, itemMeta, cityClimate, schedule };
+    // 💡 NEW: 항구별 시즌 데이터 (port_season.csv)
+    // 키: "항구:아이템" → { 1월: "성", 2월: "비", ... }
+    const portSeason: Record<string, Record<string, string>> = {};
+    rawPortSeason.forEach((row: any) => {
+        const port = row['항구']?.trim();
+        const item = row['아이템']?.trim();
+        if (port && item) {
+            const key = `${port}:${item}`;
+            portSeason[key] = {};
+            for (let m = 1; m <= 12; m++) {
+                portSeason[key][`${m}월`] = row[`${m}월`]?.trim() || '평';
+            }
+        }
+    });
+
+    return { recipes, itemMeta, cityClimate, schedule, portSeason };
 }

@@ -1,8 +1,15 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { buildBarterTree, BarterNode } from '@/lib/trade/barterEngine';
-import { initBarterSystem } from '@/lib/trade/barterLoader';
+
+// 💡 BarterNode 타입만 정의 (로직은 서버 API에서 실행)
+interface BarterNode {
+    name: string;
+    type: 'barter' | 'trade' | 'hybrid';
+    status?: '▲' | '—' | '▼';
+    bestCities?: string[];
+    children?: BarterNode[];
+}
 
 interface Props {
     itemName: string;
@@ -10,7 +17,7 @@ interface Props {
     onClose: () => void;
 }
 
-// 💡 RenderNode: 이제 조합 정보와 시세 정보를 동시에 렌더링합니다.
+// 💡 RenderNode: 조합 정보와 시세 정보를 동시에 렌더링합니다.
 const RenderNode = ({ node, depth }: { node: BarterNode; depth: number }) => {
     const hasChildren = node.children && node.children.length > 0;
     const hasTradeInfo = node.status && node.bestCities && node.bestCities.length > 0;
@@ -28,7 +35,7 @@ const RenderNode = ({ node, depth }: { node: BarterNode; depth: number }) => {
                     {node.name}
                 </span>
 
-                {/* 3. 💡 시세 정보 배지: 타입에 상관없이 '상태(status)'가 있으면 무조건 표시 */}
+                {/* 3. 💡 시세 정보 배지 */}
                 {hasTradeInfo && (
                     <div className="flex items-center gap-1.5">
                         <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded border ${node.status === '▲' ? 'bg-red-50 text-red-600 border-red-100' :
@@ -57,22 +64,28 @@ const RenderNode = ({ node, depth }: { node: BarterNode; depth: number }) => {
 };
 
 export default function BarterDetailModal({ itemName, month, onClose }: Props) {
-    const [allData, setAllData] = useState<any>(null);
+    const [tree, setTree] = useState<BarterNode | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        initBarterSystem().then((res) => {
-            setAllData(res);
-            setLoading(false);
-        }).catch(err => {
-            console.error("CSV 로드 실패:", err);
-            setLoading(false);
-        });
-    }, []);
+        // 💡 서버 API를 호출하여 트리 데이터를 가져옴 (로직 비공개)
+        fetch('/api/barter', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ itemName, month }),
+        })
+            .then(res => res.json())
+            .then(data => {
+                setTree(data.tree);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("API 호출 실패:", err);
+                setLoading(false);
+            });
+    }, [itemName, month]);
 
-    if (loading || !allData) return null;
-
-    const tree = buildBarterTree(itemName, month, allData);
+    if (loading || !tree) return null;
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}>
