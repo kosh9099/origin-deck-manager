@@ -2,20 +2,26 @@
 
 export function getInGameTimeInfo(now: number) {
     /**
-     * 🚨 오류의 원인: 
-     * 현실 시간이 3월이라 '3월' 데이터를 가져오고 있었습니다.
-     * 인게임 상황인 10월에 맞게 월 정보를 수정합니다.
+     * 인게임 시간 계산
+     * 현실 시간 1일당 인게임 1개월이 지나며, 매일 오전 9시(KST)를 기준으로 변경됩니다.
+     * 엑셀 수식 역산 결과: 기준일(Month 1 시작일)은 2024년 7월 28일 오전 9시(KST)입니다.
      */
 
-    // 방법 1: 현재 인게임 월인 10월로 강제 고정 (가장 확실함)
-    const month = 10;
-
-    /* 방법 2: 현실 3월 기준 +7개월 오프셋을 주어 인게임 10월을 맞추는 로직
-    const date = new Date(now);
-    let month = (date.getMonth() + 1 + 7) % 12;
-    if (month === 0) month = 12;
-    */
-
+    // 기준일: 2024-07-28 09:00:00 KST
+    const baseDate = new Date('2024-07-28T09:00:00+09:00').getTime();
+    
+    // 밀리초 단위 차이를 일 단위로 변환합니다.
+    const diffMs = now - baseDate;
+    
+    // 경과한 일수를 구합니다. (음수일 수도 있으므로 Math.floor 사용)
+    const passedDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    // 1~12월 순환 (음수 모듈러 연산 보정)
+    let month = (passedDays % 12) + 1;
+    if (month <= 0) {
+        month += 12;
+    }
+    
     return { month };
 }
 
