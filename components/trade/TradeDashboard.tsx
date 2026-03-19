@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { TradeEvent, TradeItem } from '@/types/trade';
 import { generateEpidemicSchedules } from '@/lib/trade/epidemic';
 import ScheduleTable from './ScheduleTable';
-import { Flame, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
+import { Flame, RefreshCw, CheckCircle, XCircle, Filter } from 'lucide-react';
 import {
   fetchZoneSheet,
   fetchCitySheet,
@@ -125,6 +125,7 @@ export default function TradeDashboard() {
   const [events, setEvents] = useState<TradeEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [now, setNow] = useState(Date.now());
+  const [filters, setFilters] = useState({ boost: true, flash: true, epidemic: true });
 
   const [zoneMap, setZoneMap] = useState<SheetItemMap>({});
   const [cityMap, setCityMap] = useState<SheetItemMap>({});
@@ -225,6 +226,15 @@ export default function TradeDashboard() {
   // 💡 time.ts에서 month만 가져옵니다.
   const inGameTime = getInGameTimeInfo(now);
 
+  const filteredEvents = useMemo(() => events.filter(ev => {
+    if (ev.isBoost) {
+      const bt = getBoostType(ev.type);
+      if (bt === '급매') return filters.flash;
+      return filters.boost;
+    }
+    return filters.epidemic;
+  }), [events, filters]);
+
   return (
     <div className="w-full flex-1 flex flex-col h-full relative" id="trade-dashboard-capture-area">
 
@@ -291,6 +301,26 @@ export default function TradeDashboard() {
         );
       })()}
 
+      {/* 필터 토글 */}
+      <div className="flex items-center gap-2 mb-3 shrink-0 flex-wrap">
+        <span className="flex items-center gap-1 text-[11px] font-bold text-slate-500"><Filter size={12} /> 필터</span>
+        {([
+          { key: 'boost' as const, label: '부양', activeColor: 'bg-violet-500 text-white border-violet-600', inactiveColor: 'bg-white text-violet-600 border-violet-300 opacity-50' },
+          { key: 'flash' as const, label: '급매', activeColor: 'bg-orange-500 text-white border-orange-600', inactiveColor: 'bg-white text-orange-600 border-orange-300 opacity-50' },
+          { key: 'epidemic' as const, label: '대유행', activeColor: 'bg-emerald-500 text-white border-emerald-600', inactiveColor: 'bg-white text-emerald-600 border-emerald-300 opacity-50' },
+        ]).map(f => (
+          <button
+            key={f.key}
+            onClick={() => setFilters(prev => ({ ...prev, [f.key]: !prev[f.key] }))}
+            className={`px-3 py-1 rounded-full text-[11px] font-black border transition-all active:scale-95 ${
+              filters[f.key] ? f.activeColor : f.inactiveColor
+            }`}
+          >
+            {filters[f.key] ? '✓ ' : ''}{f.label}
+          </button>
+        ))}
+      </div>
+
       {/* 스케줄 테이블 */}
       <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 pb-10">
         {isLoading ? (
@@ -300,7 +330,7 @@ export default function TradeDashboard() {
         ) : (
           <div className="animate-in fade-in duration-500">
             <ScheduleTable
-              events={events}
+              events={filteredEvents}
               now={now}
               cityMap={cityMap}
               onVoteOptimistic={handleVoteOptimistic}
