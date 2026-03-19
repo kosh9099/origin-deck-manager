@@ -12,6 +12,7 @@ type TradeViewType = 'dashboard' | 'boosts';
 export default function TradeManagerPage() {
   const [activeTab, setActiveTab] = useState<TradeViewType>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [captureMode, setCaptureMode] = useState(false);
 
   const handleTabChange = (tab: TradeViewType) => {
     setActiveTab(tab);
@@ -24,8 +25,12 @@ export default function TradeManagerPage() {
   ];
 
   const handleCapture = async () => {
+    setCaptureMode(true);
+    // React 리렌더 대기
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const timestamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 16);
     await captureAndDownload('trade-dashboard-capture-area', `trade-schedule-${timestamp}.png`);
+    setCaptureMode(false);
   };
 
   return (

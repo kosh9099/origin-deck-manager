@@ -110,12 +110,9 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
             const bonuses = getGoldBonuses(event, cityMap);
             const isGold = bonuses.length > 0;
 
-            // 부양 이벤트 중 오늘이 아닌 내일 이후 → 반투명 처리
-            const todayStart = new Date();
-            todayStart.setHours(0, 0, 0, 0);
-            const tomorrowStart = new Date(todayStart);
-            tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-            const isFutureBoost = isBoost && event.startTime >= tomorrowStart.getTime();
+            // 💡 수정된 부분: 현재 시간(now) 기준 12시간 이후인지 판별
+            const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
+            const isAfter12Hours = event.startTime > now + TWELVE_HOURS_MS;
 
             return (
               <tr
@@ -123,7 +120,8 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
                 className={`transition-colors ${rowColorCls} ${isGold ? 'gold-shimmer' : ''}`}
                 style={{
                   ...(isGold ? { borderWidth: 2, borderStyle: 'solid' as const } : {}),
-                  ...(isFutureBoost ? { opacity: 0.45 } : {}),
+                  // 💡 12시간 이후면 반투명 처리
+                  ...(isAfter12Hours ? { opacity: 0.45 } : {}),
                 }}
               >
                 {/* 시간 */}
@@ -142,17 +140,17 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
                   </div>
                 </td>
 
-                {/* 💡 해역/항구 */}
+                {/* 해역/항구 */}
                 <td className="px-1.5 py-2.5 align-middle">
                   <div className="flex flex-col gap-1">
                     <span className="text-[12px] font-bold text-slate-700 break-keep">
                       {(() => {
                         const cityName = isBoost ? (event.city || event.zone || '항구 미상') : event.zone;
                         const hasCombination = cityName in combinationsData;
-                        
+
                         if (hasCombination) {
                           return (
-                            <button 
+                            <button
                               onClick={() => setSelectedCity(cityName)}
                               className="text-indigo-600 hover:text-indigo-800 hover:underline underline-offset-2 transition-colors inline-flex items-center gap-1 active:scale-95"
                               title={`${cityName} 조합식 보기`}

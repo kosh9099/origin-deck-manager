@@ -121,7 +121,7 @@ function mergeSheetItems(
   });
 }
 
-export default function TradeDashboard() {
+export default function TradeDashboard({ captureMode = false }: { captureMode?: boolean }) {
   const [events, setEvents] = useState<TradeEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [now, setNow] = useState(Date.now());
@@ -226,14 +226,27 @@ export default function TradeDashboard() {
   // 💡 time.ts에서 month만 가져옵니다.
   const inGameTime = getInGameTimeInfo(now);
 
-  const filteredEvents = useMemo(() => events.filter(ev => {
-    if (ev.isBoost) {
-      const bt = getBoostType(ev.type);
-      if (bt === '급매') return filters.flash;
-      return filters.boost;
+  const filteredEvents = useMemo(() => {
+    let result = events.filter(ev => {
+      if (ev.isBoost) {
+        const bt = getBoostType(ev.type);
+        if (bt === '급매') return filters.flash;
+        return filters.boost;
+      }
+      return filters.epidemic;
+    });
+
+    // 캡처 모드: 오늘 날짜 이벤트만 표시
+    if (captureMode) {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const tomorrowStart = new Date(todayStart);
+      tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+      result = result.filter(ev => ev.startTime >= todayStart.getTime() && ev.startTime < tomorrowStart.getTime());
     }
-    return filters.epidemic;
-  }), [events, filters]);
+
+    return result;
+  }, [events, filters, captureMode]);
 
   return (
     <div className="w-full flex-1 flex flex-col h-full relative" id="trade-dashboard-capture-area">
