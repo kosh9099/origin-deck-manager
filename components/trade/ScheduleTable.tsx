@@ -110,11 +110,21 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
             const bonuses = getGoldBonuses(event, cityMap);
             const isGold = bonuses.length > 0;
 
+            // 부양 이벤트 중 오늘이 아닌 내일 이후 → 반투명 처리
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+            const tomorrowStart = new Date(todayStart);
+            tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+            const isFutureBoost = isBoost && event.startTime >= tomorrowStart.getTime();
+
             return (
               <tr
                 key={event.id}
                 className={`transition-colors ${rowColorCls} ${isGold ? 'gold-shimmer' : ''}`}
-                style={isGold ? { borderWidth: 2, borderStyle: 'solid' } : undefined}
+                style={{
+                  ...(isGold ? { borderWidth: 2, borderStyle: 'solid' as const } : {}),
+                  ...(isFutureBoost ? { opacity: 0.45 } : {}),
+                }}
               >
                 {/* 시간 */}
                 <td className="px-1.5 py-2.5 relative align-middle">
