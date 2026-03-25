@@ -7,7 +7,8 @@ import { AlertTriangle } from 'lucide-react';
 interface Props {
   title: string;
   skills: string[];
-  totals: Record<string, number>;
+  totals: Record<string, number>;       // 클램핑된 값 (능력치 계산용)
+  rawTotals: Record<string, number>;    // 클램핑 없는 원본 합산 (초과 감지용)
   targets: Record<string, number>;
 }
 
@@ -18,7 +19,7 @@ const CATEGORY_STYLE: Record<string, { header: string; badge: string; bar: strin
   '채집': { header: 'bg-green-500', badge: 'bg-green-50 text-green-700 border-green-200', bar: 'bg-green-200', barMaxed: 'bg-green-500', text: 'text-green-700' },
 };
 
-export default function SkillCategoryCard({ title, skills, totals, targets }: Props) {
+export default function SkillCategoryCard({ title, skills, totals, rawTotals, targets }: Props) {
   const style = CATEGORY_STYLE[title] || CATEGORY_STYLE['전리품'];
 
   return (
@@ -36,7 +37,8 @@ export default function SkillCategoryCard({ title, skills, totals, targets }: Pr
 
       <div className="p-2 space-y-2 flex-1 overflow-y-auto max-h-[300px] scrollbar-thin scrollbar-thumb-slate-200">
         {skills.map(skill => {
-          const raw = totals[skill] || 0;
+          // rawTotals: 클램핑 없는 실제 합산값 → 초과 감지에 사용
+          const raw = rawTotals[skill] || 0;
           const max = MAX_SKILL_LEVELS[skill] || 10;
           const current = Math.min(raw, max);
           const overflow = Math.max(0, raw - max);
@@ -52,7 +54,7 @@ export default function SkillCategoryCard({ title, skills, totals, targets }: Pr
           return (
             <div key={skill} className="group">
               <div className="flex items-center gap-2 mb-1">
-                {/* 스킬명 + MAX 배지 */}
+                {/* 스킬명 */}
                 <div className="flex items-center flex-1 min-w-0">
                   <span className="text-[11px] font-bold text-slate-600 group-hover:text-slate-800 transition-colors truncate">
                     {skill}
