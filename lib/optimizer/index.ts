@@ -43,6 +43,7 @@ export function autoDeployFleet(
     };
   });
 
+  // ── 제독 배치 및 스킬 사전 반영 ─────────────────────────────────
   const mainAdmiral = all.find(s => s.id === selectedAdmiralId);
   if (mainAdmiral && ships[0]) {
     ships[0].admiral = mainAdmiral;
@@ -55,6 +56,22 @@ export function autoDeployFleet(
       );
     });
   }
+
+  // ── 필수 항해사 스킬 사전 반영 ───────────────────────────────────
+  // 일반 선원 점수 계산 전에 필수 항해사 전원의 스킬을 미리 합산하여
+  // 이미 채워질 스킬량을 정확히 반영함으로써 초과 배치를 방지합니다.
+  all
+    .filter(s => essentialIds.has(s.id) && s.id !== selectedAdmiralId)
+    .forEach(s => {
+      Object.keys(MAX_SKILL_LEVELS).forEach(sk => {
+        currentLevels[sk] = Math.min(
+          (currentLevels[sk] || 0) + getSailorSkillLevel(s, sk),
+          MAX_SKILL_LEVELS[sk]
+        );
+      });
+    });
+
+  console.log("currentLevels after admiral + essentials pre-fill:", { ...currentLevels });
 
   // ── 공통: 슬롯 타입 자격 검사 ──────────────────────────────────
   const isQualifiedForCombat = (s: Sailor) =>
