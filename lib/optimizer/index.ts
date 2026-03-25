@@ -47,8 +47,12 @@ export function autoDeployFleet(
   if (mainAdmiral && ships[0]) {
     ships[0].admiral = mainAdmiral;
     usedIds.add(mainAdmiral.id);
+    // [Fix] 제독 스킬 누적 시 맥스레벨 클램핑
     Object.keys(MAX_SKILL_LEVELS).forEach(sk => {
-      currentLevels[sk] = (currentLevels[sk] || 0) + getSailorSkillLevel(mainAdmiral, sk);
+      currentLevels[sk] = Math.min(
+        (currentLevels[sk] || 0) + getSailorSkillLevel(mainAdmiral, sk),
+        MAX_SKILL_LEVELS[sk]
+      );
     });
   }
 

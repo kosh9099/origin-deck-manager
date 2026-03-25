@@ -26,9 +26,12 @@ export function calculateFleetSkills(sailors: Sailor[]): Record<string, number> 
 
 export function getSailorSkillLevel(sailor: Sailor, skillName: string): number {
   if (!sailor) return 0;
+
+  // [Fix] 숫자로 직접 저장된 경우에도 맥스레벨로 클램핑
   if (sailor[skillName] !== undefined && typeof sailor[skillName] === 'number') {
-    return sailor[skillName];
+    return Math.min(sailor[skillName], MAX_SKILL_LEVELS[skillName] ?? 10);
   }
+
   const lv2Regex = new RegExp(`^${skillName.replace(/\s+/g, "\\s*")}\\s*LV2$`, "i");
   const baseRegex = new RegExp(`^${skillName.replace(/\s+/g, "\\s*")}$`, "i");
   for (const key in sailor) {
@@ -83,13 +86,26 @@ export function calculateTierScore(
 
   const hasActiveTargets = Object.values(targetLevels).some(v => v > 0);
 
+  // [Fix] 목표 스킬이 있을 때, 미달성 목표에 기여하지 못하는 선원은 하드 차단
+  if (hasActiveTargets) {
+    const contributesToUnmetTarget = Object.entries(targetLevels).some(([sk, target]) => {
+      if (target <= 0) return false;
+      const max = SKILL_MAX_LEVELS[sk] ?? 10;
+      const current = Math.min(currentLevels[sk] || 0, max);
+      return current < target && getSailorSkillLevel(sailor, sk) > 0;
+    });
+    if (!contributesToUnmetTarget) return -1;
+  }
+
   for (const sk in SKILL_MAX_LEVELS) {
     const sailorLvl = getSailorSkillLevel(sailor, sk);
     if (sailorLvl <= 0) continue;
 
     const max = Math.min(10, SKILL_MAX_LEVELS[sk] || 10);
     const target = targetLevels[sk] || 0;
-    const current = currentLevels[sk] || 0;
+
+    // [Fix] current를 max로 클램핑하여 초과 누적 방지
+    const current = Math.min(currentLevels[sk] || 0, max);
 
     const remainingToMax = Math.max(0, max - current);
     const contribution = Math.min(sailorLvl, remainingToMax);

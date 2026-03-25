@@ -13,12 +13,32 @@ interface Props {
   targetLevels: Record<string, number>;
 }
 
+/**
+ * 클램핑 없이 배치된 선원들의 스킬 레벨을 순수 합산합니다.
+ * calculateFleetSkills는 내부적으로 맥스레벨로 클램핑하므로,
+ * 초과 여부를 표시하려면 이 함수로 원본 합산값을 별도 계산해야 합니다.
+ */
+function calculateRawFleetSkills(sailors: any[]): Record<string, number> {
+  const totals: Record<string, number> = {};
+  sailors.forEach(sailor => {
+    if (!sailor) return;
+    Object.keys(MAX_SKILL_LEVELS).forEach(skill => {
+      const level = getSailorSkillLevel(sailor, skill);
+      if (level > 0) {
+        totals[skill] = (totals[skill] || 0) + level;
+      }
+    });
+  });
+  return totals;
+}
+
 export default function SkillDashboard({ result, targetLevels = {} }: Props) {
 
-  const { skillTotals, statSummary } = useMemo(() => {
+  const { skillTotals, rawSkillTotals, statSummary } = useMemo(() => {
     if (!result?.ships) {
       return {
         skillTotals: {},
+        rawSkillTotals: {},
         statSummary: { combat: 0, observation: 0, gathering: 0, loot: 0, pirate: 0, beast: 0 }
       };
     }
@@ -30,7 +50,11 @@ export default function SkillDashboard({ result, targetLevels = {} }: Props) {
       if (ship.combat) ship.combat.filter(Boolean).forEach((s: any) => allCrew.push(s));
     });
 
+    // 클램핑된 값: 능력치 계산용 (맥스 초과분 무시)
     const totals = calculateFleetSkills(allCrew);
+
+    // 클램핑 없는 원본 합산: 초과 표시용
+    const rawTotals = calculateRawFleetSkills(allCrew);
 
     const stats: SkillStat = {
       combat: 0, observation: 0, gathering: 0,
@@ -50,7 +74,7 @@ export default function SkillDashboard({ result, targetLevels = {} }: Props) {
       }
     });
 
-    return { skillTotals: totals, statSummary: stats };
+    return { skillTotals: totals, rawSkillTotals: rawTotals, statSummary: stats };
   }, [result]);
 
   const categories = [
@@ -78,6 +102,7 @@ export default function SkillDashboard({ result, targetLevels = {} }: Props) {
               title={cat.name}
               skills={cat.skills}
               totals={skillTotals}
+              rawTotals={rawSkillTotals}   // 초과 표시용 원본 합산값 추가
               targets={targetLevels}
             />
           ))}

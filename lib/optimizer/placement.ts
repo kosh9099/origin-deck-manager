@@ -46,8 +46,12 @@ export function fillFleetSlots(
       if (best) {
         ship.combat[i] = best.s;
         usedIds.add(best.s.id);
+        // [Fix] 맥스레벨을 초과하지 않도록 클램핑하여 누적
         Object.keys(MAX_SKILL_LEVELS).forEach(sk => {
-          currentLevels[sk] = (currentLevels[sk] || 0) + getSailorSkillLevel(best.s, sk);
+          currentLevels[sk] = Math.min(
+            (currentLevels[sk] || 0) + getSailorSkillLevel(best.s, sk),
+            MAX_SKILL_LEVELS[sk]
+          );
         });
       }
     });
@@ -70,8 +74,12 @@ export function fillFleetSlots(
       if (best) {
         ship.adventure[i] = best.s;
         usedIds.add(best.s.id);
+        // [Fix] 맥스레벨을 초과하지 않도록 클램핑하여 누적
         Object.keys(MAX_SKILL_LEVELS).forEach(sk => {
-          currentLevels[sk] = (currentLevels[sk] || 0) + getSailorSkillLevel(best.s, sk);
+          currentLevels[sk] = Math.min(
+            (currentLevels[sk] || 0) + getSailorSkillLevel(best.s, sk),
+            MAX_SKILL_LEVELS[sk]
+          );
         });
       }
     });

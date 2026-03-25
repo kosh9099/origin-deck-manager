@@ -39,8 +39,8 @@ const RenderNode = ({ node, depth }: { node: BarterNode; depth: number }) => {
                 {hasTradeInfo && (
                     <div className="flex items-center gap-1.5">
                         <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded border ${node.status === '▲' ? 'bg-red-50 text-red-600 border-red-100' :
-                                node.status === '▼' ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                                    'bg-slate-50 text-slate-500 border-slate-100'
+                            node.status === '▼' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                                'bg-slate-50 text-slate-500 border-slate-100'
                             }`}>
                             {node.status} {node.status === '▲' ? '성수기' : node.status === '▼' ? '비수기' : '평수기'}
                         </span>
@@ -99,7 +99,7 @@ export default function BarterDetailModal({ itemName, month, onClose }: Props) {
 
                 <div className="p-6 max-h-[65vh] overflow-y-auto bg-slate-50/30">
                     <div className="mb-4 text-[11px] text-slate-400 bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
-                        💡 📦 아이콘은 조합 가능, 배지는 항구 구매 가능을 의미합니다.
+                        💡 📦 아이콘은 물물 교환, 배지는 항구 구매 가능을 의미합니다.
                     </div>
                     <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
                         <RenderNode node={tree} depth={0} />
