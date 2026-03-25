@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Sword, Map, Ship, Anchor, Compass, ArrowRight, X, Clock, Sparkles, Bug, Wrench } from 'lucide-react';
+import { Sword, Map, Ship, Anchor, Compass, ArrowRight, X, Clock, Sparkles, Bug, Wrench, AlertTriangle } from 'lucide-react';
 import DonateButton from '@/components/DonateButton';
 
 const managers = [
@@ -17,16 +17,17 @@ const managers = [
     active: false,
   },
   {
-    href: '/land',
+    href: null, // 링크 비활성화
     icon: Map,
     iconColor: 'text-amber-600',
     iconBg: 'bg-amber-50',
     gradient: 'from-amber-400 via-orange-500 to-rose-500',
     label: '육탐 매니저',
     desc: '육지 탐색 특화 함대 구성 및 모험 스킬 최적화.',
-    badge: null,
-    active: true,
-    border: 'border-amber-200',
+    badge: '점검 중', // 뱃지 변경
+    active: false, // 활성화 상태 끄기
+    maintenance: true, // 폴리스 라인을 위한 특수 플래그
+    border: 'border-slate-300',
     shadow: 'shadow-[0_4px_20px_rgba(245,158,11,0.2)] hover:shadow-[0_8px_30px_rgba(245,158,11,0.35)]',
     ctaColor: 'bg-gradient-to-r from-amber-400 to-orange-500',
     headerColor: 'bg-amber-500',
@@ -133,14 +134,25 @@ export default function Home() {
 
       {/* Manager cards */}
       <div className="z-10 grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-4xl">
-        {managers.map(m => {
+        {managers.map((m: any) => {
           const Icon = m.icon;
           const inner = (
             <div className={`h-full w-full bg-white rounded-[14px] p-5 flex flex-col gap-3 relative border overflow-hidden
-              ${m.active ? (m.border || 'border-slate-200') : 'border-slate-200'}`}>
+              ${m.active ? (m.border || 'border-slate-200') : 'border-slate-200'}
+              ${m.maintenance ? 'bg-slate-50' : ''}`}>
+
+              {/* 폴리스 라인 오버레이 (점검 중일 때만) */}
+              {m.maintenance && (
+                <div className="absolute top-1/2 left-[-20%] right-[-20%] -translate-y-1/2 -rotate-12 h-12 shadow-2xl z-20 flex items-center justify-center pointer-events-none opacity-95 border-y-[3px] border-yellow-400"
+                  style={{ background: 'repeating-linear-gradient(-45deg, #fbbf24, #fbbf24 20px, #0f172a 20px, #0f172a 40px)' }}>
+                  <span className="text-yellow-400 font-black text-sm tracking-widest bg-slate-900/90 px-4 py-1 rounded-full border border-yellow-500/50 backdrop-blur-md shadow-[0_0_15px_rgba(251,191,36,0.5)]">
+                    알고리즘 고도화 점검 중
+                  </span>
+                </div>
+              )}
 
               {/* Icon + label */}
-              <div className="flex items-center gap-3">
+              <div className={`flex items-center gap-3 ${m.maintenance ? 'opacity-40 grayscale' : ''}`}>
                 <div className={`p-3 rounded-xl ${m.iconBg} ${m.iconColor} transition-all duration-300 shrink-0 border ${m.active ? 'border-current/20' : 'border-slate-200'}`}>
                   <Icon size={26} />
                 </div>
@@ -149,7 +161,8 @@ export default function Home() {
                     {m.label}
                   </h2>
                   {m.badge && (
-                    <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border
+                      ${m.maintenance ? 'text-red-600 bg-red-50 border-red-200' : 'text-slate-400 bg-slate-100 border-slate-200'}`}>
                       {m.badge}
                     </span>
                   )}
@@ -157,7 +170,7 @@ export default function Home() {
               </div>
 
               {/* Description */}
-              <p className={`text-xs leading-relaxed flex-1 ${m.active ? 'text-slate-500' : 'text-slate-400'}`}>
+              <p className={`text-xs leading-relaxed flex-1 ${m.active ? 'text-slate-500' : 'text-slate-400'} ${m.maintenance ? 'opacity-40 grayscale' : ''}`}>
                 {m.desc}
               </p>
 
@@ -165,6 +178,12 @@ export default function Home() {
               {m.active ? (
                 <div className={`w-full py-2.5 ${m.ctaColor} rounded-xl flex items-center justify-center gap-1.5 text-white font-black text-sm shadow-sm group-hover:brightness-105 transition-all`}>
                   입장하기 <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform duration-300" />
+                </div>
+              ) : m.maintenance ? (
+                // 점검 중 전용 하단 버튼
+                <div className="w-full py-2.5 bg-slate-800 rounded-xl flex items-center justify-center text-amber-400 text-xs font-black border border-slate-700 relative overflow-hidden group">
+                  <div className="absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity" style={{ backgroundImage: 'repeating-linear-gradient(-45deg, transparent, transparent 10px, #fbbf24 10px, #fbbf24 20px)' }}></div>
+                  <AlertTriangle size={15} className="mr-1.5 z-10" /> <span className="z-10">접근 제한됨</span>
                 </div>
               ) : (
                 <div className="w-full py-2.5 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 text-xs font-bold border border-slate-200">
@@ -174,7 +193,7 @@ export default function Home() {
             </div>
           );
 
-          return m.href ? (
+          return m.href && !m.maintenance ? (
             <Link
               key={m.label}
               href={m.href}
@@ -183,7 +202,7 @@ export default function Home() {
               {inner}
             </Link>
           ) : (
-            <div key={m.label} className="group relative rounded-2xl opacity-60 cursor-not-allowed">
+            <div key={m.label} className={`group relative rounded-2xl cursor-not-allowed ${m.maintenance ? 'shadow-inner' : 'opacity-60'}`}>
               {inner}
             </div>
           );
@@ -270,11 +289,6 @@ export default function Home() {
           </div>
         </div>
       </label>
-
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        @keyframes shimmer { 0% { transform: translateX(-100%) skewX(-12deg); } 100% { transform: translateX(300%) skewX(-12deg); } }
-      `}} />
     </div>
   );
 }

@@ -15,21 +15,15 @@ export function autoDeployFleet(
   fleetConfig: ShipConfig[],
   selectedAdmiralId: number,
   mode: OptimizerMode,
-  // 모드 A 전용
   targetLevels: Record<string, number>,
   options: OptimizerOptions,
-  // 모드 B 전용
   statConfig?: StatWeightConfig
 ) {
   const { all } = filterSailors(sailors, bannedIds);
   const usedIds = new Set<number>();
   const currentLevels: Record<string, number> = {};
 
-  console.log("=== OPTIMIZER START ===");
-  console.log("mode:", mode);
-  console.log("targetLevels:", targetLevels);
-  console.log("statConfig:", statConfig);
-
+  console.log("=== OPTIMIZER START (Fast Two-Pass Mode) ===");
   Object.keys(MAX_SKILL_LEVELS).forEach(sk => currentLevels[sk] = 0);
 
   const ships: Ship[] = fleetConfig.map(config => {
@@ -43,37 +37,6 @@ export function autoDeployFleet(
     };
   });
 
-  // ── 제독 배치 및 스킬 사전 반영 ─────────────────────────────────
-  const mainAdmiral = all.find(s => s.id === selectedAdmiralId);
-  if (mainAdmiral && ships[0]) {
-    ships[0].admiral = mainAdmiral;
-    usedIds.add(mainAdmiral.id);
-    // [Fix] 제독 스킬 누적 시 맥스레벨 클램핑
-    Object.keys(MAX_SKILL_LEVELS).forEach(sk => {
-      currentLevels[sk] = Math.min(
-        (currentLevels[sk] || 0) + getSailorSkillLevel(mainAdmiral, sk),
-        MAX_SKILL_LEVELS[sk]
-      );
-    });
-  }
-
-  // ── 필수 항해사 스킬 사전 반영 ───────────────────────────────────
-  // 일반 선원 점수 계산 전에 필수 항해사 전원의 스킬을 미리 합산하여
-  // 이미 채워질 스킬량을 정확히 반영함으로써 초과 배치를 방지합니다.
-  all
-    .filter(s => essentialIds.has(s.id) && s.id !== selectedAdmiralId)
-    .forEach(s => {
-      Object.keys(MAX_SKILL_LEVELS).forEach(sk => {
-        currentLevels[sk] = Math.min(
-          (currentLevels[sk] || 0) + getSailorSkillLevel(s, sk),
-          MAX_SKILL_LEVELS[sk]
-        );
-      });
-    });
-
-  console.log("currentLevels after admiral + essentials pre-fill:", { ...currentLevels });
-
-  // ── 공통: 슬롯 타입 자격 검사 ──────────────────────────────────
   const isQualifiedForCombat = (s: Sailor) =>
     s.등급 === 'S+' || s.직업 === '백병대' || s.직업 === '수석 호위기사';
 
@@ -81,121 +44,137 @@ export function autoDeployFleet(
     Object.keys(MAX_SKILL_LEVELS).some(sk => getSailorSkillLevel(s, sk) > 0);
 
   // ════════════════════════════════════════════════════════════════
-  // 모드 A: 스킬 개별 설정
+  // 1단계: 제독 & 필수 항해사 물리적 사전 배치
   // ════════════════════════════════════════════════════════════════
+  const mainAdmiral = all.find(s => s.id === selectedAdmiralId);
+  if (mainAdmiral && ships[0]) {
+    ships[0].admiral = mainAdmiral;
+    usedIds.add(mainAdmiral.id);
+    Object.keys(MAX_SKILL_LEVELS).forEach(sk => {
+      currentLevels[sk] = Math.min((currentLevels[sk] || 0) + getSailorSkillLevel(mainAdmiral, sk), MAX_SKILL_LEVELS[sk]);
+    });
+  }
+
+  const essentials = all.filter(s => essentialIds.has(s.id) && s.id !== selectedAdmiralId);
+  essentials.forEach(s => {
+    let isPlaced = false;
+    if (s.타입 === '전투' || isQualifiedForCombat(s)) {
+      for (const ship of ships) {
+        const emptyIdx = ship.combat.findIndex(slot => slot === null);
+        if (emptyIdx !== -1) { ship.combat[emptyIdx] = s; isPlaced = true; break; }
+      }
+    }
+    if (!isPlaced) {
+      for (const ship of ships) {
+        const emptyIdx = ship.adventure.findIndex(slot => slot === null);
+        if (emptyIdx !== -1) { ship.adventure[emptyIdx] = s; isPlaced = true; break; }
+      }
+    }
+    if (isPlaced) {
+      usedIds.add(s.id);
+      Object.keys(MAX_SKILL_LEVELS).forEach(sk => {
+        currentLevels[sk] = Math.min((currentLevels[sk] || 0) + getSailorSkillLevel(s, sk), MAX_SKILL_LEVELS[sk]);
+      });
+    }
+  });
+
+  // ════════════════════════════════════════════════════════════════
+  // 2단계: 투패스(Two-Pass) 기반 지능형 배치 (렉 없음!)
+  // ════════════════════════════════════════════════════════════════
+
+  // 항해사 탑승 시 목표 스킬에 단 1레벨이라도 초과가 발생하는지 검사하는 도우미 함수
+  const causesAnyOverflow = (s: Sailor, targets?: Record<string, number>): boolean => {
+    for (const sk in MAX_SKILL_LEVELS) {
+      const lvl = getSailorSkillLevel(s, sk);
+      if (lvl > 0) {
+        const max = targets && targets[sk] > 0 ? targets[sk] : (MAX_SKILL_LEVELS[sk] || 10);
+        const current = currentLevels[sk] || 0;
+        if (current + lvl > max) return true;
+      }
+    }
+    return false;
+  };
+
   if (mode === 'skill') {
     const expandedTargets: Record<string, number> = { ...targetLevels };
     const hasActiveTargets = Object.values(expandedTargets).some(v => v > 0);
 
-    const getPriority = (s: Sailor, isCombatSlot: boolean): number => {
-      if (usedIds.has(s.id)) return -1;
+    // [Pass 1] 엄격 모드: 초과를 유발하는 선원은 무조건 차단 (완벽한 퍼즐 조각만 우선 배치)
+    const getStrictPriority = (s: Sailor, isCombatSlot: boolean): number => {
+      if (usedIds.has(s.id) || !hasActiveTargets) return -1;
+      if (isCombatSlot && (s.타입 !== '전투' || !isQualifiedForCombat(s) || !hasExpSkill(s))) return -1;
+      if (!isCombatSlot && (s.타입 !== '모험' || !hasExpSkill(s))) return -1;
 
-      // [핵심 Fix] 목표 스킬이 하나도 설정되지 않은 경우
-      // → 필수 지정 항해사만 배치, 나머지는 전부 건너뜀
-      if (!hasActiveTargets && !essentialIds.has(s.id)) return -1;
-
-      if (isCombatSlot) {
-        if (s.타입 !== '전투') return -1;
-        if (essentialIds.has(s.id)) return 20_000_000;
-        if (!isQualifiedForCombat(s)) return -1;
-        if (!hasExpSkill(s)) return -1;
-        return calculateTierScore(s, currentLevels, expandedTargets);
-      } else {
-        if (s.타입 !== '모험') return -1;
-        if (essentialIds.has(s.id)) return 20_000_000;
-        if (!hasExpSkill(s)) return -1;
-        if (hasActiveTargets) {
-          const canContribute = Object.entries(expandedTargets).some(([sk, target]) => {
-            if (target <= 0) return false;
-            const current = currentLevels[sk] || 0;
-            const cap = MAX_SKILL_LEVELS[sk] ?? 10;
-            return current < cap && getSailorSkillLevel(s, sk) > 0;
-          });
-          if (!canContribute) return -1;
-        }
-        return calculateTierScore(s, currentLevels, expandedTargets);
-      }
+      if (causesAnyOverflow(s, expandedTargets)) return -1; // 초과 절대 금지!
+      return calculateTierScore(s, currentLevels, expandedTargets);
     };
 
-    // 모드 A: 목표 달성 시 조기 종료 (skipEarlyExit=false)
-    fillFleetSlots(ships, all, usedIds, currentLevels, expandedTargets, getPriority, false);
-  }
+    // [Pass 2] 유연 모드: 1차 배치 후에도 목표가 남았다면, 페널티를 받더라도 빈자리를 채움
+    const getFlexiblePriority = (s: Sailor, isCombatSlot: boolean): number => {
+      if (usedIds.has(s.id) || !hasActiveTargets) return -1;
+      if (isCombatSlot && (s.타입 !== '전투' || !isQualifiedForCombat(s) || !hasExpSkill(s))) return -1;
+      if (!isCombatSlot && (s.타입 !== '모험' || !hasExpSkill(s))) return -1;
 
-  // ════════════════════════════════════════════════════════════════
-  // 모드 B: 능력치 종합 설정
-  // ════════════════════════════════════════════════════════════════
+      return calculateTierScore(s, currentLevels, expandedTargets);
+    };
+
+    console.log("=== Phase 1: Strict Exact Matches ===");
+    fillFleetSlots(ships, all, usedIds, currentLevels, expandedTargets, getStrictPriority, false);
+
+    console.log("=== Phase 2: Flexible Fill ===");
+    fillFleetSlots(ships, all, usedIds, currentLevels, expandedTargets, getFlexiblePriority, false);
+  }
   else if (mode === 'stat' && statConfig) {
 
-    const makeStatPriority = (config: StatWeightConfig) =>
-      (s: Sailor, isCombatSlot: boolean): number => {
-        if (usedIds.has(s.id)) return -1;
+    const makePriority = (config: StatWeightConfig, isStrict: boolean) => (s: Sailor, isCombatSlot: boolean): number => {
+      if (usedIds.has(s.id) || !hasExpSkill(s)) return -1;
+      if (isCombatSlot && (s.타입 !== '전투' || !isQualifiedForCombat(s))) return -1;
+      if (!isCombatSlot && s.타입 !== '모험') return -1;
 
-        if (isCombatSlot) {
-          if (s.타입 !== '전투') return -1;
-          if (essentialIds.has(s.id)) return 20_000_000;
-          if (!isQualifiedForCombat(s)) return -1;
-          if (!hasExpSkill(s)) return -1;
-          return calculateStatWeightScore(s, currentLevels, config);
-        } else {
-          if (s.타입 !== '모험') return -1;
-          if (essentialIds.has(s.id)) return 20_000_000;
-          if (!hasExpSkill(s)) return -1;
-          return calculateStatWeightScore(s, currentLevels, config);
-        }
-      };
+      if (isStrict && causesAnyOverflow(s)) return -1;
+      return calculateStatWeightScore(s, currentLevels, config);
+    };
 
     if (statConfig.lootFirst) {
-      // ── 페이즈 1: 전리품 6종 먼저 맥스 ──────────────────────────
-      console.log("=== 페이즈 1: 전리품 먼저 맥스 ===");
-
-      // 전리품 스킬만 목표로 설정 (모두 맥스레벨 10)
       const lootTargets: Record<string, number> = {};
       LOOT_SKILLS.forEach(sk => { lootTargets[sk] = MAX_SKILL_LEVELS[sk] || 10; });
-
       const hasActiveLootTargets = Object.values(lootTargets).some(v => v > 0);
 
-      const getLootPriority = (s: Sailor, isCombatSlot: boolean): number => {
-        if (usedIds.has(s.id)) return -1;
+      const makeLootPriority = (isStrict: boolean) => (s: Sailor, isCombatSlot: boolean): number => {
+        if (usedIds.has(s.id) || !hasExpSkill(s)) return -1;
+        if (isCombatSlot && (s.타입 !== '전투' || !isQualifiedForCombat(s))) return -1;
+        if (!isCombatSlot && s.타입 !== '모험') return -1;
 
-        if (isCombatSlot) {
-          if (s.타입 !== '전투') return -1;
-          if (essentialIds.has(s.id)) return 20_000_000;
-          if (!isQualifiedForCombat(s)) return -1;
-          if (!hasExpSkill(s)) return -1;
-          return calculateTierScore(s, currentLevels, lootTargets);
-        } else {
-          if (s.타입 !== '모험') return -1;
-          if (essentialIds.has(s.id)) return 20_000_000;
-          if (!hasExpSkill(s)) return -1;
-          if (hasActiveLootTargets) {
-            const canContribute = LOOT_SKILLS.some(sk => {
-              const current = currentLevels[sk] || 0;
-              const cap = MAX_SKILL_LEVELS[sk] ?? 10;
-              return current < cap && getSailorSkillLevel(s, sk) > 0;
-            });
-            if (!canContribute) return -1;
-          }
-          return calculateTierScore(s, currentLevels, lootTargets);
+        if (isStrict && causesAnyOverflow(s, lootTargets)) return -1;
+
+        if (!isCombatSlot && hasActiveLootTargets) {
+          const canContribute = LOOT_SKILLS.some(sk => (currentLevels[sk] || 0) < (MAX_SKILL_LEVELS[sk] ?? 10) && getSailorSkillLevel(s, sk) > 0);
+          if (!canContribute) return -1;
         }
+        return calculateTierScore(s, currentLevels, lootTargets);
       };
 
-      // 페이즈 1: 전리품 목표 달성 시 조기 종료
-      fillFleetSlots(ships, all, usedIds, currentLevels, lootTargets, getLootPriority, false);
+      console.log("=== Loot Phase 1: Strict ===");
+      fillFleetSlots(ships, all, usedIds, currentLevels, lootTargets, makeLootPriority(true), false);
+      console.log("=== Loot Phase 2: Flexible ===");
+      fillFleetSlots(ships, all, usedIds, currentLevels, lootTargets, makeLootPriority(false), false);
 
-      // ── 페이즈 2: 남은 슬롯에 능력치 비중 배치 ────────────────────
-      console.log("=== 페이즈 2: 능력치 비중 배치 ===");
-
-      // lootFirst는 페이즈2에서 의미 없으므로 제거한 config 사용
       const statOnlyConfig: StatWeightConfig = { ...statConfig, lootFirst: false };
-      fillFleetSlots(ships, all, usedIds, currentLevels, {}, makeStatPriority(statOnlyConfig), true);
-
+      console.log("=== Stat Phase 1: Strict ===");
+      fillFleetSlots(ships, all, usedIds, currentLevels, {}, makePriority(statOnlyConfig, true), true);
+      console.log("=== Stat Phase 2: Flexible ===");
+      fillFleetSlots(ships, all, usedIds, currentLevels, {}, makePriority(statOnlyConfig, false), true);
     } else {
-      // ── lootFirst 없음: 전체 슬롯을 능력치 비중으로 채움 ──────────
-      fillFleetSlots(ships, all, usedIds, currentLevels, {}, makeStatPriority(statConfig), true);
+      console.log("=== Stat Phase 1: Strict ===");
+      fillFleetSlots(ships, all, usedIds, currentLevels, {}, makePriority(statConfig, true), true);
+      console.log("=== Stat Phase 2: Flexible ===");
+      fillFleetSlots(ships, all, usedIds, currentLevels, {}, makePriority(statConfig, false), true);
     }
   }
 
-  // 선실 압축: 빈 공간(null) 제거 후 앞으로 당김
+  // ════════════════════════════════════════════════════════════════
+  // 3단계: 선실 압축 (빈 공간 제거)
+  // ════════════════════════════════════════════════════════════════
   const allDeployedCrew: Sailor[] = [];
   ships.forEach(ship => {
     if (ship.admiral) allDeployedCrew.push(ship.admiral);
@@ -209,10 +188,7 @@ export function autoDeployFleet(
     });
   });
 
-  const finalSkills = calculateFleetSkills(allDeployedCrew);
   console.log("=== OPTIMIZER RESULT ===");
   console.log("Total Deployed Crew Count:", allDeployedCrew.length);
-  console.log("Final Clamped Skills:", finalSkills);
-
   return { ships };
 }
