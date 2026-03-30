@@ -80,14 +80,14 @@ export function autoDeployFleet(
   const essentials = all.filter(s => essentialIds.has(s.id) && s.id !== selectedAdmiralId);
   essentials.forEach(s => {
     let isPlaced = false;
-    // 전투선실 자격 충족 시 전투선실 우선
-    if (s.타입 === '전투' || isQualifiedForCombat(s)) {
+    // 전투 타입 + 전투선실 자격 → 전투선실
+    if (canFillCombatSlot(s)) {
       for (const ship of ships) {
         const emptyIdx = ship.combat.findIndex(slot => slot === null);
         if (emptyIdx !== -1) { ship.combat[emptyIdx] = s; isPlaced = true; break; }
       }
     }
-    // 아니면 모험선실
+    // 그 외 (모험 타입 포함) → 모험선실
     if (!isPlaced) {
       for (const ship of ships) {
         const emptyIdx = ship.adventure.findIndex(slot => slot === null);
