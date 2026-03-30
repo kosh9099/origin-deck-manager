@@ -73,69 +73,121 @@ export function getSailorStatContribution(
   return result;
 }
 
+// ════════════════════════════════════════════════════════════════
+// 전역 편차 함수: 목표 대비 현재 레벨의 총 편차를 계산
+// 값이 작을수록 좋은 배치 (0 = 완벽)
+// ════════════════════════════════════════════════════════════════
+const SHORTFALL_WEIGHT = 3.0;  // 미달 페널티 (목표 못 채운 것)
+const OVERFLOW_WEIGHT = 1.0;   // 초과 페널티 (목표 넘긴 것)
+
+export function calculateGlobalDeviation(
+  currentLevels: Record<string, number>,
+  targetLevels: Record<string, number>
+): number {
+  let total = 0;
+  for (const sk in targetLevels) {
+    const target = targetLevels[sk];
+    if (target <= 0) continue;
+    const current = currentLevels[sk] || 0;
+    const diff = current - target;
+    if (diff < 0) {
+      total += Math.abs(diff) * SHORTFALL_WEIGHT;
+    } else if (diff > 0) {
+      total += diff * OVERFLOW_WEIGHT;
+    }
+  }
+  return total;
+}
+
+// ════════════════════════════════════════════════════════════════
+// 선원의 스킬 기여를 currentLevels에 누적/제거하는 헬퍼
+// ════════════════════════════════════════════════════════════════
+export function addSailorSkills(sailor: Sailor, currentLevels: Record<string, number>): void {
+  for (const sk in MAX_SKILL_LEVELS) {
+    const lvl = getSailorSkillLevel(sailor, sk);
+    if (lvl > 0) {
+      currentLevels[sk] = Math.min((currentLevels[sk] || 0) + lvl, MAX_SKILL_LEVELS[sk]);
+    }
+  }
+}
+
+export function removeSailorSkills(sailor: Sailor, currentLevels: Record<string, number>): void {
+  for (const sk in MAX_SKILL_LEVELS) {
+    const lvl = getSailorSkillLevel(sailor, sk);
+    if (lvl > 0) {
+      currentLevels[sk] = Math.max(0, (currentLevels[sk] || 0) - lvl);
+    }
+  }
+}
+
+// 선원이 유효 기여를 하나도 못 하는지 검사
+// (모든 보유 스킬이 이미 맥스 → 배치해봤자 순수 낭비)
+export function hasNoUsefulContribution(sailor: Sailor, currentLevels: Record<string, number>): boolean {
+  for (const sk in MAX_SKILL_LEVELS) {
+    const lvl = getSailorSkillLevel(sailor, sk);
+    if (lvl > 0) {
+      const max = MAX_SKILL_LEVELS[sk] || 10;
+      const current = currentLevels[sk] || 0;
+      // 이 스킬에 기여 가능한 여유가 있으면 → 유효 기여 있음
+      if (current < max) return false;
+    }
+  }
+  return true; // 모든 스킬이 이미 맥스 → 쓸모없음
+}
+
+// ════════════════════════════════════════════════════════════════
+// 페널티 기반 스코어링 (기존 즉사 방식 → 감점 방식)
+// ════════════════════════════════════════════════════════════════
 export function calculateTierScore(
   sailor: Sailor,
   currentLevels: Record<string, number>,
   targetLevels: Record<string, number>
 ): number {
-  let totalScore = 0;
+  let benefitScore = 0;
+  let penaltyScore = 0;
   let hasContribution = false;
-  let contributesToTarget = false;
 
-  const hasActiveTargets = Object.values(targetLevels).some(v => v > 0);
-
-  if (hasActiveTargets) {
-    const contributesToUnmetTarget = Object.entries(targetLevels).some(([sk, target]) => {
-      if (target <= 0) return false;
-      const max = SKILL_MAX_LEVELS[sk] ?? 10;
-      const current = Math.min(currentLevels[sk] || 0, max);
-      return current < target && getSailorSkillLevel(sailor, sk) > 0;
-    });
-    if (!contributesToUnmetTarget) return -1;
-  }
-
-  for (const sk in SKILL_MAX_LEVELS) {
+  for (const sk in MAX_SKILL_LEVELS) {
     const sailorLvl = getSailorSkillLevel(sailor, sk);
     if (sailorLvl <= 0) continue;
 
-    const max = Math.min(10, SKILL_MAX_LEVELS[sk] || 10);
+    const max = MAX_SKILL_LEVELS[sk] || 10;
     const target = targetLevels[sk] || 0;
-    const current = Math.min(currentLevels[sk] || 0, max);
+    const current = currentLevels[sk] || 0;
 
-    // [Fix 6번] 맥스 레벨 초과 시 무조건 원천 차단 (배치 불가)
-    if (current + sailorLvl > max) {
-      return -1;
-    }
+    // 이미 맥스인 스킬은 낭비 — 즉사 아님, 그냥 건너뜀
+    const contribution = Math.min(sailorLvl, Math.max(0, max - current));
+    if (contribution <= 0) continue;
 
-    const remainingToMax = Math.max(0, max - current);
-    const contribution = Math.min(sailorLvl, remainingToMax);
-
-    if (contribution > 0) {
-      hasContribution = true;
-      // [Fix 7번] 레벨 수치가 아닌, 맥스 레벨 대비 채워준 비율(%)을 점수화
-      const percentContributed = (contribution / max) * 100;
-      const targetWeight = target > 0 ? (target / max) : 1;
-
-      // % 비율 기반으로 점수 부여 (맥스 2짜리 1렙 = 50%, 맥스 10짜리 1렙 = 10%)
-      totalScore += percentContributed * 1000 * targetWeight;
-
-      if (target > 0) contributesToTarget = true;
-    }
+    hasContribution = true;
 
     if (target > 0) {
-      const effectiveAfter = Math.min(current + sailorLvl, max);
-      const effectiveBefore = Math.min(current, max);
-      const actualContribution = effectiveAfter - effectiveBefore;
-      const targetOverflow = Math.max(0, effectiveBefore + actualContribution - target);
-      if (targetOverflow > 0) return -1; // 목표 레벨 초과도 원천 차단
+      // 미달 부분에 기여하는 양 (목표까지 남은 양 중 채워주는 양)
+      const remaining = Math.max(0, target - current);
+      const usefulContrib = Math.min(contribution, remaining);
+
+      if (usefulContrib > 0) {
+        benefitScore += (usefulContrib / max) * 100 * SHORTFALL_WEIGHT * 1000;
+      }
+
+      // 목표 초과 부분 (페널티, 하지만 즉사 아님)
+      const overflow = Math.max(0, (current + contribution) - target);
+      if (overflow > 0) {
+        penaltyScore += (overflow / max) * 100 * OVERFLOW_WEIGHT * 500;
+      }
+    } else {
+      benefitScore += (contribution / max) * 100 * 100;
     }
   }
 
   if (!hasContribution) return -1;
-  if (hasActiveTargets && !contributesToTarget) return -1;
 
   const gradeScore = GRADE_RANK[sailor.등급] || 0;
-  return 1_000_000 + totalScore + gradeScore;
+  const netScore = benefitScore - penaltyScore;
+
+  // 순점수가 음수여도 배치 가능 (swap 단계에서 개선 가능)
+  // 단, 기여 자체가 0이면 -1
+  return 1_000_000 + netScore + gradeScore;
 }
 
 export function calculateStatWeightScore(
@@ -148,17 +200,8 @@ export function calculateStatWeightScore(
   );
   if (!hasExpSkill) return -1;
 
-  // [Fix 6번] 모드 B에서도 스킬이 하나라도 맥스를 초과하면 즉시 탈락 (원천 차단)
-  for (const sk in SKILL_MAX_LEVELS) {
-    const sailorLvl = getSailorSkillLevel(sailor, sk);
-    if (sailorLvl > 0) {
-      const max = Math.min(10, SKILL_MAX_LEVELS[sk] || 10);
-      const current = Math.min(currentLevels[sk] || 0, max);
-      if (current + sailorLvl > max) {
-        return -1;
-      }
-    }
-  }
+  // 유효 기여가 하나도 없으면 탈락
+  if (hasNoUsefulContribution(sailor, currentLevels)) return -1;
 
   const contrib = getSailorStatContribution(sailor, currentLevels);
 
