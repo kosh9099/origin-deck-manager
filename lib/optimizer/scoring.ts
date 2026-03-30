@@ -190,3 +190,139 @@ export function getTradeStatSum(sailor: Sailor): number { return 0; }
 export function hasAnyTargetSkill(sailor: Sailor, skills: string[]): boolean {
   return skills.some(sk => getSailorSkillLevel(sailor, sk) > 0);
 }
+
+// ════════════════════════════════════════════════════════════════
+// Phase 2용: 유연 배치 스코어링 (target 초과 = 감점, -1 아님)
+// ════════════════════════════════════════════════════════════════
+
+export function calculateTierScoreSoft(
+  sailor: Sailor,
+  currentLevels: Record<string, number>,
+  targetLevels: Record<string, number>
+): number {
+  let totalScore = 0;
+  let overflowPenalty = 0;
+  let hasContribution = false;
+
+  for (const sk in MAX_SKILL_LEVELS) {
+    const sailorLvl = getSailorSkillLevel(sailor, sk);
+    if (sailorLvl <= 0) continue;
+
+    const max = MAX_SKILL_LEVELS[sk];
+    const current = currentLevels[sk] || 0;
+
+    hasContribution = true;
+
+    // MAX 초과분은 클램핑되어 낭비되므로 감점만 (차단하지 않음)
+    if (current + sailorLvl > max) {
+      overflowPenalty += (current + sailorLvl - max) * 3000;
+    }
+    const target = targetLevels[sk] || 0;
+
+    // target 초과 → 감점만 (배치는 허용, 스왑으로 교정)
+    if (target > 0 && current + sailorLvl > target) {
+      overflowPenalty += (current + sailorLvl - target) * 5000;
+    }
+
+    const contribution = Math.min(sailorLvl, max - current);
+    const percentContributed = (contribution / max) * 100;
+    const targetWeight = target > 0 ? (target / max) : 1;
+    totalScore += percentContributed * 1000 * targetWeight;
+  }
+
+  if (!hasContribution) return -1;
+
+  const gradeScore = GRADE_RANK[sailor.등급] || 0;
+  return 1_000_000 + totalScore - overflowPenalty + gradeScore;
+}
+
+// ════════════════════════════════════════════════════════════════
+// Phase 3용: 함대 전체 목적함수 (스왑 최적화에 사용)
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * 스킬 모드 목적함수: 각 목표 스킬의 미도달/초과를 페널티로 계산
+ * 언클램핑 레벨을 받아서:
+ *   - 미도달: 클램핑 기준 (게임에서 보이는 값)
+ *   - 초과: 언클램핑 기준 (낭비 방지)
+ * 0이 최적 (모든 목표 정확히 도달, 초과 없음)
+ */
+export function calcSkillModeObjective(
+  unclampedLevels: Record<string, number>,
+  targetLevels: Record<string, number>
+): number {
+  let score = 0;
+  for (const sk in targetLevels) {
+    const target = targetLevels[sk] || 0;
+    if (target <= 0) continue;
+
+    const unclamped = unclampedLevels[sk] || 0;
+    const max = MAX_SKILL_LEVELS[sk] || 10;
+    const clamped = Math.min(unclamped, max);
+
+    // 미도달: 클램핑된 값 기준 (절대 우선)
+    if (clamped < target) {
+      score -= (target - clamped) * 1_000_000;
+    }
+
+    // 초과: 언클램핑 값이 target을 넘으면 낭비 페널티 (미도달보다 훨씬 가벼움)
+    if (unclamped > target) {
+      score -= (unclamped - target) * 100;
+    }
+  }
+  return score;
+}
+
+/**
+ * 스탯 모드 목적함수: 함대 전체 스킬 레벨에서 스탯 합산 → 가중 점수
+ */
+export function calcStatModeObjective(
+  currentLevels: Record<string, number>,
+  statConfig: StatWeightConfig
+): number {
+  const totalStat = { combat: 0, observation: 0, gathering: 0 };
+
+  for (const sk in MAX_SKILL_LEVELS) {
+    const level = currentLevels[sk] || 0;
+    if (level <= 0) continue;
+
+    const clampedLevel = Math.min(level, MAX_SKILL_LEVELS[sk]);
+    const stats = SKILL_STATS[sk]?.[clampedLevel as keyof (typeof SKILL_STATS)[string]];
+    if (!stats) continue;
+
+    totalStat.combat += stats.combat + (stats.pirate || 0) / 2 + (stats.beast || 0) / 2;
+    totalStat.observation += stats.observation;
+    totalStat.gathering += stats.gathering;
+  }
+
+  const weightTotal = statConfig.combat + statConfig.observation + statConfig.gathering;
+  if (weightTotal > 0) {
+    return totalStat.combat * (statConfig.combat / weightTotal)
+      + totalStat.observation * (statConfig.observation / weightTotal)
+      + totalStat.gathering * (statConfig.gathering / weightTotal);
+  }
+  return totalStat.combat + totalStat.observation + totalStat.gathering;
+}
+
+/**
+ * 스탯 모드 + lootFirst 목적함수:
+ * 전리품 스킬이 정확히 MAX가 아니면 엄청난 감점 → 스왑 시 전리품 절대 보호
+ */
+export function calcStatModeLootObjective(
+  currentLevels: Record<string, number>,
+  statConfig: StatWeightConfig,
+  lootSkills: string[]
+): number {
+  let lootPenalty = 0;
+  for (const sk of lootSkills) {
+    const target = MAX_SKILL_LEVELS[sk] || 10;
+    const current = currentLevels[sk] || 0;
+    const diff = current - target;
+    if (diff !== 0) {
+      lootPenalty += Math.abs(diff) * 100_000;
+    }
+  }
+
+  const statScore = calcStatModeObjective(currentLevels, statConfig);
+  return statScore - lootPenalty;
+}

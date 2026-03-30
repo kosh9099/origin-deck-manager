@@ -17,17 +17,17 @@ const managers = [
     active: false,
   },
   {
-    href: null, // 링크 비활성화
+    href: '/land',
     icon: Map,
     iconColor: 'text-amber-600',
     iconBg: 'bg-amber-50',
     gradient: 'from-amber-400 via-orange-500 to-rose-500',
     label: '육탐 매니저',
     desc: '육지 탐색 특화 함대 구성 및 모험 스킬 최적화.',
-    badge: '점검 중', // 뱃지 변경
-    active: false, // 활성화 상태 끄기
-    maintenance: true, // 폴리스 라인을 위한 특수 플래그
-    border: 'border-slate-300',
+    badge: null,
+    active: true,
+    maintenance: false,
+    border: 'border-amber-200',
     shadow: 'shadow-[0_4px_20px_rgba(245,158,11,0.2)] hover:shadow-[0_8px_30px_rgba(245,158,11,0.35)]',
     ctaColor: 'bg-gradient-to-r from-amber-400 to-orange-500',
     headerColor: 'bg-amber-500',
