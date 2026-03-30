@@ -74,21 +74,24 @@ export function getSailorStatContribution(
 }
 
 // ════════════════════════════════════════════════════════════════
-// 전역 편차 함수: 목표 대비 현재 레벨의 총 편차를 계산
-// 값이 작을수록 좋은 배치 (0 = 완벽)
+// 전역 편차 함수: 목표 대비 편차 + 낭비 페널티
+// rawLevels = 클램핑 안 한 합산 (낭비 감지용)
 // ════════════════════════════════════════════════════════════════
-const SHORTFALL_WEIGHT = 3.0;  // 미달 페널티 (목표 못 채운 것)
-const OVERFLOW_WEIGHT = 1.0;   // 초과 페널티 (목표 넘긴 것)
+const SHORTFALL_WEIGHT = 3.0;
+const OVERFLOW_WEIGHT = 1.0;
+const WASTE_WEIGHT = 2.0;  // 맥스 초과 낭비 페널티
 
 export function calculateGlobalDeviation(
-  currentLevels: Record<string, number>,
-  targetLevels: Record<string, number>
+  clampedLevels: Record<string, number>,
+  targetLevels: Record<string, number>,
+  rawLevels?: Record<string, number>
 ): number {
   let total = 0;
+
   for (const sk in targetLevels) {
     const target = targetLevels[sk];
     if (target <= 0) continue;
-    const current = currentLevels[sk] || 0;
+    const current = clampedLevels[sk] || 0;
     const diff = current - target;
     if (diff < 0) {
       total += Math.abs(diff) * SHORTFALL_WEIGHT;
@@ -96,17 +99,39 @@ export function calculateGlobalDeviation(
       total += diff * OVERFLOW_WEIGHT;
     }
   }
+
+  // 낭비 페널티: rawLevels가 MAX를 초과하는 양
+  if (rawLevels) {
+    for (const sk in MAX_SKILL_LEVELS) {
+      const raw = rawLevels[sk] || 0;
+      const max = MAX_SKILL_LEVELS[sk] || 10;
+      if (raw > max) {
+        total += (raw - max) * WASTE_WEIGHT;
+      }
+    }
+  }
+
   return total;
 }
 
 // ════════════════════════════════════════════════════════════════
-// 선원의 스킬 기여를 currentLevels에 누적/제거하는 헬퍼
+// 선원 스킬 누적 헬퍼 (clamped)
 // ════════════════════════════════════════════════════════════════
 export function addSailorSkills(sailor: Sailor, currentLevels: Record<string, number>): void {
   for (const sk in MAX_SKILL_LEVELS) {
     const lvl = getSailorSkillLevel(sailor, sk);
     if (lvl > 0) {
       currentLevels[sk] = Math.min((currentLevels[sk] || 0) + lvl, MAX_SKILL_LEVELS[sk]);
+    }
+  }
+}
+
+// raw 합산 (클램핑 없음, 낭비 추적용)
+export function addSailorSkillsRaw(sailor: Sailor, rawLevels: Record<string, number>): void {
+  for (const sk in MAX_SKILL_LEVELS) {
+    const lvl = getSailorSkillLevel(sailor, sk);
+    if (lvl > 0) {
+      rawLevels[sk] = (rawLevels[sk] || 0) + lvl;
     }
   }
 }
@@ -121,22 +146,20 @@ export function removeSailorSkills(sailor: Sailor, currentLevels: Record<string,
 }
 
 // 선원이 유효 기여를 하나도 못 하는지 검사
-// (모든 보유 스킬이 이미 맥스 → 배치해봤자 순수 낭비)
 export function hasNoUsefulContribution(sailor: Sailor, currentLevels: Record<string, number>): boolean {
   for (const sk in MAX_SKILL_LEVELS) {
     const lvl = getSailorSkillLevel(sailor, sk);
     if (lvl > 0) {
       const max = MAX_SKILL_LEVELS[sk] || 10;
       const current = currentLevels[sk] || 0;
-      // 이 스킬에 기여 가능한 여유가 있으면 → 유효 기여 있음
       if (current < max) return false;
     }
   }
-  return true; // 모든 스킬이 이미 맥스 → 쓸모없음
+  return true;
 }
 
 // ════════════════════════════════════════════════════════════════
-// 페널티 기반 스코어링 (기존 즉사 방식 → 감점 방식)
+// 페널티 기반 스코어링 (낭비 페널티 포함)
 // ════════════════════════════════════════════════════════════════
 export function calculateTierScore(
   sailor: Sailor,
@@ -145,6 +168,7 @@ export function calculateTierScore(
 ): number {
   let benefitScore = 0;
   let penaltyScore = 0;
+  let wastePenalty = 0;
   let hasContribution = false;
 
   for (const sk in MAX_SKILL_LEVELS) {
@@ -155,38 +179,40 @@ export function calculateTierScore(
     const target = targetLevels[sk] || 0;
     const current = currentLevels[sk] || 0;
 
-    // 이미 맥스인 스킬은 낭비 — 즉사 아님, 그냥 건너뜀
-    const contribution = Math.min(sailorLvl, Math.max(0, max - current));
-    if (contribution <= 0) continue;
+    const usefulContribution = Math.min(sailorLvl, Math.max(0, max - current));
+    const wastedLevels = sailorLvl - usefulContribution;
+
+    // 낭비 레벨에 강한 페널티 (이미 맥스인 스킬에 추가되는 레벨)
+    if (wastedLevels > 0) {
+      wastePenalty += wastedLevels * 5000;
+    }
+
+    if (usefulContribution <= 0) continue;
 
     hasContribution = true;
 
     if (target > 0) {
-      // 미달 부분에 기여하는 양 (목표까지 남은 양 중 채워주는 양)
       const remaining = Math.max(0, target - current);
-      const usefulContrib = Math.min(contribution, remaining);
+      const usefulContrib = Math.min(usefulContribution, remaining);
 
       if (usefulContrib > 0) {
         benefitScore += (usefulContrib / max) * 100 * SHORTFALL_WEIGHT * 1000;
       }
 
-      // 목표 초과 부분 (페널티, 하지만 즉사 아님)
-      const overflow = Math.max(0, (current + contribution) - target);
+      const overflow = Math.max(0, (current + usefulContribution) - target);
       if (overflow > 0) {
         penaltyScore += (overflow / max) * 100 * OVERFLOW_WEIGHT * 500;
       }
     } else {
-      benefitScore += (contribution / max) * 100 * 100;
+      benefitScore += (usefulContribution / max) * 100 * 100;
     }
   }
 
   if (!hasContribution) return -1;
 
   const gradeScore = GRADE_RANK[sailor.등급] || 0;
-  const netScore = benefitScore - penaltyScore;
+  const netScore = benefitScore - penaltyScore - wastePenalty;
 
-  // 순점수가 음수여도 배치 가능 (swap 단계에서 개선 가능)
-  // 단, 기여 자체가 0이면 -1
   return 1_000_000 + netScore + gradeScore;
 }
 
@@ -200,8 +226,24 @@ export function calculateStatWeightScore(
   );
   if (!hasExpSkill) return -1;
 
-  // 유효 기여가 하나도 없으면 탈락
   if (hasNoUsefulContribution(sailor, currentLevels)) return -1;
+
+  // 낭비 계산: 유효 기여 vs 전체 스킬 레벨
+  let totalSailorLevels = 0;
+  let wastedLevels = 0;
+  for (const sk in MAX_SKILL_LEVELS) {
+    const lvl = getSailorSkillLevel(sailor, sk);
+    if (lvl > 0) {
+      totalSailorLevels += lvl;
+      const max = MAX_SKILL_LEVELS[sk] || 10;
+      const current = currentLevels[sk] || 0;
+      const waste = Math.max(0, (current + lvl) - max);
+      wastedLevels += waste;
+    }
+  }
+
+  // 낭비 비율이 높으면 대폭 감점
+  const wasteRatio = totalSailorLevels > 0 ? wastedLevels / totalSailorLevels : 0;
 
   const contrib = getSailorStatContribution(sailor, currentLevels);
 
@@ -212,19 +254,20 @@ export function calculateStatWeightScore(
   const weightTotal = statConfig.combat + statConfig.observation + statConfig.gathering;
 
   let statScore = 0;
-  if (contrib.combat > 0 || contrib.observation > 0 || contrib.gathering > 0) {
-    if (weightTotal > 0) {
-      statScore =
-        contrib.combat * (statConfig.combat / weightTotal) +
-        contrib.observation * (statConfig.observation / weightTotal) +
-        contrib.gathering * (statConfig.gathering / weightTotal);
-    } else {
-      statScore = contrib.combat + contrib.observation + contrib.gathering;
-    }
+  if (weightTotal > 0) {
+    statScore =
+      contrib.combat * (statConfig.combat / weightTotal) +
+      contrib.observation * (statConfig.observation / weightTotal) +
+      contrib.gathering * (statConfig.gathering / weightTotal);
+  } else {
+    statScore = contrib.combat + contrib.observation + contrib.gathering;
   }
 
+  // 낭비 비율 페널티 적용 (50% 이상 낭비면 점수 대폭 하락)
+  const wastePenaltyMultiplier = Math.max(0.1, 1 - wasteRatio * 2);
+
   const gradeScore = (GRADE_RANK[sailor.등급] || 0) * 100;
-  return 1_000_000 + Math.round(statScore * 10_000) + gradeScore;
+  return 1_000_000 + Math.round(statScore * 10_000 * wastePenaltyMultiplier) + gradeScore;
 }
 
 export function getSupplyStat(sailor: Sailor): number { return Number(sailor.보급) || 0; }

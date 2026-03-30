@@ -4,7 +4,7 @@ import {
   getSailorSkillLevel,
   calculateGlobalDeviation,
   addSailorSkills,
-  removeSailorSkills,
+  addSailorSkillsRaw,
   hasNoUsefulContribution
 } from './scoring';
 
@@ -15,25 +15,65 @@ interface PlacedEntry {
   slotIndex: number;
 }
 
-// 배치된 모든 선원으로부터 currentLevels를 처음부터 재계산
-function recalcLevels(ships: Ship[], admiralId: number): Record<string, number> {
-  const levels: Record<string, number> = {};
-  Object.keys(MAX_SKILL_LEVELS).forEach(sk => levels[sk] = 0);
+// clamped + raw 레벨 동시 계산
+function recalcAllLevels(ships: Ship[]): { clamped: Record<string, number>; raw: Record<string, number> } {
+  const clamped: Record<string, number> = {};
+  const raw: Record<string, number> = {};
+  Object.keys(MAX_SKILL_LEVELS).forEach(sk => { clamped[sk] = 0; raw[sk] = 0; });
+
+  const addSailor = (s: Sailor) => {
+    addSailorSkills(s, clamped);
+    addSailorSkillsRaw(s, raw);
+  };
 
   ships.forEach(ship => {
-    if (ship.admiral) addSailorSkills(ship.admiral, levels);
-    ship.combat.forEach(s => { if (s) addSailorSkills(s, levels); });
-    ship.adventure.forEach(s => { if (s) addSailorSkills(s, levels); });
+    if (ship.admiral) addSailor(ship.admiral);
+    ship.combat.forEach(s => { if (s) addSailor(s); });
+    ship.adventure.forEach(s => { if (s) addSailor(s); });
   });
 
-  return levels;
+  return { clamped, raw };
 }
 
-// 배치된 선원 목록을 추출 (제독, 필수선원 제외)
-function getPlacedEntries(
+// 임시로 선원을 교환한 상태의 레벨을 계산 (ships를 실제로 변경하지 않음)
+function calcLevelsWithSwap(
   ships: Ship[],
-  protectedIds: Set<number>
-): PlacedEntry[] {
+  swapShipIdx: number,
+  swapSlotType: 'combat' | 'adventure',
+  swapSlotIdx: number,
+  newSailor: Sailor | null
+): { clamped: Record<string, number>; raw: Record<string, number> } {
+  const clamped: Record<string, number> = {};
+  const raw: Record<string, number> = {};
+  Object.keys(MAX_SKILL_LEVELS).forEach(sk => { clamped[sk] = 0; raw[sk] = 0; });
+
+  const addSailor = (s: Sailor) => {
+    addSailorSkills(s, clamped);
+    addSailorSkillsRaw(s, raw);
+  };
+
+  ships.forEach((ship, si) => {
+    if (ship.admiral) addSailor(ship.admiral);
+    ship.combat.forEach((s, ci) => {
+      if (si === swapShipIdx && swapSlotType === 'combat' && ci === swapSlotIdx) {
+        if (newSailor) addSailor(newSailor);
+        return;
+      }
+      if (s) addSailor(s);
+    });
+    ship.adventure.forEach((s, ai) => {
+      if (si === swapShipIdx && swapSlotType === 'adventure' && ai === swapSlotIdx) {
+        if (newSailor) addSailor(newSailor);
+        return;
+      }
+      if (s) addSailor(s);
+    });
+  });
+
+  return { clamped, raw };
+}
+
+function getPlacedEntries(ships: Ship[], protectedIds: Set<number>): PlacedEntry[] {
   const entries: PlacedEntry[] = [];
   ships.forEach((ship, si) => {
     ship.combat.forEach((s, ci) => {
@@ -50,7 +90,6 @@ function getPlacedEntries(
   return entries;
 }
 
-// 슬롯 자격 검사
 function isValidForSlot(
   sailor: Sailor,
   slotType: 'combat' | 'adventure',
@@ -62,7 +101,6 @@ function isValidForSlot(
   return sailor.타입 === '모험';
 }
 
-// 선원이 스킬을 하나라도 가지고 있는지
 function hasAnySkill(s: Sailor): boolean {
   return Object.keys(MAX_SKILL_LEVELS).some(sk => getSailorSkillLevel(s, sk) > 0);
 }
@@ -77,11 +115,10 @@ export function optimizeBySwap(
   isQualifiedForCombat: (s: Sailor) => boolean,
   maxIterations: number = 30
 ): Record<string, number> {
-  // 제독 + 필수선원은 swap 대상에서 제외
   const protectedIds = new Set<number>([admiralId, ...essentialIds]);
 
-  let currentLevels = recalcLevels(ships, admiralId);
-  let currentDeviation = calculateGlobalDeviation(currentLevels, targetLevels);
+  let { clamped: currentLevels, raw: currentRaw } = recalcAllLevels(ships);
+  let currentDeviation = calculateGlobalDeviation(currentLevels, targetLevels, currentRaw);
 
   console.log(`=== Swap Optimizer Start === deviation: ${currentDeviation.toFixed(1)}`);
 
@@ -91,42 +128,33 @@ export function optimizeBySwap(
     let improved = false;
 
     const placedEntries = getPlacedEntries(ships, protectedIds);
-
-    // 미배치 후보: 스킬이 있는 선원만
     const unplaced = allSailors.filter(s => !usedIds.has(s.id) && hasAnySkill(s));
 
     // ── 1. Swap-In: 배치 선원 ↔ 미배치 선원 교환 ──
     for (const entry of placedEntries) {
       for (const candidate of unplaced) {
-        // 슬롯 자격 검사
         if (!isValidForSlot(candidate, entry.slotType, isQualifiedForCombat)) continue;
 
-        // 임시 교환: 기존 선원 제거 → 새 선원 추가
-        const tempLevels = { ...currentLevels };
-        removeSailorSkills(entry.sailor, tempLevels);
+        // 정확한 trial 평가: 교환 후 레벨을 처음부터 재계산
+        const { clamped: trialClamped, raw: trialRaw } = calcLevelsWithSwap(
+          ships, entry.shipIndex, entry.slotType, entry.slotIndex, candidate
+        );
 
-        // 하드캡 검사
-        if (hasNoUsefulContribution(candidate, tempLevels)) continue;
-
-        addSailorSkills(candidate, tempLevels);
-
-        const newDeviation = calculateGlobalDeviation(tempLevels, targetLevels);
+        const newDeviation = calculateGlobalDeviation(trialClamped, targetLevels, trialRaw);
         if (newDeviation < currentDeviation) {
-          // 교환 확정
           const ship = ships[entry.shipIndex];
           ship[entry.slotType][entry.slotIndex] = candidate;
-
           usedIds.delete(entry.sailor.id);
           usedIds.add(candidate.id);
 
-          currentLevels = recalcLevels(ships, admiralId);
+          currentLevels = trialClamped;
+          currentRaw = trialRaw;
           currentDeviation = newDeviation;
           improved = true;
 
           console.log(`  Swap: ${entry.sailor.이름} → ${candidate.이름} (dev: ${newDeviation.toFixed(1)})`);
-
           if (currentDeviation === 0) break;
-          break; // first-improvement: 개선 발견 즉시 다음 라운드
+          break;
         }
       }
       if (currentDeviation === 0 || improved) break;
@@ -136,16 +164,18 @@ export function optimizeBySwap(
     if (!improved) {
       const placedEntries2 = getPlacedEntries(ships, protectedIds);
       for (const entry of placedEntries2) {
-        const tempLevels = { ...currentLevels };
-        removeSailorSkills(entry.sailor, tempLevels);
+        const { clamped: trialClamped, raw: trialRaw } = calcLevelsWithSwap(
+          ships, entry.shipIndex, entry.slotType, entry.slotIndex, null
+        );
 
-        const newDeviation = calculateGlobalDeviation(tempLevels, targetLevels);
+        const newDeviation = calculateGlobalDeviation(trialClamped, targetLevels, trialRaw);
         if (newDeviation < currentDeviation) {
           const ship = ships[entry.shipIndex];
           ship[entry.slotType][entry.slotIndex] = null;
           usedIds.delete(entry.sailor.id);
 
-          currentLevels = recalcLevels(ships, admiralId);
+          currentLevels = trialClamped;
+          currentRaw = trialRaw;
           currentDeviation = newDeviation;
           improved = true;
 
@@ -155,27 +185,27 @@ export function optimizeBySwap(
       }
     }
 
-    // ── 3. Insert: 빈 슬롯에 미배치 선원 삽입이 편차를 줄이는 경우 ──
+    // ── 3. Insert: 빈 슬롯에 선원 삽입 ──
     if (!improved) {
       const unplaced2 = allSailors.filter(s => !usedIds.has(s.id) && hasAnySkill(s));
 
       for (let si = 0; si < ships.length && !improved; si++) {
         const ship = ships[si];
 
-        // 빈 전투 슬롯
         for (let ci = 0; ci < ship.combat.length && !improved; ci++) {
           if (ship.combat[ci] !== null) continue;
           for (const candidate of unplaced2) {
             if (!isValidForSlot(candidate, 'combat', isQualifiedForCombat)) continue;
-            if (hasNoUsefulContribution(candidate, currentLevels)) continue;
 
-            const tempLevels = { ...currentLevels };
-            addSailorSkills(candidate, tempLevels);
-            const newDeviation = calculateGlobalDeviation(tempLevels, targetLevels);
+            const { clamped: trialClamped, raw: trialRaw } = calcLevelsWithSwap(
+              ships, si, 'combat', ci, candidate
+            );
+            const newDeviation = calculateGlobalDeviation(trialClamped, targetLevels, trialRaw);
             if (newDeviation < currentDeviation) {
               ship.combat[ci] = candidate;
               usedIds.add(candidate.id);
-              currentLevels = recalcLevels(ships, admiralId);
+              currentLevels = trialClamped;
+              currentRaw = trialRaw;
               currentDeviation = newDeviation;
               improved = true;
               console.log(`  Insert(combat): ${candidate.이름} (dev: ${newDeviation.toFixed(1)})`);
@@ -184,20 +214,20 @@ export function optimizeBySwap(
           }
         }
 
-        // 빈 일반 슬롯
         for (let ai = 0; ai < ship.adventure.length && !improved; ai++) {
           if (ship.adventure[ai] !== null) continue;
           for (const candidate of unplaced2) {
             if (!isValidForSlot(candidate, 'adventure', isQualifiedForCombat)) continue;
-            if (hasNoUsefulContribution(candidate, currentLevels)) continue;
 
-            const tempLevels = { ...currentLevels };
-            addSailorSkills(candidate, tempLevels);
-            const newDeviation = calculateGlobalDeviation(tempLevels, targetLevels);
+            const { clamped: trialClamped, raw: trialRaw } = calcLevelsWithSwap(
+              ships, si, 'adventure', ai, candidate
+            );
+            const newDeviation = calculateGlobalDeviation(trialClamped, targetLevels, trialRaw);
             if (newDeviation < currentDeviation) {
               ship.adventure[ai] = candidate;
               usedIds.add(candidate.id);
-              currentLevels = recalcLevels(ships, admiralId);
+              currentLevels = trialClamped;
+              currentRaw = trialRaw;
               currentDeviation = newDeviation;
               improved = true;
               console.log(`  Insert(adv): ${candidate.이름} (dev: ${newDeviation.toFixed(1)})`);
