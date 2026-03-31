@@ -119,6 +119,9 @@ export function createSmartGreedyChromosome(
   const combatPool = ctx.combatCandidates.map(s => s.id);
   const adventurePool = ctx.adventureCandidates.map(s => s.id);
 
+  // 목표가 있는지 확인 (없으면 스탯 모드 → objectiveFn 직접 사용)
+  const hasTargets = Object.values(targetLevels).some(v => v > 0);
+
   // 총 슬롯 수만큼 반복, 전투/모험 번갈아 선택
   const totalSlots = ctx.combatSlotCount + ctx.adventureSlotCount;
   let combatFilled = 0;
@@ -144,47 +147,52 @@ export function createSmartGreedyChromosome(
         const profile = profileCache.get(id);
         if (!profile) continue;
 
-        // 후보 점수 = 적자 해소량 - 초과 페널티
-        let score = 0;
-        let wouldOverflowLocked = false;
+        let score: number;
 
-        for (let i = 0; i < skillKeys.length; i++) {
-          const sk = skillKeys[i];
-          const contribution = profile[i];
-          if (contribution <= 0) continue;
+        if (hasTargets) {
+          // ── 스킬 모드: 적자 해소량 - 초과 페널티 ──
+          score = 0;
+          let wouldOverflowLocked = false;
 
-          const current = currentLevels[i];
-          const target = targetLevels[sk] || 0;
-          const max = MAX_SKILL_LEVELS[sk] || 10;
+          for (let i = 0; i < skillKeys.length; i++) {
+            const sk = skillKeys[i];
+            const contribution = profile[i];
+            if (contribution <= 0) continue;
 
-          if (target > 0) {
-            const deficit = Math.max(0, target - current);
-            if (deficit > 0) {
-              // 적자 해소: 실제로 적자를 줄이는 만큼만 가산
-              const effectiveContribution = Math.min(contribution, deficit);
-              score += effectiveContribution * 1_000_000;
+            const current = currentLevels[i];
+            const target = targetLevels[sk] || 0;
+            const max = MAX_SKILL_LEVELS[sk] || 10;
 
-              // 적자를 넘어서는 초과분: 감점
-              const excess = contribution - deficit;
-              if (excess > 0) {
-                score -= excess * 200_000;
+            if (target > 0) {
+              const deficit = Math.max(0, target - current);
+              if (deficit > 0) {
+                const effectiveContribution = Math.min(contribution, deficit);
+                score += effectiveContribution * 1_000_000;
+                const excess = contribution - deficit;
+                if (excess > 0) {
+                  score -= excess * 200_000;
+                }
+              } else {
+                score -= contribution * 200_000;
+                wouldOverflowLocked = true;
               }
             } else {
-              // 이미 목표 달성된 스킬에 초과 기여: 강한 감점
-              score -= contribution * 200_000;
-              wouldOverflowLocked = true;
-            }
-          } else {
-            // 비목표 스킬: MAX 초과만 감점
-            if (current + contribution > max) {
-              score -= (current + contribution - max) * 50_000;
+              if (current + contribution > max) {
+                score -= (current + contribution - max) * 50_000;
+              }
             }
           }
-        }
 
-        // 아무 적자도 해소 못하고 초과만 시키면 최악의 점수
-        if (wouldOverflowLocked && score <= 0) {
-          score -= 500_000;
+          if (wouldOverflowLocked && score <= 0) {
+            score -= 500_000;
+          }
+        } else {
+          // ── 스탯 모드: objectiveFn으로 직접 평가 ──
+          const buf: Record<string, number> = {};
+          for (let i = 0; i < skillKeys.length; i++) {
+            buf[skillKeys[i]] = currentLevels[i] + profile[i];
+          }
+          score = ctx.objectiveFn(buf);
         }
 
         if (score > globalBestScore) {

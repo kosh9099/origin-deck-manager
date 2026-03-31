@@ -311,9 +311,9 @@ export function calcStatModeObjective(
     totalStat.observation += stats.observation;
     totalStat.gathering += stats.gathering;
 
-    // MAX 초과 = 슬롯 낭비 → 강한 페널티
+    // MAX 초과 = 슬롯 낭비 → 페널티 (50: 1~2개 초과 허용 수준)
     if (level > max) {
-      overflowPenalty += (level - max) * 200;
+      overflowPenalty += (level - max) * 50;
     }
   }
 
