@@ -102,7 +102,7 @@ export default function SkillDashboard({ result, targetLevels = {} }: Props) {
               title={cat.name}
               skills={cat.skills}
               totals={skillTotals}
-              rawTotals={rawSkillTotals}   // 초과 표시용 원본 합산값 추가
+              rawTotals={rawSkillTotals}
               targets={targetLevels}
             />
           ))}

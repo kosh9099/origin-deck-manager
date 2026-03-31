@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Sailor, ShipConfig, OptimizerOptions } from '@/types';
 import { autoDeployFleet, OptimizerMode } from '@/lib/optimizer';
-import { Play, Home, LayoutDashboard, Anchor, Users, Target, Menu, X, Camera, SlidersHorizontal, BarChart3 } from 'lucide-react';
+import { Play, Home, LayoutDashboard, Anchor, Users, Target, Menu, X, Camera, SlidersHorizontal, BarChart3, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { captureAndDownload } from '@/lib/utils/capture';
 
@@ -90,6 +90,9 @@ export default function FleetMasterV2() {
   // 저장 상태 표시용
   const [saveIndicator, setSaveIndicator] = useState<'saved' | 'saving' | null>(null);
 
+  // 최적화 진행 상태
+  const [isOptimizing, setIsOptimizing] = useState(false);
+
   // --- [자동 저장] 설정이 변경될 때마다 localStorage에 저장 ---
   useEffect(() => {
     if (sailors.length === 0) return;
@@ -143,17 +146,19 @@ export default function FleetMasterV2() {
   }, []);
 
   // --- 4. 엔진 가동 함수 ---
-  const handleStart = () => {
-    console.log("Selected Admiral ID:", selectedAdmiral);
-    console.log("Total Sailors:", sailors.length);
-    if (selectedAdmiral) {
-      console.log("Admiral in sailors?", sailors.some(s => s.id === selectedAdmiral));
-      console.log("Admiral from sailors list:", sailors.find(s => s.id === selectedAdmiral));
-    }
+  const handleStart = async () => {
     if (!selectedAdmiral) {
       alert("선장(제독)을 먼저 선택해야 함대가 출항할 수 있습니다!");
       return;
     }
+
+    setIsOptimizing(true);
+    setResult(null);
+    setActiveTab('dashboard');
+    if (isMobileMenuOpen) setIsMobileMenuOpen(false);
+
+    // UI 갱신을 위해 두 프레임 대기
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
     try {
       const res = autoDeployFleet(
@@ -168,14 +173,14 @@ export default function FleetMasterV2() {
         optimizerMode === 'stat' ? statConfig : undefined
       );
       setResult(res);
-      setActiveTab('dashboard'); // 계산 완료 후 대시보드로 자동 이동
-      if (isMobileMenuOpen) setIsMobileMenuOpen(false);
     } catch (error: any) {
       alert(error.message);
+    } finally {
+      setIsOptimizing(false);
     }
   };
 
-  // --- 5. 덱에서 밴 처리 핸들러 (즉시 리필) ---
+  // --- 5. 덱에서 밴 처리 핸들러 (선원만 제거, 재생성 안 함) ---
   const handleBanFromDeck = (id: number) => {
     const nextBan = new Set(bannedIds).add(id);
     const nextEssential = new Set(essentialIds);
@@ -184,23 +189,15 @@ export default function FleetMasterV2() {
     setBannedIds(nextBan);
     setEssentialIds(nextEssential);
 
-    if (selectedAdmiral) {
-      try {
-        const res = autoDeployFleet(
-          sailors,
-          nextEssential,
-          nextBan,
-          fleetConfig,
-          selectedAdmiral,
-          optimizerMode,
-          targetLevels,
-          options,
-          optimizerMode === 'stat' ? statConfig : undefined
-        );
-        setResult(res);
-      } catch (error: any) {
-        console.warn("밴 처리 후 재계산 실패:", error.message);
-      }
+    // 결과에서 해당 선원만 제거 (빈 슬롯으로 남김)
+    if (result) {
+      const updatedShips = result.ships.map((ship: any) => ({
+        ...ship,
+        admiral: ship.admiral?.id === id ? null : ship.admiral,
+        combat: ship.combat.map((s: any) => s?.id === id ? null : s),
+        adventure: ship.adventure.map((s: any) => s?.id === id ? null : s),
+      }));
+      setResult({ ships: updatedShips });
     }
   };
 
@@ -318,10 +315,23 @@ export default function FleetMasterV2() {
 
           <button
             onClick={handleStart}
-            className="w-full py-4 bg-gradient-to-r from-amber-600 to-orange-600 rounded-xl font-black text-lg text-white shadow-[0_0_20px_rgba(245,158,11,0.3)] border border-amber-400/30 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 group"
+            disabled={isOptimizing}
+            className={`w-full py-4 rounded-xl font-black text-lg text-white shadow-[0_0_20px_rgba(245,158,11,0.3)] border border-amber-400/30 transition-all flex items-center justify-center gap-2 group
+              ${isOptimizing
+                ? 'bg-gradient-to-r from-slate-500 to-slate-600 cursor-not-allowed opacity-80'
+                : 'bg-gradient-to-r from-amber-600 to-orange-600 hover:brightness-110 active:scale-95'}`}
           >
-            <Play size={20} fill="currentColor" className="group-hover:scale-110 transition-transform" />
-            덱 생성 START
+            {isOptimizing ? (
+              <>
+                <Loader2 size={20} className="animate-spin" />
+                덱 생성 중...
+              </>
+            ) : (
+              <>
+                <Play size={20} fill="currentColor" className="group-hover:scale-110 transition-transform" />
+                덱 생성 START
+              </>
+            )}
           </button>
         </div>
       </aside>
@@ -349,7 +359,20 @@ export default function FleetMasterV2() {
             <SkillDashboard result={result} targetLevels={targetLevels} />
             <div className="mt-8">
               <h3 className="text-xl font-bold text-slate-700 mb-4">함대 배치 결과</h3>
-              {result ? (
+              {isOptimizing ? (
+                <div className="grid gap-4">
+                  {fleetConfig.map((cfg, i) => (
+                    <div key={i} className="bg-white border border-slate-200 rounded-xl p-6 animate-pulse shadow-sm">
+                      <div className="h-6 bg-slate-200 rounded w-1/4 mb-4" />
+                      <div className="grid grid-cols-5 gap-2">
+                        {Array.from({ length: cfg.총선실 }).map((_, j) => (
+                          <div key={j} className="h-20 bg-slate-100 rounded-lg" />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : result ? (
                 <FleetDisplay
                   result={result}
                   fleetConfig={fleetConfig}

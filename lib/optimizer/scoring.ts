@@ -241,17 +241,22 @@ export function calculateTierScoreSoft(
 // ════════════════════════════════════════════════════════════════
 
 /**
- * 스킬 모드 목적함수: 각 목표 스킬의 미도달/초과를 페널티로 계산
- * 언클램핑 레벨을 받아서:
- *   - 미도달: 클램핑 기준 (게임에서 보이는 값)
- *   - 초과: 언클램핑 기준 (낭비 방지)
- * 0이 최적 (모든 목표 정확히 도달, 초과 없음)
+ * 스킬 모드 목적함수: 목표값에 "정확히" 도달하도록 유도
+ *
+ * 페널티 구조:
+ *   - 미도달(undershoot): -1,000,000 × 부족 레벨 (절대 최우선)
+ *   - 초과(overshoot):    -200,000 × 초과 레벨 (낭비 = 슬롯 낭비)
+ *   - MAX 초과:           -50,000 × 초과 레벨 (비목표 스킬 포함)
+ *
+ * 0 = 모든 목표 스킬이 정확히 target에 도달, 초과 없음
  */
 export function calcSkillModeObjective(
   unclampedLevels: Record<string, number>,
   targetLevels: Record<string, number>
 ): number {
   let score = 0;
+
+  // 1. 목표 스킬: 미도달 + 초과 페널티
   for (const sk in targetLevels) {
     const target = targetLevels[sk] || 0;
     if (target <= 0) continue;
@@ -260,16 +265,26 @@ export function calcSkillModeObjective(
     const max = MAX_SKILL_LEVELS[sk] || 10;
     const clamped = Math.min(unclamped, max);
 
-    // 미도달: 클램핑된 값 기준 (절대 우선)
+    // 미도달: 클램핑 기준 (게임에서 보이는 실제 레벨)
     if (clamped < target) {
       score -= (target - clamped) * 1_000_000;
     }
 
-    // 초과: 언클램핑 값이 target을 넘으면 낭비 페널티 (미도달보다 훨씬 가벼움)
+    // 초과: 목표를 넘긴 레벨은 슬롯 낭비 → 강한 페널티
     if (unclamped > target) {
-      score -= (unclamped - target) * 100;
+      score -= (unclamped - target) * 200_000;
     }
   }
+
+  // 2. 모든 스킬: MAX 초과는 어디서든 낭비
+  for (const sk in MAX_SKILL_LEVELS) {
+    const unclamped = unclampedLevels[sk] || 0;
+    const max = MAX_SKILL_LEVELS[sk];
+    if (unclamped > max) {
+      score -= (unclamped - max) * 50_000;
+    }
+  }
+
   return score;
 }
 
