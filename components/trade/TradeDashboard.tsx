@@ -85,6 +85,9 @@ export function isCurrentlyActive(event: TradeEvent): boolean {
   return now >= start && now < end;
 }
 
+// localStorage 필터 저장 키
+const FILTER_STORAGE_KEY = 'trade_filters_v1';
+
 type SheetLoadStatus = 'loading' | 'ok' | 'error' | 'idle';
 
 function mergeSheetItems(
@@ -125,7 +128,13 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
   const [events, setEvents] = useState<TradeEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [now, setNow] = useState(Date.now());
-  const [filters, setFilters] = useState({ boost: true, flash: true, epidemic: true });
+  const [filters, setFilters] = useState(() => {
+    try {
+      const raw = localStorage.getItem(FILTER_STORAGE_KEY);
+      if (raw) return JSON.parse(raw) as { boost: boolean; flash: boolean; epidemic: boolean };
+    } catch {}
+    return { boost: true, flash: true, epidemic: true };
+  });
 
   const [zoneMap, setZoneMap] = useState<SheetItemMap>({});
   const [cityMap, setCityMap] = useState<SheetItemMap>({});
@@ -133,6 +142,12 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
     zone: SheetLoadStatus; city: SheetLoadStatus;
   }>({ zone: 'idle', city: 'idle' });
 
+  // 필터 변경 시 localStorage에 자동 저장
+  useEffect(() => {
+    try { localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(filters)); } catch {}
+  }, [filters]);
+
+  // 매분 시각 갱신
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(timer);
@@ -190,6 +205,28 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
       const { newZone, newCity } = await loadSheets();
       await fetchData(newZone, newCity);
     })();
+  }, []);
+
+  // 정각마다 자동 새로고침
+  useEffect(() => {
+    const now = new Date();
+    const msUntilNextHour =
+      (60 - now.getMinutes()) * 60_000 - now.getSeconds() * 1000 - now.getMilliseconds();
+
+    const doRefresh = () => {
+      loadSheets().then(({ newZone, newCity }) => fetchData(newZone, newCity));
+    };
+
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    const timeoutId = setTimeout(() => {
+      doRefresh();
+      intervalId = setInterval(doRefresh, 3_600_000);
+    }, msUntilNextHour);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (intervalId) clearInterval(intervalId);
+    };
   }, []);
 
   const handleRefresh = async () => {
