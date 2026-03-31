@@ -296,27 +296,38 @@ export function calcStatModeObjective(
   statConfig: StatWeightConfig
 ): number {
   const totalStat = { combat: 0, observation: 0, gathering: 0 };
+  let overflowPenalty = 0;
 
   for (const sk in MAX_SKILL_LEVELS) {
     const level = currentLevels[sk] || 0;
     if (level <= 0) continue;
 
-    const clampedLevel = Math.min(level, MAX_SKILL_LEVELS[sk]);
+    const max = MAX_SKILL_LEVELS[sk];
+    const clampedLevel = Math.min(level, max);
     const stats = SKILL_STATS[sk]?.[clampedLevel as keyof (typeof SKILL_STATS)[string]];
     if (!stats) continue;
 
     totalStat.combat += stats.combat + (stats.pirate || 0) / 2 + (stats.beast || 0) / 2;
     totalStat.observation += stats.observation;
     totalStat.gathering += stats.gathering;
+
+    // MAX 초과 = 슬롯 낭비 → 강한 페널티
+    if (level > max) {
+      overflowPenalty += (level - max) * 200;
+    }
   }
 
   const weightTotal = statConfig.combat + statConfig.observation + statConfig.gathering;
+  let statScore: number;
   if (weightTotal > 0) {
-    return totalStat.combat * (statConfig.combat / weightTotal)
+    statScore = totalStat.combat * (statConfig.combat / weightTotal)
       + totalStat.observation * (statConfig.observation / weightTotal)
       + totalStat.gathering * (statConfig.gathering / weightTotal);
+  } else {
+    statScore = totalStat.combat + totalStat.observation + totalStat.gathering;
   }
-  return totalStat.combat + totalStat.observation + totalStat.gathering;
+
+  return statScore - overflowPenalty;
 }
 
 /**
