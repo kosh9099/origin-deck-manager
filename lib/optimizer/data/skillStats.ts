@@ -58,6 +58,7 @@ export const SKILL_STATS: Record<string, Record<number, SkillStat>> = {
     4: { combat: 7, observation: 0, gathering: 7, loot: 0.0, pirate: 0, beast: 0 },
     5: { combat: 11, observation: 0, gathering: 11, loot: 0.0, pirate: 0, beast: 0 },
     6: { combat: 12, observation: 0, gathering: 12, loot: 0.0, pirate: 0, beast: 0 },
+    7: { combat: 13, observation: 0, gathering: 13, loot: 0.0, pirate: 0, beast: 0 },
   },
   '전투적인 채집': {
     1: { combat: 3, observation: 0, gathering: 2, loot: 0.0, pirate: 0, beast: 0 },
@@ -67,6 +68,7 @@ export const SKILL_STATS: Record<string, Record<number, SkillStat>> = {
     5: { combat: 15, observation: 0, gathering: 7, loot: 0.0, pirate: 0, beast: 0 },
     6: { combat: 16, observation: 0, gathering: 8, loot: 0.0, pirate: 0, beast: 0 },
     7: { combat: 18, observation: 0, gathering: 9, loot: 0.0, pirate: 0, beast: 0 },
+    8: { combat: 19, observation: 0, gathering: 10, loot: 0.0, pirate: 0, beast: 0 },
   },
   '채집 우선 전투': {
     1: { combat: 2, observation: 0, gathering: 3, loot: 0.0, pirate: 0, beast: 0 },
