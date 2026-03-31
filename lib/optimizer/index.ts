@@ -76,19 +76,16 @@ export function autoDeployFleet(
     console.log(`[Phase 1] Admiral placed: ${mainAdmiral.이름}`);
   }
 
-  // 필수 항해사 배치 (타입에 맞춰)
+  // 필수 항해사 배치: 타입+자격만 확인, 탐험스킬 불요. 폴백 없음.
   const essentials = all.filter(s => essentialIds.has(s.id) && s.id !== selectedAdmiralId);
   essentials.forEach(s => {
     let isPlaced = false;
-    // 전투 타입 + 전투선실 자격 → 전투선실
-    if (canFillCombatSlot(s)) {
+    if (s.타입 === '전투' && isQualifiedForCombat(s)) {
       for (const ship of ships) {
         const emptyIdx = ship.combat.findIndex(slot => slot === null);
         if (emptyIdx !== -1) { ship.combat[emptyIdx] = s; isPlaced = true; break; }
       }
-    }
-    // 그 외 (모험 타입 포함) → 모험선실
-    if (!isPlaced) {
+    } else if (s.타입 === '모험') {
       for (const ship of ships) {
         const emptyIdx = ship.adventure.findIndex(slot => slot === null);
         if (emptyIdx !== -1) { ship.adventure[emptyIdx] = s; isPlaced = true; break; }
