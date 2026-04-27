@@ -4,6 +4,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { insertBoost, getActiveBoosts } from '@/lib/supabaseClient';
 import { REGION_PORTS } from '@/lib/trade/cities';
 import { BOOST_EVENT_TYPES } from '@/constants/tradeData';
+import { emitBoostChanged } from '@/lib/trade/boostEvents';
 import { Search, Plus, CheckCircle, XCircle, AlertTriangle, Loader2, Upload } from 'lucide-react';
 
 // ── 시트에서 급매 목록 가져오기 ──────────────────────────────────
@@ -126,6 +127,7 @@ function SingleForm() {
     try {
       await insertBoost(city, category, startDate.toISOString());
       setSuccessMsg(`✅ [${city}] ${category} 스케줄이 추가되었습니다!`);
+      emitBoostChanged();
     } catch (error) {
       console.error(error); alert('부양 등록 중 오류가 발생했습니다.');
     } finally {
@@ -364,6 +366,7 @@ function BulkForm() {
     setIsUploading(false);
     setImageFile(null); setImagePreview(null);
     setParsed([]); setEditedRows([]); setIsParsed(false);
+    if (success > 0) emitBoostChanged();
   };
 
   return (

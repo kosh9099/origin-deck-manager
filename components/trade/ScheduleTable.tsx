@@ -7,14 +7,14 @@ import { ko } from 'date-fns/locale';
 import ItemVotePanel from './ItemVotePanel';
 import { APPLIED_PANDEMIC_ITEMS } from '@/lib/trade/cities';
 import { getBoostType } from '@/constants/tradeData';
-import { Trash2 } from 'lucide-react';
 import { getGoldBonuses, isCurrentlyActive, BONUS_ITEMS } from './TradeDashboard';
 
 // 💡 기후 판별 함수(getClimateStatus)는 내부 계산용으로만 남기고 UI용 import에서는 제거 가능합니다.
 import { getInGameTimeInfo } from '@/lib/trade/time';
 import BarterDetailModal from './BarterDetailModal';
 import CityCombinationModal from './CityCombinationModal';
-import combinationsData from '@/constants/combinations.json';
+import EditBoostModal from './EditBoostModal';
+import { hasCityCombination } from '@/lib/trade/combinationRotation';
 
 interface Props {
   events: TradeEvent[];
@@ -24,6 +24,8 @@ interface Props {
   onAddOptimistic: (eventId: string, item: TradeItem) => void;
   onDeleteBoost: (eventId: string) => Promise<void>;
   onDeleteItem: (eventId: string, itemId: string) => void;
+  favorites: Set<string>;
+  onToggleFavorite: (eventId: string) => void;
 }
 
 const typeColors: Record<string, string> = {
@@ -54,9 +56,10 @@ const typeRowColors: Record<string, string> = {
   '축제': 'bg-emerald-100/80 hover:bg-emerald-200/80',
 };
 
-export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, onAddOptimistic, onDeleteBoost, onDeleteItem }: Props) {
+export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, onAddOptimistic, onDeleteItem, favorites, onToggleFavorite }: Props) {
   const [selectedItem, setSelectedItem] = React.useState<string | null>(null);
   const [selectedCity, setSelectedCity] = React.useState<string | null>(null);
+  const [editingBoost, setEditingBoost] = React.useState<TradeEvent | null>(null);
 
   if (events.length === 0) {
     return (
@@ -69,18 +72,18 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
   const inGameTime = getInGameTimeInfo(now);
 
   return (
-    <div className="w-full bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-      <table className="w-full border-collapse table-fixed">
-        <colgroup><col style={{ width: '14%' }} /><col style={{ width: '20%' }} /><col style={{ width: '26%' }} /><col style={{ width: '40%' }} /></colgroup>
+    <div className="w-full bg-slate-50/60 rounded-2xl border border-slate-200 p-2 shadow-sm">
+      <table className="w-full table-fixed" style={{ borderCollapse: 'separate', borderSpacing: '0 6px' }}>
+        <colgroup><col style={{ width: '14%' }} /><col style={{ width: '18%' }} /><col style={{ width: '12%' }} /><col style={{ width: '56%' }} /></colgroup>
         <thead>
-          <tr className="bg-slate-100 border-b border-slate-200">
-            <th className="px-1.5 py-2.5 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">시간</th>
-            <th className="px-1.5 py-2.5 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">해역 / 항구</th>
-            <th className="px-1.5 py-2.5 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">이벤트</th>
-            <th className="px-1.5 py-2.5 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">추천 품목</th>
+          <tr>
+            <th className="pl-7 pr-3 pb-2 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">시간</th>
+            <th className="pl-6 pr-3 pb-2 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">위치</th>
+            <th className="pl-2 pr-2 pb-2 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">이벤트</th>
+            <th className="pl-4 pr-3 pb-2 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">추천 품목</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody>
           {events.map(event => {
             const isBoost = event.isBoost;
             const boostType = isBoost ? getBoostType(event.type) : null;
@@ -117,70 +120,97 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
             return (
               <tr
                 key={event.id}
-                className={`transition-colors ${rowColorCls} ${isGold ? 'gold-shimmer' : ''}`}
+                className={`transition-colors ${rowColorCls} ${isGold ? 'gold-shimmer' : ''} shadow-sm hover:shadow-md`}
                 style={{
                   ...(isGold ? { borderWidth: 2, borderStyle: 'solid' as const } : {}),
                   // 💡 12시간 이후면 반투명 처리
                   ...(isAfter12Hours ? { opacity: 0.45 } : {}),
                 }}
               >
-                {/* 시간 */}
-                <td className="px-1.5 py-2.5 relative align-middle">
+                {/* 시간 (부양/급매는 클릭으로 편집 모달 열림) */}
+                <td className="pl-4 pr-6 py-1.5 relative align-middle rounded-l-xl border-l border-y border-slate-200/60">
                   <div className={`absolute left-0 top-3 bottom-3 w-[3px] rounded-full ${isGold ? 'bg-yellow-400' : indicatorCls}`} />
-                  <div className="flex flex-col pl-1">
-                    <span className="text-[9px] text-slate-400 font-semibold leading-tight whitespace-nowrap">
-                      {format(event.startTime, 'M.d(EEE)', { locale: ko })}
-                    </span>
-                    <span className={`text-[14px] font-black tabular-nums leading-tight ${isActive ? 'text-emerald-600' : 'text-slate-800'}`}>
-                      {format(event.startTime, 'HH')}시
-                    </span>
-                    {isActive && (
-                      <span className="text-[9px] font-black text-emerald-500 leading-tight">진행 중</span>
+                  <div className="flex items-center gap-1.5">
+                    {/* 즐겨찾기 별표 */}
+                    {(() => {
+                      const isFav = favorites.has(event.id);
+                      return (
+                        <button
+                          onClick={() => onToggleFavorite(event.id)}
+                          title={isFav ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+                          className={`text-[15px] leading-none shrink-0 active:scale-90 transition-all ${
+                            isFav ? 'text-amber-500 drop-shadow-[0_0_2px_rgba(245,158,11,0.4)]' : 'text-slate-300 hover:text-amber-400'
+                          }`}
+                        >
+                          {isFav ? '★' : '☆'}
+                        </button>
+                      );
+                    })()}
+                    {/* 시간 정보 (부양/급매는 클릭하면 편집 모달) */}
+                    {isBoost ? (
+                      <button
+                        onClick={() => setEditingBoost(event)}
+                        className="flex flex-col items-start text-left rounded-md px-1 py-0.5 -mx-1 hover:bg-white/40 active:scale-95 transition-all cursor-pointer"
+                        title="클릭하여 수정 / 삭제"
+                      >
+                        <span className="text-[10px] text-slate-500 font-semibold leading-tight whitespace-nowrap">
+                          {format(event.startTime, 'M.d(EEE)', { locale: ko })}
+                        </span>
+                        <span className={`text-[16px] font-black tabular-nums leading-tight mt-0.5 ${isActive ? 'text-emerald-600' : 'text-slate-800'}`}>
+                          {format(event.startTime, 'HH')}시
+                        </span>
+                        {isActive && (
+                          <span className="text-[10px] font-black text-emerald-600 leading-tight mt-0.5">진행 중</span>
+                        )}
+                      </button>
+                    ) : (
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-slate-500 font-semibold leading-tight whitespace-nowrap">
+                          {format(event.startTime, 'M.d(EEE)', { locale: ko })}
+                        </span>
+                        <span className={`text-[16px] font-black tabular-nums leading-tight mt-0.5 ${isActive ? 'text-emerald-600' : 'text-slate-800'}`}>
+                          {format(event.startTime, 'HH')}시
+                        </span>
+                        {isActive && (
+                          <span className="text-[10px] font-black text-emerald-600 leading-tight mt-0.5">진행 중</span>
+                        )}
+                      </div>
                     )}
                   </div>
                 </td>
 
                 {/* 해역/항구 */}
-                <td className="px-1.5 py-2.5 align-middle">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[12px] font-bold text-slate-700 break-keep">
-                      {(() => {
-                        const cityName = isBoost ? (event.city || event.zone || '항구 미상') : event.zone;
-                        const hasCombination = cityName in combinationsData;
+                <td className="pl-6 pr-3 py-1.5 align-middle border-y border-slate-200/60">
+                  <span className="text-[12px] font-bold text-slate-800 break-keep leading-tight whitespace-normal">
+                    {(() => {
+                      const cityName = isBoost ? (event.city || event.zone || '항구 미상') : event.zone;
+                      const hasCombination = hasCityCombination(cityName);
 
-                        if (hasCombination) {
-                          return (
-                            <button
-                              onClick={() => setSelectedCity(cityName)}
-                              className="text-indigo-600 hover:text-indigo-800 hover:underline underline-offset-2 transition-colors inline-flex items-center gap-1 active:scale-95"
-                              title={`${cityName} 조합식 보기`}
-                            >
-                              {cityName}
-                            </button>
-                          );
-                        }
-                        return cityName;
-                      })()}
-                    </span>
-                  </div>
-                  {isBoost && <div className={`text-[10px] font-bold mt-0.5 ${textColorCls}`}>유저 등록</div>}
+                      if (hasCombination) {
+                        return (
+                          <button
+                            onClick={() => setSelectedCity(cityName)}
+                            className="text-indigo-600 hover:text-indigo-800 hover:underline underline-offset-2 transition-colors text-left active:scale-95 break-keep"
+                            title={`${cityName} 조합식 보기`}
+                          >
+                            {cityName}
+                          </button>
+                        );
+                      }
+                      return cityName;
+                    })()}
+                  </span>
                 </td>
 
                 {/* 이벤트 */}
-                <td className="px-1.5 py-2.5 align-middle">
-                  <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold border whitespace-nowrap ${badgeCls}`} title={tooltip}>
-                    {isBoost ? <>{event.type || '?'}<span className="opacity-60 text-[9px] ml-0.5">{boostType}</span></> : event.type}
+                <td className="pl-3 pr-4 py-1.5 align-middle border-y border-slate-200/60">
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold border whitespace-nowrap ${badgeCls}`} title={tooltip}>
+                    {isBoost ? <>{event.type || '?'}<span className="opacity-60 text-[10px]">{boostType}</span></> : event.type}
                   </span>
-                  {isBoost && (
-                    <button onClick={() => onDeleteBoost(event.id)}
-                      className="flex items-center gap-0.5 text-[9px] text-slate-400 hover:text-red-500 transition-colors mt-1">
-                      <Trash2 size={9} /> 삭제
-                    </button>
-                  )}
                 </td>
 
                 {/* 추천 품목 */}
-                <td className="px-1.5 py-2.5 align-top pt-3">
+                <td className="pl-4 pr-3 py-1.5 align-middle rounded-r-xl border-r border-y border-slate-200/60">
                   {bonuses.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-1.5">
                       {bonuses.map(b => (
@@ -220,6 +250,13 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
         <CityCombinationModal
           cityName={selectedCity}
           onClose={() => setSelectedCity(null)}
+        />
+      )}
+
+      {editingBoost && (
+        <EditBoostModal
+          boost={editingBoost}
+          onClose={() => setEditingBoost(null)}
         />
       )}
     </div>

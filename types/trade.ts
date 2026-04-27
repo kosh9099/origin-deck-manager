@@ -8,7 +8,16 @@ export interface TradeEvent {
   endTime?: number; // 이벤트 종료 시간 (대유행은 보통 정각 단위 1시간 지속 등으로 가정)
 
   // Voting & Item Recommendations
-  items: TradeItem[]; // 추천 품목 목록
+  items: TradeItem[]; // 추천 품목 목록 (유저 투표 등록 품목)
+
+  // 시즌5 단가표 기반 자동 추천 (최대 3개, 부양/급매=부양↑↓, 대유행=대유행↑↓)
+  seasonRecs?: SeasonRecommendation[];
+}
+
+export interface SeasonRecommendation {
+  name: string;  // 품목명
+  high: number;  // 부양↑ 또는 대유행↑ 가격
+  low: number;   // 부양↓ 또는 대유행↓ 가격
 }
 
 export interface TradeItem {

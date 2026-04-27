@@ -1,26 +1,18 @@
 import React from 'react';
 import { X, MapPin } from 'lucide-react';
-import combinationsData from '@/constants/combinations.json';
 import itemLocationsData from '@/constants/itemLocations.json';
+import { getCityCombination } from '@/lib/trade/combinationRotation';
 
 interface CityCombinationModalProps {
   cityName: string;
   onClose: () => void;
 }
 
-type CombinationBook = {
-  쉬움?: string;
-  보통?: string;
-  어려움?: string;
-};
-
-// JSON data type casting
-const combinations = combinationsData as Record<string, CombinationBook>;
 const itemLocations = itemLocationsData as Record<string, string[]>;
 
 export default function CityCombinationModal({ cityName, onClose }: CityCombinationModalProps) {
-  const data = combinations[cityName];
-  
+  const data = getCityCombination(cityName);
+
   if (!data) return null;
 
   // 모든 조합식에서 품목 추출 및 중복 제거
@@ -28,9 +20,10 @@ export default function CityCombinationModal({ cityName, onClose }: CityCombinat
   const allParsedItems = new Set<string>();
   
   allFormulas.forEach(formula => {
-    const rawItems = formula.split(/[\s+]+/); 
-    rawItems.forEach(item => {
-      const parsedItem = item.replace(/[0-9]+$/, '').trim();
+    // 숫자(수량)를 구분자로 split하여 공백 포함 아이템명 ("서양 갑옷")도 한 단위로 유지
+    const parts = formula.split(/\s*\d+\s*\+?/);
+    parts.forEach(part => {
+      const parsedItem = part.trim();
       if (parsedItem) {
         allParsedItems.add(parsedItem);
       }
@@ -45,7 +38,7 @@ export default function CityCombinationModal({ cityName, onClose }: CityCombinat
 
   return (
     <div 
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4 duration-200 animate-in fade-in"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4 duration-200 animate-in fade-in"
       onClick={onClose}
     >
       <div 

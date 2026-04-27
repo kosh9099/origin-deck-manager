@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { TradeEvent, TradeItem } from '@/types/trade';
 import { generateEpidemicSchedules } from '@/lib/trade/epidemic';
 import ScheduleTable from './ScheduleTable';
+import ScheduleCards from './ScheduleCards';
 import { Flame, RefreshCw, CheckCircle, XCircle, Filter } from 'lucide-react';
 import {
   fetchZoneSheet,
@@ -14,6 +15,9 @@ import {
 import { getBoostType } from '@/constants/tradeData';
 import { APPLIED_PANDEMIC_ITEMS } from '@/lib/trade/cities';
 import { getInGameTimeInfo } from '@/lib/trade/time';
+import { getBoostRecommendations, getEpidemicRecommendations } from '@/lib/trade/seasonPrices';
+import { onBoostChanged } from '@/lib/trade/boostEvents';
+import { loadFavorites, saveFavorites } from '@/lib/trade/favorites';
 
 // ── 핫타임 설정 ──────────────────────────────────────────────────
 export const HOTTIME_CONFIG = {
@@ -119,8 +123,20 @@ function mergeSheetItems(
         isUserVoted: null as null,
       }));
 
-    if (newItems.length === 0) return ev;
-    return { ...ev, items: [...ev.items, ...newItems] };
+    // 시즌5 단가표 기반 추천 (최대 3개)
+    let seasonRecs = ev.seasonRecs;
+    if (ev.isBoost && ev.city) {
+      // 부양/급매: 도시 + type(카테고리 또는 품목명) → 부양↑/↓
+      const recs = getBoostRecommendations(ev.city, ev.type);
+      if (recs.length > 0) seasonRecs = recs;
+    } else if (!ev.isBoost && ev.zone) {
+      // 대유행: 해역 + 대유행 종류 → 대유행↑/↓
+      const recs = getEpidemicRecommendations(ev.zone, ev.type);
+      if (recs.length > 0) seasonRecs = recs;
+    }
+
+    if (newItems.length === 0 && seasonRecs === ev.seasonRecs) return ev;
+    return { ...ev, items: [...ev.items, ...newItems], seasonRecs };
   });
 }
 
@@ -131,10 +147,25 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
   const [filters, setFilters] = useState(() => {
     try {
       const raw = localStorage.getItem(FILTER_STORAGE_KEY);
-      if (raw) return JSON.parse(raw) as { boost: boolean; flash: boolean; epidemic: boolean };
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<{ boost: boolean; flash: boolean; epidemic: boolean; favorite: boolean }>;
+        return { boost: true, flash: true, epidemic: true, favorite: false, ...parsed };
+      }
     } catch {}
-    return { boost: true, flash: true, epidemic: true };
+    return { boost: true, flash: true, epidemic: true, favorite: false };
   });
+
+  const [favorites, setFavorites] = useState<Set<string>>(() => loadFavorites());
+
+  const toggleFavorite = useCallback((eventId: string) => {
+    setFavorites(prev => {
+      const next = new Set(prev);
+      if (next.has(eventId)) next.delete(eventId);
+      else next.add(eventId);
+      saveFavorites(next);
+      return next;
+    });
+  }, []);
 
   const [zoneMap, setZoneMap] = useState<SheetItemMap>({});
   const [cityMap, setCityMap] = useState<SheetItemMap>({});
@@ -207,6 +238,13 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
     })();
   }, []);
 
+  // BoostForm 등록 시 자동 새로고침 (시트 재요청 없이 DB만 다시 읽음)
+  useEffect(() => {
+    return onBoostChanged(() => {
+      fetchData();
+    });
+  }, [fetchData]);
+
   // 정각마다 자동 새로고침
   useEffect(() => {
     const now = new Date();
@@ -273,6 +311,11 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
       return filters.epidemic;
     });
 
+    // 즐겨찾기 필터: ON일 때 favorited 이벤트만 표시
+    if (filters.favorite) {
+      result = result.filter(ev => favorites.has(ev.id));
+    }
+
     // 캡처 모드: 오늘 날짜 이벤트만 표시
     if (captureMode) {
       const todayStart = new Date();
@@ -283,7 +326,7 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
     }
 
     return result;
-  }, [events, filters, captureMode]);
+  }, [events, filters, favorites, captureMode]);
 
   return (
     <div className="w-full flex-1 flex flex-col h-full relative" id="trade-dashboard-capture-area">
@@ -304,8 +347,6 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
           <p className="text-[11px] text-emerald-100 mt-0.5">대유행 예측 및 유저 공유 부양 일정</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <StatusBadge label="해역별" status={sheetStatus.zone} />
-          <StatusBadge label="도시별" status={sheetStatus.city} />
           <button onClick={handleRefresh} disabled={isLoading}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-black bg-white/20 text-white border border-white/30 hover:bg-white/30 transition-all disabled:opacity-50">
             <RefreshCw size={13} className={isLoading ? 'animate-spin' : ''} /> 새로고침
@@ -358,6 +399,7 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
           { key: 'boost' as const, label: '부양', activeColor: 'bg-violet-500 text-white border-violet-600', inactiveColor: 'bg-white text-violet-600 border-violet-300 opacity-50' },
           { key: 'flash' as const, label: '급매', activeColor: 'bg-orange-500 text-white border-orange-600', inactiveColor: 'bg-white text-orange-600 border-orange-300 opacity-50' },
           { key: 'epidemic' as const, label: '대유행', activeColor: 'bg-emerald-500 text-white border-emerald-600', inactiveColor: 'bg-white text-emerald-600 border-emerald-300 opacity-50' },
+          { key: 'favorite' as const, label: '★ 즐겨찾기', activeColor: 'bg-amber-500 text-white border-amber-600', inactiveColor: 'bg-white text-amber-600 border-amber-300 opacity-50' },
         ]).map(f => (
           <button
             key={f.key}
@@ -379,15 +421,32 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
           </div>
         ) : (
           <div className="animate-in fade-in duration-500">
-            <ScheduleTable
-              events={filteredEvents}
-              now={now}
-              cityMap={cityMap}
-              onVoteOptimistic={handleVoteOptimistic}
-              onAddOptimistic={handleAddOptimistic}
-              onDeleteBoost={handleDeleteBoost}
-              onDeleteItem={handleDeleteItem}
-            />
+            {/* 데스크톱: 테이블 / 모바일: 카드 */}
+            <div className="hidden md:block">
+              <ScheduleTable
+                events={filteredEvents}
+                now={now}
+                cityMap={cityMap}
+                onVoteOptimistic={handleVoteOptimistic}
+                onAddOptimistic={handleAddOptimistic}
+                onDeleteBoost={handleDeleteBoost}
+                onDeleteItem={handleDeleteItem}
+                favorites={favorites}
+                onToggleFavorite={toggleFavorite}
+              />
+            </div>
+            <div className="md:hidden">
+              <ScheduleCards
+                events={filteredEvents}
+                now={now}
+                onVoteOptimistic={handleVoteOptimistic}
+                onAddOptimistic={handleAddOptimistic}
+                onDeleteBoost={handleDeleteBoost}
+                onDeleteItem={handleDeleteItem}
+                favorites={favorites}
+                onToggleFavorite={toggleFavorite}
+              />
+            </div>
           </div>
         )}
       </div>
