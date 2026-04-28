@@ -127,9 +127,16 @@ export default function TradeManagerPage() {
 
           {/* 상단 헤더 (대시보드 모드에서는 액션 버튼들, 부양 모드에서는 제목) */}
           {activeTab === 'boosts' ? (
-            <div className="mb-2">
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">부양 등록 / 관리</h2>
-              <p className="text-sm text-slate-500 mt-1 font-medium">단건 또는 일괄 붙여넣기로 부양 스케줄을 공유하세요.</p>
+            <div className="mb-2 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">부양 등록 / 관리</h2>
+                <p className="text-sm text-slate-500 mt-1 font-medium">단건 또는 일괄 붙여넣기로 부양 스케줄을 공유하세요.</p>
+              </div>
+              <button onClick={() => setActiveTab('dashboard')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0 self-start sm:self-auto">
+                <RefreshCw size={13} />
+                <span className="whitespace-nowrap">교역 스케줄</span>
+              </button>
             </div>
           ) : (
             <div className="flex justify-end gap-2 mb-1">
