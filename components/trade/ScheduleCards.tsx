@@ -12,6 +12,7 @@ import EditBoostModal from './EditBoostModal';
 import BarterDetailModal from './BarterDetailModal';
 import { hasCityCombination } from '@/lib/trade/combinationRotation';
 import { getInGameTimeInfo } from '@/lib/trade/time';
+import { isCurrentlyActive } from './TradeDashboard';
 
 interface Props {
   events: TradeEvent[];
@@ -85,6 +86,7 @@ export default function ScheduleCards({
 
         const cityName = isBoost ? (event.city || event.zone || '항구 미상') : event.zone;
         const hasCombo = hasCityCombination(cityName);
+        const isActive = isCurrentlyActive(event);
 
         return (
           <div
@@ -117,27 +119,33 @@ export default function ScheduleCards({
                     <span className="text-[9px] text-slate-500 font-semibold leading-tight whitespace-nowrap">
                       {format(event.startTime, 'M.d(EEE)', { locale: ko })}
                     </span>
-                    <span className="text-[14px] font-black tabular-nums leading-tight text-slate-800">
+                    <span className={`text-[14px] font-black tabular-nums leading-tight ${isActive ? 'text-emerald-600' : 'text-slate-800'}`}>
                       {format(event.startTime, 'HH')}시
                     </span>
+                    {isActive && (
+                      <span className="text-[9px] font-black text-emerald-600 leading-tight mt-0.5">진행 중</span>
+                    )}
                   </button>
                 ) : (
                   <div className="flex flex-col shrink-0">
                     <span className="text-[9px] text-slate-500 font-semibold leading-tight whitespace-nowrap">
                       {format(event.startTime, 'M.d(EEE)', { locale: ko })}
                     </span>
-                    <span className="text-[14px] font-black tabular-nums leading-tight text-slate-800">
+                    <span className={`text-[14px] font-black tabular-nums leading-tight ${isActive ? 'text-emerald-600' : 'text-slate-800'}`}>
                       {format(event.startTime, 'HH')}시
                     </span>
+                    {isActive && (
+                      <span className="text-[9px] font-black text-emerald-600 leading-tight mt-0.5">진행 중</span>
+                    )}
                   </div>
                 )}
 
                 {/* 도시명 */}
-                <span className="text-[13px] font-bold text-slate-800 break-keep flex-1 min-w-0 truncate">
+                <span className="text-[13px] font-bold text-slate-800 break-keep min-w-0 truncate">
                   {hasCombo ? (
                     <button
                       onClick={() => setSelectedCity(cityName)}
-                      className="text-indigo-600 hover:text-indigo-800 hover:underline underline-offset-2 inline-flex items-center gap-1 active:scale-95"
+                      className="text-indigo-600 hover:text-indigo-800 hover:underline underline-offset-2 active:scale-95"
                       title={`${cityName} 조합식 보기`}
                     >
                       {cityName}

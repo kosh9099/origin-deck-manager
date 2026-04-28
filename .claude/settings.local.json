@@ -14,7 +14,9 @@
       "Bash(tasklist /FI \"PID eq 12440\")",
       "Bash(python -c ' *)",
       "Bash(python extract_season_prices.py)",
-      "Bash(python extract_season_calendar.py)"
+      "Bash(python extract_season_calendar.py)",
+      "Bash(xxd)",
+      "Bash(node -e ' *)"
     ]
   }
 }

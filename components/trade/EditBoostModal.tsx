@@ -15,7 +15,6 @@ interface Props {
 }
 
 const ALL_PORTS = Object.values(REGION_PORTS).flat();
-const FLASH_OPTIONS = ['흑요석', '수정세공', '네베르스로이드', '일렉트럼'];
 
 // 한글 초성 추출 (예: "낭트" → "ㄴㅌ")
 const CHOSEONG = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
@@ -99,7 +98,7 @@ export default function EditBoostModal({ boost, onClose }: Props) {
 
   const handleTypeChange = (newType: '부양' | '급매') => {
     setBoostType(newType);
-    setCategory(newType === '급매' ? FLASH_OPTIONS[0] : BOOST_EVENT_TYPES['부양'][0]);
+    setCategory(newType === '급매' ? '' : BOOST_EVENT_TYPES['부양'][0]);
   };
 
   const handleSave = async () => {
@@ -194,12 +193,22 @@ export default function EditBoostModal({ boost, onClose }: Props) {
               <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider">
                 {boostType === '급매' ? '품목' : '카테고리'}
               </label>
-              <select value={category} onChange={e => setCategory(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 focus:outline-none focus:border-emerald-400">
-                {(boostType === '급매' ? FLASH_OPTIONS : BOOST_EVENT_TYPES['부양']).map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
+              {boostType === '급매' ? (
+                <input
+                  type="text"
+                  value={category}
+                  onChange={e => setCategory(e.target.value)}
+                  placeholder="품목명 입력"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 focus:outline-none focus:border-emerald-400"
+                />
+              ) : (
+                <select value={category} onChange={e => setCategory(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 focus:outline-none focus:border-emerald-400">
+                  {BOOST_EVENT_TYPES['부양'].map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
         </div>

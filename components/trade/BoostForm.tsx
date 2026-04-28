@@ -7,24 +7,6 @@ import { BOOST_EVENT_TYPES } from '@/constants/tradeData';
 import { emitBoostChanged } from '@/lib/trade/boostEvents';
 import { Search, Plus, CheckCircle, XCircle, AlertTriangle, Loader2, Upload } from 'lucide-react';
 
-// ── 시트에서 급매 목록 가져오기 ──────────────────────────────────
-async function fetchFlashItems(): Promise<string[]> {
-  try {
-    const res = await fetch('/api/sheet?gid=647153257', { cache: 'no-store' });
-    if (!res.ok) return [];
-    const text = await res.text();
-    const lines = text.split('\n').slice(1); // 헤더 스킵
-    const items = new Set<string>();
-    for (const line of lines) {
-      const cols = line.split(',');
-      const flashItem = cols[9]?.replace(/"/g, '').trim(); // J열 = 급매1
-      if (flashItem && flashItem.length > 0) items.add(flashItem);
-    }
-    return Array.from(items).sort();
-  } catch {
-    return ['흑요석', '수정세공', '네베르스로이드', '일렉트럼']; // fallback
-  }
-}
 
 const ALL_PORTS = Object.values(REGION_PORTS).flat();
 const POP_TYPES = ["부양", "급매"];
@@ -94,14 +76,6 @@ function SingleForm() {
 
   const [popType, setPopType] = useState<keyof typeof BOOST_EVENT_TYPES>('부양');
   const [category, setCategory] = useState(BOOST_EVENT_TYPES['부양'][0]);
-  const [flashItems, setFlashItems] = useState<string[]>([]);
-
-  // 급매 목록 시트에서 로딩
-  useEffect(() => {
-    fetchFlashItems().then(items => {
-      setFlashItems(items);
-    });
-  }, []);
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [day, setDay] = useState(now.getDate());
@@ -112,7 +86,7 @@ function SingleForm() {
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value as keyof typeof BOOST_EVENT_TYPES;
     setPopType(newType);
-    setCategory(newType === '급매' ? (flashItems[0] || '') : (BOOST_EVENT_TYPES[newType]?.[0] || ''));
+    setCategory(newType === '급매' ? '' : (BOOST_EVENT_TYPES[newType]?.[0] || ''));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -179,12 +153,13 @@ function SingleForm() {
             {popType === '급매' ? '품목명 직접 입력' : '카테고리'}
           </label>
           {popType === '급매' ? (
-            <select value={category} onChange={e => setCategory(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-emerald-400">
-              {flashItems.length > 0
-                ? flashItems.map(c => <option key={c} value={c}>{c}</option>)
-                : <option value="">로딩 중...</option>}
-            </select>
+            <input
+              type="text"
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+              placeholder="품목명 입력 (예: 흑요석, 금괴)"
+              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-emerald-400"
+            />
           ) : (
             <select value={category} onChange={e => setCategory(e.target.value)}
               className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:border-emerald-400">
@@ -248,6 +223,30 @@ function BulkForm() {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
     if (file) handleImageSelect(file);
+  };
+
+  const handleClipboardPaste = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (typeof navigator === 'undefined' || !navigator.clipboard?.read) {
+      alert('이 브라우저는 클립보드 이미지 접근을 지원하지 않습니다. Ctrl+V를 사용하세요.');
+      return;
+    }
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const imageType = item.types.find(t => t.startsWith('image/'));
+        if (imageType) {
+          const blob = await item.getType(imageType);
+          const file = new File([blob], 'clipboard.png', { type: imageType });
+          handleImageSelect(file);
+          return;
+        }
+      }
+      alert('클립보드에 이미지가 없습니다.');
+    } catch (err) {
+      console.error(err);
+      alert('클립보드 접근 실패. 브라우저에서 권한을 허용해주세요.');
+    }
   };
 
   // 전역 클립보드 붙여넣기 (Ctrl+V)
@@ -378,19 +377,25 @@ function BulkForm() {
           onDrop={handleDrop}
           onDragOver={e => e.preventDefault()}
           onClick={() => fileInputRef.current?.click()}
-          className="border-2 border-dashed border-slate-300 hover:border-emerald-400 rounded-2xl p-8 text-center cursor-pointer transition-all bg-slate-50 hover:bg-emerald-50 group"
+          className="border-2 border-dashed border-slate-300 hover:border-emerald-400 rounded-2xl p-6 text-center cursor-pointer transition-all bg-slate-50 hover:bg-emerald-50 group"
         >
           <div className="text-3xl mb-2">📷</div>
           <p className="text-[13px] font-black text-slate-600 group-hover:text-emerald-700">
             스크린샷 드래그 / 클릭해서 업로드
           </p>
-          <p className="text-[12px] font-bold text-indigo-500 mt-1.5 flex items-center justify-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-white border border-slate-300 rounded text-[11px] font-black text-slate-600 shadow-sm">Ctrl</kbd>
+          <button
+            type="button"
+            onClick={handleClipboardPaste}
+            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95"
+          >
+            <span className="text-base leading-none">📋</span> 클립보드에서 붙여넣기
+          </button>
+          <p className="text-[11px] text-slate-400 mt-2 flex items-center justify-center gap-1">
+            <kbd className="px-1 py-0.5 bg-white border border-slate-300 rounded text-[10px] font-black text-slate-600 shadow-sm">Ctrl</kbd>
             +
-            <kbd className="px-1.5 py-0.5 bg-white border border-slate-300 rounded text-[11px] font-black text-slate-600 shadow-sm">V</kbd>
-            로 클립보드 붙여넣기도 가능
+            <kbd className="px-1 py-0.5 bg-white border border-slate-300 rounded text-[10px] font-black text-slate-600 shadow-sm">V</kbd>
+            도 가능 · PNG/JPG
           </p>
-          <p className="text-[10px] text-slate-400 mt-1">PNG, JPG 지원</p>
           <input
             ref={fileInputRef}
             type="file"
@@ -522,20 +527,20 @@ function BulkForm() {
 
 // ── 메인 BoostForm ───────────────────────────────────────────────
 export default function BoostForm() {
-  const [tab, setTab] = useState<'single' | 'bulk'>('single');
+  const [tab, setTab] = useState<'single' | 'bulk'>('bulk');
 
   return (
     <div className="w-full max-w-xl mx-auto space-y-4">
       <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200">
-        <button onClick={() => setTab('single')}
-          className={`py-2 rounded-lg text-sm font-black transition-all flex items-center justify-center gap-1.5
-            ${tab === 'single' ? 'bg-white text-emerald-700 shadow-sm border border-emerald-200' : 'text-slate-500 hover:text-slate-700'}`}>
-          <Plus size={15} /> 단건 등록
-        </button>
         <button onClick={() => setTab('bulk')}
           className={`py-2 rounded-lg text-sm font-black transition-all flex items-center justify-center gap-1.5
             ${tab === 'bulk' ? 'bg-white text-indigo-700 shadow-sm border border-indigo-200' : 'text-slate-500 hover:text-slate-700'}`}>
           <span className="text-base">🤖</span> AI 스캔 등록
+        </button>
+        <button onClick={() => setTab('single')}
+          className={`py-2 rounded-lg text-sm font-black transition-all flex items-center justify-center gap-1.5
+            ${tab === 'single' ? 'bg-white text-emerald-700 shadow-sm border border-emerald-200' : 'text-slate-500 hover:text-slate-700'}`}>
+          <Plus size={15} /> 단건 등록
         </button>
       </div>
 

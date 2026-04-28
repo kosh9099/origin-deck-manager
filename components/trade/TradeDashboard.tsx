@@ -144,18 +144,22 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
   const [events, setEvents] = useState<TradeEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [now, setNow] = useState(Date.now());
-  const [filters, setFilters] = useState(() => {
+  // localStorage는 hydration 후에만 읽어서 SSR/CSR mismatch 방지
+  const [filters, setFilters] = useState({ boost: true, flash: true, epidemic: true, favorite: false });
+  const [favorites, setFavorites] = useState<Set<string>>(() => new Set());
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
     try {
       const raw = localStorage.getItem(FILTER_STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<{ boost: boolean; flash: boolean; epidemic: boolean; favorite: boolean }>;
-        return { boost: true, flash: true, epidemic: true, favorite: false, ...parsed };
+        setFilters(prev => ({ ...prev, ...parsed }));
       }
     } catch {}
-    return { boost: true, flash: true, epidemic: true, favorite: false };
-  });
-
-  const [favorites, setFavorites] = useState<Set<string>>(() => loadFavorites());
+    setFavorites(loadFavorites());
+    setHydrated(true);
+  }, []);
 
   const toggleFavorite = useCallback((eventId: string) => {
     setFavorites(prev => {
@@ -173,10 +177,11 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
     zone: SheetLoadStatus; city: SheetLoadStatus;
   }>({ zone: 'idle', city: 'idle' });
 
-  // 필터 변경 시 localStorage에 자동 저장
+  // 필터 변경 시 localStorage에 자동 저장 (hydration 이후에만 — 초기 default 덮어쓰기 방지)
   useEffect(() => {
+    if (!hydrated) return;
     try { localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(filters)); } catch {}
-  }, [filters]);
+  }, [filters, hydrated]);
 
   // 매분 시각 갱신
   useEffect(() => {
@@ -332,29 +337,23 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
     <div className="w-full flex-1 flex flex-col h-full relative" id="trade-dashboard-capture-area">
 
       {/* 헤더 */}
-      <div className="bg-emerald-600 px-4 py-3 rounded-xl border border-emerald-500 mb-3 shadow-sm flex items-center justify-between shrink-0 flex-wrap gap-2">
-        <div>
-          <h3 className="text-[15px] font-black text-white flex items-center gap-2">
-            <Flame size={18} className="text-amber-300 animate-pulse" />
-            교역 스케줄 현황
-            {/* 💡 계절 배지를 제거하고 '인게임 월' 배지만 남겼습니다. */}
-            <div className="ml-1.5 flex items-center">
-              <span className="px-2 py-0.5 rounded-md bg-white border border-emerald-200 text-[12px] font-black text-emerald-700 shadow-sm leading-tight">
-                인게임 {inGameTime.month}월
-              </span>
-            </div>
+      <div className="bg-emerald-600 px-3 py-2 rounded-xl border border-emerald-500 mb-3 shadow-sm shrink-0">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-[14px] font-black text-white flex items-center gap-1.5 min-w-0">
+            <Flame size={15} className="text-amber-300 animate-pulse shrink-0" />
+            <span className="truncate">교역 스케줄</span>
+            <span className="px-1.5 py-0.5 rounded-md bg-white border border-emerald-200 text-[11px] font-black text-emerald-700 shadow-sm leading-tight shrink-0">
+              인게임 {inGameTime.month}월
+            </span>
           </h3>
-          <p className="text-[11px] text-emerald-100 mt-0.5">대유행 예측 및 유저 공유 부양 일정</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
           <button onClick={handleRefresh} disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-black bg-white/20 text-white border border-white/30 hover:bg-white/30 transition-all disabled:opacity-50">
-            <RefreshCw size={13} className={isLoading ? 'animate-spin' : ''} /> 새로고침
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-black bg-white/20 text-white border border-white/30 hover:bg-white/30 transition-all disabled:opacity-50 shrink-0">
+            <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} /> 새로고침
           </button>
-          <span className="text-[11px] font-bold text-emerald-100 bg-emerald-700/50 px-2 py-1 rounded hidden sm:block">
-            {new Date(now).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
-          </span>
         </div>
+        <p className="text-[10px] text-emerald-100 mt-1 leading-tight">
+          추천 품목 가격은 판매지식 20렙 / 할증 0% 기준
+        </p>
       </div>
 
       {/* 핫타임 이벤트 일정 공지 (이하 기존과 동일) */}
@@ -393,8 +392,8 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
       })()}
 
       {/* 필터 토글 */}
-      <div className="flex items-center gap-2 mb-3 shrink-0 flex-wrap">
-        <span className="flex items-center gap-1 text-[11px] font-bold text-slate-500"><Filter size={12} /> 필터</span>
+      <div className="flex items-center gap-1.5 mb-3 shrink-0 flex-wrap">
+        <span className="flex items-center gap-1 text-[11px] font-bold text-slate-500 shrink-0"><Filter size={11} /></span>
         {([
           { key: 'boost' as const, label: '부양', activeColor: 'bg-violet-500 text-white border-violet-600', inactiveColor: 'bg-white text-violet-600 border-violet-300 opacity-50' },
           { key: 'flash' as const, label: '급매', activeColor: 'bg-orange-500 text-white border-orange-600', inactiveColor: 'bg-white text-orange-600 border-orange-300 opacity-50' },
@@ -404,7 +403,7 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
           <button
             key={f.key}
             onClick={() => setFilters(prev => ({ ...prev, [f.key]: !prev[f.key] }))}
-            className={`px-3 py-1 rounded-full text-[11px] font-black border transition-all active:scale-95 ${
+            className={`px-2 py-0.5 rounded-full text-[11px] font-black border transition-all active:scale-95 shrink-0 ${
               filters[f.key] ? f.activeColor : f.inactiveColor
             }`}
           >

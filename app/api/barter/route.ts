@@ -22,10 +22,7 @@ function loadCsvFile(filename: string): any[] {
     return result.data as any[];
 }
 
-let cachedRecipes: Record<string, string[]> | null = null;
-
 function getRecipes(): Record<string, string[]> {
-    if (cachedRecipes) return cachedRecipes;
     const rawBarter = loadCsvFile('barter_materials.csv');
     const recipes: Record<string, string[]> = {};
     rawBarter.forEach((row: any) => {
@@ -38,7 +35,6 @@ function getRecipes(): Record<string, string[]> {
         }
         recipes[key] = mats;
     });
-    cachedRecipes = recipes;
     return recipes;
 }
 
