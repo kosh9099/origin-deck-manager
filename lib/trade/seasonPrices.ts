@@ -50,7 +50,12 @@ function buildRec(city: string, itemName: string, lowIdx: number, highIdx: numbe
 }
 
 function topN(recs: SeasonRecommendation[], n: number): SeasonRecommendation[] {
-  return recs.sort((a, b) => b.high - a.high).slice(0, n);
+  const sorted = recs.sort((a, b) => b.high - a.high).slice(0, n);
+  if (sorted.length >= 2 && sorted[0].high > 0) {
+    const ratio = sorted[1].high / sorted[0].high;
+    if (ratio < 0.9) return [sorted[0]];
+  }
+  return sorted;
 }
 
 /**

@@ -2,12 +2,13 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Home, Menu, X, Anchor, Download, RefreshCw, HandHeart } from 'lucide-react';
+import { Home, Menu, X, Anchor, Download, RefreshCw, HandHeart, Calculator } from 'lucide-react';
 import TradeDashboard from '@/components/trade/TradeDashboard';
 import BoostForm from '@/components/trade/BoostForm';
+import BarterCalculator from '@/components/trade/BarterCalculator';
 import { captureAndDownload } from '@/lib/utils/capture';
 
-type TradeViewType = 'dashboard' | 'boosts';
+type TradeViewType = 'dashboard' | 'boosts' | 'barter';
 
 export default function TradeManagerPage() {
   const [activeTab, setActiveTab] = useState<TradeViewType>('dashboard');
@@ -22,6 +23,7 @@ export default function TradeManagerPage() {
 
   const navItems = [
     { id: 'dashboard' as const, label: '교역 스케줄', icon: <RefreshCw size={18} /> },
+    { id: 'barter' as const, label: '물물교환 계산기', icon: <Calculator size={18} /> },
   ];
 
   const handleCapture = async () => {
@@ -126,7 +128,7 @@ export default function TradeManagerPage() {
         <div className="max-w-[1400px] w-full mx-auto space-y-4 md:space-y-6 flex-1 flex flex-col pb-20 md:pb-0">
 
           {/* 상단 헤더 (대시보드 모드에서는 액션 버튼들, 부양 모드에서는 제목) */}
-          {activeTab === 'boosts' ? (
+          {activeTab === 'boosts' && (
             <div className="mb-2 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
               <div>
                 <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">부양 등록 / 관리</h2>
@@ -138,7 +140,8 @@ export default function TradeManagerPage() {
                 <span className="whitespace-nowrap">교역 스케줄</span>
               </button>
             </div>
-          ) : (
+          )}
+          {activeTab === 'dashboard' && (
             <div className="flex justify-end gap-2 mb-1">
               <button onClick={() => setActiveTab('boosts')}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0">
@@ -159,6 +162,11 @@ export default function TradeManagerPage() {
             {activeTab === 'boosts' && (
               <div className="flex justify-center w-full py-4 overflow-y-auto">
                 <BoostForm />
+              </div>
+            )}
+            {activeTab === 'barter' && (
+              <div className="w-full py-2 overflow-y-auto">
+                <BarterCalculator />
               </div>
             )}
           </div>
