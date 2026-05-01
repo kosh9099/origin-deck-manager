@@ -19,3 +19,20 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* 특수 물교 등록된 추천 품목 칩 — 노란 빛 반짝임 */
+@keyframes sparkleGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.45);
+    filter: brightness(1);
+  }
+  50% {
+    box-shadow: 0 0 12px 3px rgba(250, 204, 21, 0.85);
+    filter: brightness(1.12);
+  }
+}
+.animate-sparkle {
+  animation: sparkleGlow 1.4s ease-in-out infinite;
+  position: relative;
+  z-index: 1;
+}

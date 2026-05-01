@@ -2,6 +2,7 @@
 // 컴포넌트 트리가 분리되어 있어 prop drilling 대신 window CustomEvent 사용.
 
 const BOOST_CHANGED_EVENT = 'trade:boost-changed';
+const SPECIAL_CHANGED_EVENT = 'trade:special-changed';
 
 export function emitBoostChanged(): void {
   if (typeof window === 'undefined') return;
@@ -12,4 +13,15 @@ export function onBoostChanged(handler: () => void): () => void {
   if (typeof window === 'undefined') return () => {};
   window.addEventListener(BOOST_CHANGED_EVENT, handler);
   return () => window.removeEventListener(BOOST_CHANGED_EVENT, handler);
+}
+
+export function emitSpecialChanged(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(SPECIAL_CHANGED_EVENT));
+}
+
+export function onSpecialChanged(handler: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  window.addEventListener(SPECIAL_CHANGED_EVENT, handler);
+  return () => window.removeEventListener(SPECIAL_CHANGED_EVENT, handler);
 }

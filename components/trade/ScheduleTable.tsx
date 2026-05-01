@@ -26,6 +26,7 @@ interface Props {
   onDeleteItem: (eventId: string, itemId: string) => void;
   favorites: Set<string>;
   onToggleFavorite: (eventId: string) => void;
+  specialItems?: Set<string>;
 }
 
 const typeColors: Record<string, string> = {
@@ -56,7 +57,7 @@ const typeRowColors: Record<string, string> = {
   '축제': 'bg-emerald-100/80 hover:bg-emerald-200/80',
 };
 
-export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, onAddOptimistic, onDeleteItem, favorites, onToggleFavorite }: Props) {
+export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, onAddOptimistic, onDeleteItem, favorites, onToggleFavorite, specialItems }: Props) {
   const [selectedItem, setSelectedItem] = React.useState<string | null>(null);
   const [selectedCity, setSelectedCity] = React.useState<string | null>(null);
   const [editingBoost, setEditingBoost] = React.useState<TradeEvent | null>(null);
@@ -230,6 +231,7 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
                     onAddOptimistic={(item) => onAddOptimistic(event.id, item)}
                     onDeleteItem={(itemId) => onDeleteItem(event.id, itemId)}
                     onItemClick={setSelectedItem}
+                    specialItems={specialItems}
                   />
                 </td>
               </tr>

@@ -16,7 +16,7 @@ import { getBoostType } from '@/constants/tradeData';
 import { APPLIED_PANDEMIC_ITEMS } from '@/lib/trade/cities';
 import { getInGameTimeInfo } from '@/lib/trade/time';
 import { getBoostRecommendations, getEpidemicRecommendations } from '@/lib/trade/seasonPrices';
-import { onBoostChanged } from '@/lib/trade/boostEvents';
+import { onBoostChanged, onSpecialChanged } from '@/lib/trade/boostEvents';
 import { loadFavorites, saveFavorites } from '@/lib/trade/favorites';
 
 // ── 핫타임 설정 ──────────────────────────────────────────────────
@@ -173,6 +173,7 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
 
   const [zoneMap, setZoneMap] = useState<SheetItemMap>({});
   const [cityMap, setCityMap] = useState<SheetItemMap>({});
+  const [specialItems, setSpecialItems] = useState<Set<string>>(new Set());
   const [sheetStatus, setSheetStatus] = useState<{
     zone: SheetLoadStatus; city: SheetLoadStatus;
   }>({ zone: 'idle', city: 'idle' });
@@ -249,6 +250,27 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
       fetchData();
     });
   }, [fetchData]);
+
+  // 특수 물교 등록 fetch + 변경 이벤트 구독
+  const refreshSpecials = useCallback(async () => {
+    try {
+      const { getActiveSpecials } = await import('@/lib/supabaseClient');
+      const list = await getActiveSpecials();
+      setSpecialItems(new Set(list.map(s => s.name)));
+    } catch (e) {
+      console.error('Failed to load specials:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshSpecials();
+  }, [refreshSpecials]);
+
+  useEffect(() => {
+    return onSpecialChanged(() => {
+      refreshSpecials();
+    });
+  }, [refreshSpecials]);
 
   // 정각마다 자동 새로고침
   useEffect(() => {
@@ -432,6 +454,7 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
                 onDeleteItem={handleDeleteItem}
                 favorites={favorites}
                 onToggleFavorite={toggleFavorite}
+                specialItems={specialItems}
               />
             </div>
             <div className="md:hidden">
@@ -444,6 +467,7 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
                 onDeleteItem={handleDeleteItem}
                 favorites={favorites}
                 onToggleFavorite={toggleFavorite}
+                specialItems={specialItems}
               />
             </div>
           </div>

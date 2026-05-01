@@ -23,6 +23,7 @@ interface Props {
   onDeleteItem: (eventId: string, itemId: string) => void;
   favorites: Set<string>;
   onToggleFavorite: (eventId: string) => void;
+  specialItems?: Set<string>;
 }
 
 const typeColors: Record<string, string> = {
@@ -50,6 +51,7 @@ export default function ScheduleCards({
   onDeleteItem,
   favorites,
   onToggleFavorite,
+  specialItems,
 }: Props) {
   const [selectedCity, setSelectedCity] = React.useState<string | null>(null);
   const [selectedItem, setSelectedItem] = React.useState<string | null>(null);
@@ -182,6 +184,7 @@ export default function ScheduleCards({
                   onAddOptimistic={(item) => onAddOptimistic(event.id, item)}
                   onDeleteItem={(itemId) => onDeleteItem(event.id, itemId)}
                   onItemClick={setSelectedItem}
+                  specialItems={specialItems}
                 />
               </div>
             </div>

@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Home, Menu, X, Anchor, Download, RefreshCw, HandHeart, Calculator } from 'lucide-react';
+import { Home, Menu, X, Anchor, Download, RefreshCw, HandHeart, Calculator, Sparkles } from 'lucide-react';
 import TradeDashboard from '@/components/trade/TradeDashboard';
 import BoostForm from '@/components/trade/BoostForm';
 import BarterCalculator from '@/components/trade/BarterCalculator';
+import SpecialForm from '@/components/trade/SpecialForm';
 import { captureAndDownload } from '@/lib/utils/capture';
 
 type TradeViewType = 'dashboard' | 'boosts' | 'barter';
@@ -15,6 +16,7 @@ export default function TradeManagerPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [captureMode, setCaptureMode] = useState(false);
   const [captureToast, setCaptureToast] = useState<string | null>(null);
+  const [specialOpen, setSpecialOpen] = useState(false);
 
   const handleTabChange = (tab: TradeViewType) => {
     setActiveTab(tab);
@@ -116,6 +118,9 @@ export default function TradeManagerPage() {
         </nav>
       </aside>
 
+      {/* 특수 등록 모달 */}
+      <SpecialForm open={specialOpen} onClose={() => setSpecialOpen(false)} />
+
       {/* 캡처 toast */}
       {captureToast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[300] px-4 py-2.5 bg-slate-900 text-white text-[13px] font-bold rounded-xl shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
@@ -147,6 +152,11 @@ export default function TradeManagerPage() {
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0">
                 <HandHeart size={13} />
                 <span className="whitespace-nowrap">부양 등록</span>
+              </button>
+              <button onClick={() => setSpecialOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0">
+                <Sparkles size={13} />
+                <span className="whitespace-nowrap">특수 등록</span>
               </button>
               <button onClick={handleCapture}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 group shrink-0">

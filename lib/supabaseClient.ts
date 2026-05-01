@@ -118,6 +118,69 @@ export async function deleteTradeItem(itemId: string) {
   return true;
 }
 
+// --- [특수 물교 등록] ---
+
+export type SpecialRow = { id: string; name: string; created_at: string; expires_at: string };
+
+/**
+ * KST 자정(다음 날 00:00) 시각을 UTC ISO 문자열로 반환.
+ */
+export function nextKstMidnightIso(): string {
+  const now = new Date();
+  // 현재 UTC ms
+  const utcMs = now.getTime();
+  // KST = UTC+9
+  const kstMs = utcMs + 9 * 3600 * 1000;
+  const kst = new Date(kstMs);
+  // 다음 날 00:00:00 (KST 기준)
+  kst.setUTCHours(24, 0, 0, 0);
+  // 다시 UTC로 환산
+  const targetUtcMs = kst.getTime() - 9 * 3600 * 1000;
+  return new Date(targetUtcMs).toISOString();
+}
+
+/**
+ * 만료되지 않은 특수 물교 목록을 가져옵니다.
+ */
+export async function getActiveSpecials(): Promise<SpecialRow[]> {
+  const { data, error } = await supabase
+    .from('trade_specials')
+    .select('*')
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: true });
+  if (error) {
+    console.error('Error fetching specials:', error);
+    return [];
+  }
+  return (data ?? []) as SpecialRow[];
+}
+
+/**
+ * 새 특수 물교 품목을 등록합니다. 같은 이름이 이미 active이면 skip(null 반환).
+ */
+export async function addSpecial(name: string): Promise<SpecialRow | null> {
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  const existing = await getActiveSpecials();
+  if (existing.some(s => s.name === trimmed)) return null;
+  const expires_at = nextKstMidnightIso();
+  const { data, error } = await supabase
+    .from('trade_specials')
+    .insert([{ name: trimmed, expires_at }])
+    .select();
+  if (error) throw error;
+  return (data?.[0] as SpecialRow) ?? null;
+}
+
+/**
+ * 특수 물교 등록을 삭제합니다.
+ */
+export async function deleteSpecial(id: string): Promise<boolean> {
+  const { error } = await supabase.from('trade_specials').delete().eq('id', id);
+  if (error) throw error;
+  return true;
+}
+
 /**
  * 특정 품목표에 투표합니다 (Up/Down)
  */

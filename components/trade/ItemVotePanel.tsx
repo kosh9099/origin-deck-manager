@@ -10,6 +10,7 @@ interface Props {
   onAddOptimistic: (item: TradeItem) => void;
   onDeleteItem?: (itemId: string) => void;
   onItemClick?: (itemName: string) => void;
+  specialItems?: Set<string>;
 }
 
 const KRW = new Intl.NumberFormat('ko-KR');
@@ -37,7 +38,7 @@ function getRecChipClass(event: TradeEvent): string {
   return 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100';
 }
 
-export default function ItemVotePanel({ event, onItemClick }: Props) {
+export default function ItemVotePanel({ event, onItemClick, specialItems }: Props) {
   const hasItems = event.items.length > 0;
   const recs = event.seasonRecs ?? [];
 
@@ -46,31 +47,47 @@ export default function ItemVotePanel({ event, onItemClick }: Props) {
   }
 
   const chipClass = getRecChipClass(event);
+  const isSpecial = (name: string) => specialItems?.has(name) ?? false;
 
   return (
     <div className="flex flex-wrap items-center gap-1">
-      {recs.map((rec, idx) => (
-        <button
-          key={`rec-${idx}-${rec.name}`}
-          onClick={() => onItemClick?.(rec.name)}
-          title={`최대 ${KRW.format(rec.high)} · 최소 ${KRW.format(rec.low)}`}
-          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-bold border whitespace-nowrap transition-all active:scale-95 cursor-pointer ${chipClass}`}
-        >
-          <span>{rec.name}</span>
-          <span className="text-[9px] font-medium tabular-nums opacity-80 tracking-tight">
-            {priceRange(rec.high, rec.low)}
-          </span>
-        </button>
-      ))}
-      {event.items.map(item => (
-        <button
-          key={item.id}
-          onClick={() => onItemClick?.(item.name)}
-          className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-semibold border border-slate-200 whitespace-nowrap transition-all hover:bg-slate-200 hover:border-slate-300 active:scale-95 cursor-pointer"
-        >
-          {item.name}
-        </button>
-      ))}
+      {recs.map((rec, idx) => {
+        const sparkle = isSpecial(rec.name);
+        return (
+          <button
+            key={`rec-${idx}-${rec.name}`}
+            onClick={() => onItemClick?.(rec.name)}
+            title={
+              sparkle
+                ? `★ 특수 물교 · 최대 ${KRW.format(rec.high)} · 최소 ${KRW.format(rec.low)}`
+                : `최대 ${KRW.format(rec.high)} · 최소 ${KRW.format(rec.low)}`
+            }
+            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-bold border whitespace-nowrap transition-all active:scale-95 cursor-pointer ${chipClass} ${
+              sparkle ? 'animate-sparkle ring-1 ring-amber-400' : ''
+            }`}
+          >
+            <span>{rec.name}</span>
+            <span className="text-[9px] font-medium tabular-nums opacity-80 tracking-tight">
+              {priceRange(rec.high, rec.low)}
+            </span>
+          </button>
+        );
+      })}
+      {event.items.map(item => {
+        const sparkle = isSpecial(item.name);
+        return (
+          <button
+            key={item.id}
+            onClick={() => onItemClick?.(item.name)}
+            title={sparkle ? '★ 특수 물교' : undefined}
+            className={`inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-semibold border border-slate-200 whitespace-nowrap transition-all hover:bg-slate-200 hover:border-slate-300 active:scale-95 cursor-pointer ${
+              sparkle ? 'animate-sparkle ring-1 ring-amber-400' : ''
+            }`}
+          >
+            {item.name}
+          </button>
+        );
+      })}
     </div>
   );
 }
