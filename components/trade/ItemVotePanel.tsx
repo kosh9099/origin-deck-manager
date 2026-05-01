@@ -53,7 +53,7 @@ export default function ItemVotePanel({ event, onItemClick }: Props) {
         <button
           key={`rec-${idx}-${rec.name}`}
           onClick={() => onItemClick?.(rec.name)}
-          title={`성수기 ${KRW.format(rec.high)} · 비수기 ${KRW.format(rec.low)}`}
+          title={`최대 ${KRW.format(rec.high)} · 최소 ${KRW.format(rec.low)}`}
           className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-bold border whitespace-nowrap transition-all active:scale-95 cursor-pointer ${chipClass}`}
         >
           <span>{rec.name}</span>

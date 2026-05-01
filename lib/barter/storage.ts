@@ -1,9 +1,10 @@
-import type { BarterRate } from '@/types/barter';
+import type { BarterRate, CartCard } from '@/types/barter';
 
 const RATES_KEY = 'barter:rates';
 const FREQ_KEY = 'barter:freq';
 const AS_LEAF_KEY = 'barter:asLeaf';
 const TICKS_KEY = 'barter:ticks';
+const CARDS_KEY = 'barter:cards';
 
 function safeRead<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;
@@ -43,6 +44,14 @@ export function bumpFreq(name: string): void {
   const all = loadFreq();
   all[name] = (all[name] ?? 0) + 1;
   safeWrite(FREQ_KEY, all);
+}
+
+export function loadCards(): CartCard[] {
+  return safeRead<CartCard[]>(CARDS_KEY, []);
+}
+
+export function saveCards(cards: CartCard[]): void {
+  safeWrite(CARDS_KEY, cards);
 }
 
 export function loadTicks(): Record<string, number> {

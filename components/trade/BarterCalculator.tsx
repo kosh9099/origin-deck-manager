@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import type { BarterRecipe, BarterRate, CartCard, CalcResult } from '@/types/barter';
 import { loadRecipes } from '@/lib/barter/recipes';
-import { loadRates, saveRate, bumpFreq, topFreq, loadAsLeaf, saveAsLeaf, loadTicks, saveTicks } from '@/lib/barter/storage';
+import { loadRates, saveRate, bumpFreq, topFreq, loadAsLeaf, saveAsLeaf, loadTicks, saveTicks, loadCards, saveCards } from '@/lib/barter/storage';
 import { calculateCard, mergeLeafTotals } from '@/lib/barter/calculate';
 import BarterSearchBar from './BarterSearchBar';
 import BarterCart from './BarterCart';
@@ -26,6 +26,7 @@ export default function BarterCalculator() {
   const [savedTicks, setSavedTicks] = useState<Record<string, number>>({});
   const [popular, setPopular] = useState<string[]>([]);
   const [overflowWarning, setOverflowWarning] = useState(false);
+  const initRef = useRef(false);
 
   // 초기 로드
   useEffect(() => {
@@ -38,11 +39,22 @@ export default function BarterCalculator() {
     setRates(loadRates());
     setAsLeaf(loadAsLeaf());
     setSavedTicks(loadTicks());
+    setCards(loadCards());
     setPopular(topFreq(6));
     return () => {
       alive = false;
     };
   }, []);
+
+  // cards 변경 시 localStorage 저장 (탭 이동·새로고침 후 복원)
+  // 첫 effect는 cards=[] (initial state)일 때 실행되므로 skip
+  useEffect(() => {
+    if (!initRef.current) {
+      initRef.current = true;
+      return;
+    }
+    saveCards(cards);
+  }, [cards]);
 
   const cardLabels = useMemo(() => {
     const counts: Record<string, number> = {};
