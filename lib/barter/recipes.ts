@@ -2,8 +2,10 @@ import type { BarterRecipe } from '@/types/barter';
 
 const CSV_URL = '/data/barter_materials.csv';
 
-let cache: { recipes: Map<string, BarterRecipe>; intermediates: Set<string> } | null = null;
-let inflight: Promise<typeof cache> | null = null;
+type Loaded = { recipes: Map<string, BarterRecipe>; intermediates: Set<string> };
+
+let cache: Loaded | null = null;
+let inflight: Promise<Loaded> | null = null;
 
 function parseCsv(text: string): Map<string, BarterRecipe> {
   const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
@@ -18,18 +20,19 @@ function parseCsv(text: string): Map<string, BarterRecipe> {
   return map;
 }
 
-export async function loadRecipes(): Promise<{ recipes: Map<string, BarterRecipe>; intermediates: Set<string> }> {
+export async function loadRecipes(): Promise<Loaded> {
   if (cache) return cache;
-  if (inflight) return inflight as Promise<NonNullable<typeof cache>>;
+  if (inflight) return inflight;
   inflight = (async () => {
     const res = await fetch(CSV_URL);
     const text = await res.text();
     const recipes = parseCsv(text);
     const intermediates = new Set(recipes.keys());
-    cache = { recipes, intermediates };
-    return cache;
+    const loaded: Loaded = { recipes, intermediates };
+    cache = loaded;
+    return loaded;
   })();
-  return inflight as Promise<NonNullable<typeof cache>>;
+  return inflight;
 }
 
 export function isIntermediate(name: string, intermediates: Set<string>): boolean {
