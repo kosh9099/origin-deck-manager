@@ -201,7 +201,7 @@ export default function BarterCart({
                   <span className="text-slate-500">교환</span>
                   <NumInput
                     value={card.ticks}
-                    max={10}
+                    max={20}
                     onChange={n => onTicksChange(card.id, n)}
                     className="w-12"
                   />
