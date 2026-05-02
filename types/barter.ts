@@ -13,6 +13,8 @@ export type CartCard = {
   id: string;
   name: string;
   ticks: number;
+  /** 카드별 1회 교환 비율. 같은 품목이라도 카드마다 다른 비율을 가질 수 있음. */
+  rates?: Record<string, BarterRate>;
 };
 
 export type CalcNode = {

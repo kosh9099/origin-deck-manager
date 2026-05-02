@@ -14,7 +14,7 @@ interface Props {
   cardLabels: string[];
   onTicksChange: (id: string, ticks: number) => void;
   onRemove: (id: string) => void;
-  onRateChange: (name: string, rate: BarterRate) => void;
+  onRateChange: (cardId: string, name: string, rate: BarterRate) => void;
   onToggleAsLeaf: (name: string) => void;
 }
 
@@ -141,24 +141,37 @@ export default function BarterCart({
     );
   }
 
-  const updateMatQty = (parentName: string, matName: string, qty: number) => {
-    const cur = rates[parentName] ?? { outputQty: 0, materialQty: {} };
-    onRateChange(parentName, {
+  const updateMatQty = (
+    cardId: string,
+    cardRates: Record<string, BarterRate>,
+    parentName: string,
+    matName: string,
+    qty: number
+  ) => {
+    const cur = cardRates[parentName] ?? { outputQty: 0, materialQty: {} };
+    onRateChange(cardId, parentName, {
       ...cur,
       materialQty: { ...cur.materialQty, [matName]: qty },
     });
   };
 
-  const updateOutQty = (name: string, qty: number) => {
-    const cur = rates[name] ?? { outputQty: 0, materialQty: {} };
-    onRateChange(name, { ...cur, outputQty: qty });
+  const updateOutQty = (
+    cardId: string,
+    cardRates: Record<string, BarterRate>,
+    name: string,
+    qty: number
+  ) => {
+    const cur = cardRates[name] ?? { outputQty: 0, materialQty: {} };
+    onRateChange(cardId, name, { ...cur, outputQty: qty });
   };
 
   return (
     <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       {cards.map((card, idx) => {
         const result = results[idx];
-        const cardRate = rates[card.name];
+        // 카드별 rates 우선. 없으면 글로벌 rates fallback (이전 카드 호환).
+        const cardRates = card.rates ?? rates;
+        const cardRate = cardRates[card.name];
         const label = cardLabels[idx];
         const totalOutput = (cardRate?.outputQty ?? 0) * card.ticks;
         const rows: FlatRow[] = [];
@@ -198,7 +211,7 @@ export default function BarterCart({
                   <span className="text-slate-500">1회 산출</span>
                   <NumInput
                     value={cardRate?.outputQty ?? 0}
-                    onChange={n => updateOutQty(card.name, n)}
+                    onChange={n => updateOutQty(card.id, cardRates, card.name, n)}
                     className="w-20"
                   />
                 </label>
@@ -232,8 +245,8 @@ export default function BarterCart({
                   style={{ gridTemplateColumns: GRID_TEMPLATE }}
                 >
                   {rows.map((row, i) => {
-                    const matQty = rates[row.parentName]?.materialQty[row.name] ?? 0;
-                    const ownRate = rates[row.name];
+                    const matQty = cardRates[row.parentName]?.materialQty[row.name] ?? 0;
+                    const ownRate = cardRates[row.name];
                     const isMissingChild = !row.isLeaf && row.rateMissing;
                     const indentPx = row.depth * 8;
                     return (
@@ -265,7 +278,7 @@ export default function BarterCart({
                             >
                               <NumInput
                                 value={ownRate?.outputQty ?? 0}
-                                onChange={n => updateOutQty(row.name, n)}
+                                onChange={n => updateOutQty(card.id, cardRates, row.name, n)}
                                 className="w-11 !border-emerald-300 !bg-emerald-50 !text-emerald-800 !px-1"
                               />
                             </span>
@@ -273,7 +286,7 @@ export default function BarterCart({
                         </div>
                         <NumInput
                           value={matQty}
-                          onChange={n => updateMatQty(row.parentName, row.name, n)}
+                          onChange={n => updateMatQty(card.id, cardRates, row.parentName, row.name, n)}
                           className="w-12"
                         />
                         <span

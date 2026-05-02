@@ -69,7 +69,11 @@ export default function BarterCalculator() {
 
   const results: CalcResult[] = useMemo(() => {
     if (!recipes || !intermediates) return [];
-    return cards.map(card => calculateCard(card, recipes, rates, intermediates, asLeaf));
+    return cards.map(card => {
+      // 카드별 rates 우선 사용. 없으면 글로벌 rates fallback (이전 버전 호환).
+      const cardRates = card.rates ?? rates;
+      return calculateCard(card, recipes, cardRates, intermediates, asLeaf);
+    });
   }, [cards, recipes, rates, intermediates, asLeaf]);
 
   const merged = useMemo(() => mergeLeafTotals(results), [results]);
@@ -78,7 +82,9 @@ export default function BarterCalculator() {
   const handleAdd = (name: string) => {
     if (cards.length >= SOFT_LIMIT) setOverflowWarning(true);
     const initialTicks = savedTicks[name] ?? 0;
-    setCards(prev => [...prev, { id: newId(), name, ticks: initialTicks }]);
+    // 새 카드는 현재 글로벌 rates를 복사해서 자기 만의 rates를 가짐 (이후 카드별 독립 편집)
+    const initialRates: Record<string, BarterRate> = JSON.parse(JSON.stringify(rates));
+    setCards(prev => [...prev, { id: newId(), name, ticks: initialTicks, rates: initialRates }]);
     bumpFreq(name);
     setPopular(topFreq(6));
   };
@@ -97,7 +103,16 @@ export default function BarterCalculator() {
     if (cards.length - 1 < SOFT_LIMIT) setOverflowWarning(false);
   };
 
-  const handleRateChange = (name: string, rate: BarterRate) => {
+  const handleRateChange = (cardId: string, name: string, rate: BarterRate) => {
+    // 해당 카드의 rates만 업데이트 (다른 카드는 영향 없음)
+    setCards(prev =>
+      prev.map(c => {
+        if (c.id !== cardId) return c;
+        const cur = c.rates ?? {};
+        return { ...c, rates: { ...cur, [name]: rate } };
+      })
+    );
+    // 글로벌 default도 갱신 (다음에 새 카드 추가 시 시작값으로 사용)
     setRates(prev => ({ ...prev, [name]: rate }));
     saveRate(name, rate);
   };
