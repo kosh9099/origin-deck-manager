@@ -27,10 +27,14 @@ const IDX_BOOST_HIGH = 4;    // 부양↑
 const TOP_N_BOOST = 2;     // 부양: 최상위 2개 (급매는 itemsByName 경로에서 1개 직접 반환)
 const TOP_N_EPIDEMIC = 2;  // 대유행: 최상위 2개
 
-// 카테고리/이름 룩업 인덱스
+// 추천에서 제외할 품목 (단가표 추천 로직에서 자동 제외)
+const EXCLUDED_ITEMS = new Set<string>(['거울']);
+
+// 카테고리/이름 룩업 인덱스 (제외 품목은 후보에 포함하지 않음)
 const itemsByCategory = new Map<string, ItemMeta[]>();
 const itemsByName = new Map<string, ItemMeta>();
 for (const item of data.items) {
+  if (EXCLUDED_ITEMS.has(item.name)) continue;
   const list = itemsByCategory.get(item.category) ?? [];
   list.push(item);
   itemsByCategory.set(item.category, list);
