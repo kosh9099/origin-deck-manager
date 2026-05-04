@@ -9,6 +9,8 @@ import { calculateCard, mergeLeafTotals } from '@/lib/barter/calculate';
 import BarterSearchBar from './BarterSearchBar';
 import BarterCart from './BarterCart';
 import BarterShoppingList from './BarterShoppingList';
+import BarterDetailModal, { BARTER_CARDS_UPDATED_EVENT } from './BarterDetailModal';
+import { getInGameTimeInfo } from '@/lib/trade/time';
 
 const CIRCLED = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
 const SOFT_LIMIT = 4;
@@ -26,7 +28,10 @@ export default function BarterCalculator() {
   const [savedTicks, setSavedTicks] = useState<Record<string, number>>({});
   const [popular, setPopular] = useState<string[]>([]);
   const [overflowWarning, setOverflowWarning] = useState(false);
+  const [detailItem, setDetailItem] = useState<string | null>(null);
   const initRef = useRef(false);
+
+  const inGameMonth = useMemo(() => getInGameTimeInfo(Date.now()).month, []);
 
   // 초기 로드
   useEffect(() => {
@@ -55,6 +60,16 @@ export default function BarterCalculator() {
     }
     saveCards(cards);
   }, [cards]);
+
+  // 외부(스케줄 모달 등)에서 장바구니에 추가했을 때 동기화
+  useEffect(() => {
+    const handler = () => {
+      setCards(loadCards());
+      setPopular(topFreq(6));
+    };
+    window.addEventListener(BARTER_CARDS_UPDATED_EVENT, handler);
+    return () => window.removeEventListener(BARTER_CARDS_UPDATED_EVENT, handler);
+  }, []);
 
   const cardLabels = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -161,9 +176,18 @@ export default function BarterCalculator() {
         onRemove={handleRemove}
         onRateChange={handleRateChange}
         onToggleAsLeaf={handleToggleAsLeaf}
+        onItemClick={setDetailItem}
       />
 
       <BarterShoppingList totals={merged} hasMissingRate={hasMissingRate} />
+
+      {detailItem && (
+        <BarterDetailModal
+          itemName={detailItem}
+          month={inGameMonth}
+          onClose={() => setDetailItem(null)}
+        />
+      )}
     </div>
   );
 }

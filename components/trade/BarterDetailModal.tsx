@@ -2,6 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { loadCards, saveCards, loadRates, loadTicks, bumpFreq } from '@/lib/barter/storage';
+import type { CartCard } from '@/types/barter';
+
+export const BARTER_CARDS_UPDATED_EVENT = 'barter:cardsUpdated';
 
 // BarterNode 타입만 정의 (로직은 서버 API에서 실행)
 interface BarterNode {
@@ -66,6 +70,26 @@ export default function BarterDetailModal({ itemName, month, onClose }: Props) {
     const [tree, setTree] = useState<BarterNode | null>(null);
     const [loading, setLoading] = useState(true);
     const [mounted, setMounted] = useState(false);
+    const [added, setAdded] = useState(false);
+
+    const canAddToCart = !!tree && (tree.type === 'barter' || tree.type === 'hybrid');
+
+    const handleAddToCart = () => {
+        const cards = loadCards();
+        const ticks = loadTicks()[itemName] ?? 0;
+        const rates = JSON.parse(JSON.stringify(loadRates()));
+        const newCard: CartCard = {
+            id: Math.random().toString(36).slice(2, 10),
+            name: itemName,
+            ticks,
+            rates,
+        };
+        saveCards([...cards, newCard]);
+        bumpFreq(itemName);
+        window.dispatchEvent(new CustomEvent(BARTER_CARDS_UPDATED_EVENT));
+        setAdded(true);
+        setTimeout(() => setAdded(false), 1500);
+    };
 
     useEffect(() => {
         setMounted(true);
@@ -117,7 +141,20 @@ export default function BarterDetailModal({ itemName, month, onClose }: Props) {
                     </div>
                 </div>
 
-                <div className="p-3 bg-slate-50 border-t border-slate-100 flex justify-center shrink-0">
+                <div className="p-3 bg-slate-50 border-t border-slate-100 flex justify-center gap-2 shrink-0">
+                    {canAddToCart && (
+                        <button
+                            onClick={handleAddToCart}
+                            disabled={added}
+                            className={`px-6 py-2 rounded-xl font-bold transition-all shadow-lg ${
+                                added
+                                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
+                                    : 'bg-emerald-600 text-white hover:bg-emerald-500'
+                            }`}
+                        >
+                            {added ? '✓ 담겼습니다' : '🛒 장바구니 담기'}
+                        </button>
+                    )}
                     <button onClick={onClose} className="px-10 py-2 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition-all shadow-lg">
                         확인
                     </button>

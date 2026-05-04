@@ -16,6 +16,7 @@ interface Props {
   onRemove: (id: string) => void;
   onRateChange: (cardId: string, name: string, rate: BarterRate) => void;
   onToggleAsLeaf: (name: string) => void;
+  onItemClick: (name: string) => void;
 }
 
 type FlatRow = {
@@ -132,6 +133,7 @@ export default function BarterCart({
   onRemove,
   onRateChange,
   onToggleAsLeaf,
+  onItemClick,
 }: Props) {
   if (cards.length === 0) {
     return (
@@ -185,9 +187,14 @@ export default function BarterCart({
             {/* 카드 헤더 */}
             <div className="px-4 py-3 border-b border-slate-200 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
               <div className="flex items-start gap-2">
-                <h4 className="flex-1 min-w-0 font-black text-slate-800 text-base truncate" title={label}>
+                <button
+                  type="button"
+                  onClick={() => onItemClick(card.name)}
+                  className="flex-1 min-w-0 font-black text-slate-800 text-base truncate text-left hover:text-emerald-600 hover:underline transition-colors"
+                  title={`${label} — 판매 항구 보기`}
+                >
                   {label}
-                </h4>
+                </button>
                 <button
                   onClick={() => onRemove(card.id)}
                   className="p-1.5 -m-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors shrink-0"
@@ -263,14 +270,16 @@ export default function BarterCart({
                             toggleable={recipes.has(row.name)}
                             onToggle={() => onToggleAsLeaf(row.name)}
                           />
-                          <span
-                            className={`font-bold text-[13px] truncate ${
-                              row.isLeaf ? 'text-amber-900' : 'text-emerald-900'
+                          <button
+                            type="button"
+                            onClick={() => onItemClick(row.name)}
+                            className={`font-bold text-[13px] truncate text-left hover:underline transition-colors ${
+                              row.isLeaf ? 'text-amber-900 hover:text-amber-600' : 'text-emerald-900 hover:text-emerald-600'
                             }`}
-                            title={row.name}
+                            title={`${row.name} — 판매 항구 보기`}
                           >
                             {row.name}
-                          </span>
+                          </button>
                           {!row.isLeaf && (
                             <span
                               className="inline-flex items-center shrink-0"
