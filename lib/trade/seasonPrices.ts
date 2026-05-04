@@ -57,7 +57,7 @@ function topN(recs: SeasonRecommendation[], n: number): SeasonRecommendation[] {
   const sorted = recs.sort((a, b) => b.high - a.high).slice(0, n);
   if (sorted.length >= 2 && sorted[0].high > 0) {
     const ratio = sorted[1].high / sorted[0].high;
-    if (ratio < 0.9) return [sorted[0]];
+    if (ratio < 0.8) return [sorted[0]];
   }
   return sorted;
 }
