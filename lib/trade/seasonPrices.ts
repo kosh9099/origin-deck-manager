@@ -30,6 +30,18 @@ const TOP_N_EPIDEMIC = 2;  // 대유행: 최상위 2개
 // 추천에서 제외할 품목 (단가표 추천 로직에서 자동 제외)
 const EXCLUDED_ITEMS = new Set<string>(['거울', '오크통', '개량된 청어 운반통', '대형철판']);
 
+// 특수 물교 품목 (랜덤 출현 — 특수 등록되지 않으면 비활성 표시)
+export const SPECIAL_BARTER_ITEMS = new Set<string>([
+  '독수리 깃털',
+  '홍삼',
+  '쿨릭',
+  '리하쿠루',
+  '수정세공',
+  '에뮤',
+  '일렉트럼',
+  '패각 세공품',
+]);
+
 // 카테고리/이름 룩업 인덱스 (제외 품목은 후보에 포함하지 않음)
 const itemsByCategory = new Map<string, ItemMeta[]>();
 const itemsByName = new Map<string, ItemMeta>();
@@ -54,12 +66,20 @@ function buildRec(city: string, itemName: string, lowIdx: number, highIdx: numbe
 }
 
 function topN(recs: SeasonRecommendation[], n: number): SeasonRecommendation[] {
-  const sorted = recs.sort((a, b) => b.high - a.high).slice(0, n);
-  if (sorted.length >= 2 && sorted[0].high > 0) {
-    const ratio = sorted[1].high / sorted[0].high;
-    if (ratio < 0.8) return [sorted[0]];
+  const sorted = [...recs].sort((a, b) => b.high - a.high);
+  const nonSpecials = sorted.filter(r => !SPECIAL_BARTER_ITEMS.has(r.name));
+  // 비-특수 상위 N개 (20% 게이트는 비-특수 간에만 적용)
+  let kept = nonSpecials.slice(0, n);
+  if (kept.length >= 2 && kept[0].high > 0) {
+    const ratio = kept[1].high / kept[0].high;
+    if (ratio < 0.7) kept = [kept[0]];
   }
-  return sorted;
+  // 특수 품목: 유지된 비-특수 최저가 이상이면 함께 노출 (가격순으로 자연스럽게 끼움)
+  const minKept = kept.length > 0 ? kept[kept.length - 1].high : 0;
+  const specials = sorted.filter(
+    r => SPECIAL_BARTER_ITEMS.has(r.name) && r.high >= minKept
+  );
+  return [...kept, ...specials].sort((a, b) => b.high - a.high);
 }
 
 /**

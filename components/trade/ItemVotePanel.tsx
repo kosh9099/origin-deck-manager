@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TradeEvent, TradeItem } from '@/types/trade';
 import { getBoostType } from '@/constants/tradeData';
+import { SPECIAL_BARTER_ITEMS } from '@/lib/trade/seasonPrices';
 
 interface Props {
   event: TradeEvent;
@@ -47,24 +48,37 @@ export default function ItemVotePanel({ event, onItemClick, specialItems }: Prop
   }
 
   const chipClass = getRecChipClass(event);
-  const isSpecial = (name: string) => specialItems?.has(name) ?? false;
+  const isRegisteredSpecial = (name: string) => specialItems?.has(name) ?? false;
+  const isInactiveSpecial = (name: string) =>
+    SPECIAL_BARTER_ITEMS.has(name) && !isRegisteredSpecial(name);
+
+  // 비활성 특수 물교는 뒤로 보냄 (활성 추천을 시각적으로 1순위로 끌어올림)
+  const orderedRecs = useMemo(() => {
+    const actives = recs.filter(r => !isInactiveSpecial(r.name));
+    const inactives = recs.filter(r => isInactiveSpecial(r.name));
+    return [...actives, ...inactives];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recs, specialItems]);
 
   return (
     <div className="flex flex-wrap items-center gap-1">
-      {recs.map((rec, idx) => {
-        const sparkle = isSpecial(rec.name);
+      {orderedRecs.map((rec, idx) => {
+        const sparkle = isRegisteredSpecial(rec.name);
+        const inactive = isInactiveSpecial(rec.name);
         return (
           <button
             key={`rec-${idx}-${rec.name}`}
             onClick={() => onItemClick?.(rec.name)}
             title={
-              sparkle
+              inactive
+                ? `특수 물교 (미등록) · 최대 ${KRW.format(rec.high)} · 최소 ${KRW.format(rec.low)}`
+                : sparkle
                 ? `★ 특수 물교 · 최대 ${KRW.format(rec.high)} · 최소 ${KRW.format(rec.low)}`
                 : `최대 ${KRW.format(rec.high)} · 최소 ${KRW.format(rec.low)}`
             }
             className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-bold border whitespace-nowrap transition-all active:scale-95 cursor-pointer ${chipClass} ${
               sparkle ? 'animate-sparkle ring-1 ring-amber-400' : ''
-            }`}
+            } ${inactive ? 'opacity-40 grayscale' : ''}`}
           >
             <span>{rec.name}</span>
             <span className="text-[9px] font-medium tabular-nums opacity-80 tracking-tight">
