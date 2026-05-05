@@ -88,7 +88,7 @@ export default function ItemVotePanel({ event, onItemClick, specialItems }: Prop
         );
       })}
       {event.items.map(item => {
-        const sparkle = isSpecial(item.name);
+        const sparkle = isRegisteredSpecial(item.name);
         return (
           <button
             key={item.id}
