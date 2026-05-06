@@ -40,6 +40,7 @@ export const SPECIAL_BARTER_ITEMS = new Set<string>([
   '에뮤',
   '일렉트럼',
   '패각 세공품',
+  '유목',
 ]);
 
 // 카테고리/이름 룩업 인덱스 (제외 품목은 후보에 포함하지 않음)
