@@ -25,3 +25,4 @@ export function onSpecialChanged(handler: () => void): () => void {
   window.addEventListener(SPECIAL_CHANGED_EVENT, handler);
   return () => window.removeEventListener(SPECIAL_CHANGED_EVENT, handler);
 }
+

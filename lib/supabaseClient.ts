@@ -181,6 +181,70 @@ export async function deleteSpecial(id: string): Promise<boolean> {
   return true;
 }
 
+// --- [주요 물교 주간 기록 (부양/급매 등록 데이터 기반 자동 집계)] ---
+
+export type TrackedItemDef = { event_type: '부양' | '급매'; category: string; items: string[] };
+
+export const TRACKED_ITEMS: TrackedItemDef[] = [
+  { event_type: '부양', category: '잡화', items: ['파이프'] },
+  { event_type: '부양', category: '무기류', items: ['야쿠트 칼'] },
+  { event_type: '부양', category: '공업품', items: ['카우리'] },
+  { event_type: '부양', category: '가축', items: ['기니피그'] },
+  { event_type: '부양', category: '직물', items: ['비쿠냐 직물', '독수리깃털'] },
+  { event_type: '부양', category: '의약품', items: ['홍삼'] },
+  { event_type: '급매', category: '금괴', items: ['금괴'] },
+  { event_type: '급매', category: '은괴', items: ['은괴'] },
+];
+
+const TRACKED_BOOST_CATEGORIES = new Set(
+  TRACKED_ITEMS.filter(t => t.event_type === '부양').map(t => t.category)
+);
+const TRACKED_FLASH_ITEMS = new Set(
+  TRACKED_ITEMS.filter(t => t.event_type === '급매').map(t => t.category)
+);
+
+function currentWeekMondayKstIso(): string {
+  const now = new Date();
+  const kstMs = now.getTime() + 9 * 3600 * 1000;
+  const kst = new Date(kstMs);
+  const day = kst.getUTCDay();
+  const diff = day === 0 ? 6 : day - 1;
+  kst.setUTCDate(kst.getUTCDate() - diff);
+  kst.setUTCHours(0, 0, 0, 0);
+  const utcMs = kst.getTime() - 9 * 3600 * 1000;
+  return new Date(utcMs).toISOString();
+}
+
+export type WeeklySighting = { category: string; city: string; event_type: '부양' | '급매' };
+
+export async function getWeeklySightings(): Promise<WeeklySighting[]> {
+  const weekStart = currentWeekMondayKstIso();
+  const { data, error } = await supabase
+    .from('trade_boosts')
+    .select('city, type, start_time')
+    .gte('start_time', weekStart)
+    .order('start_time', { ascending: true });
+  if (error) {
+    console.error('Error fetching weekly boosts:', error);
+    return [];
+  }
+  const seen = new Set<string>();
+  const results: WeeklySighting[] = [];
+  for (const row of data ?? []) {
+    const cat = row.type as string;
+    const city = row.city as string;
+    const key = `${cat}|${city}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (TRACKED_BOOST_CATEGORIES.has(cat)) {
+      results.push({ category: cat, city, event_type: '부양' });
+    } else if (TRACKED_FLASH_ITEMS.has(cat)) {
+      results.push({ category: cat, city, event_type: '급매' });
+    }
+  }
+  return results;
+}
+
 /**
  * 특정 품목표에 투표합니다 (Up/Down)
  */

@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Home, Menu, X, Anchor, Download, RefreshCw, HandHeart, Calculator, Sparkles } from 'lucide-react';
+import { Home, Menu, X, Anchor, Download, RefreshCw, HandHeart, Calculator, Sparkles, MapPin } from 'lucide-react';
 import TradeDashboard from '@/components/trade/TradeDashboard';
 import BoostForm from '@/components/trade/BoostForm';
 import BarterCalculator from '@/components/trade/BarterCalculator';
 import SpecialForm from '@/components/trade/SpecialForm';
+import WeeklyItemsForm from '@/components/trade/WeeklyItemsForm';
 import { captureAndDownload } from '@/lib/utils/capture';
 
 type TradeViewType = 'dashboard' | 'boosts' | 'barter';
@@ -17,6 +18,7 @@ export default function TradeManagerPage() {
   const [captureMode, setCaptureMode] = useState(false);
   const [captureToast, setCaptureToast] = useState<string | null>(null);
   const [specialOpen, setSpecialOpen] = useState(false);
+  const [weeklyOpen, setWeeklyOpen] = useState(false);
 
   const handleTabChange = (tab: TradeViewType) => {
     setActiveTab(tab);
@@ -120,6 +122,8 @@ export default function TradeManagerPage() {
 
       {/* 특수 등록 모달 */}
       <SpecialForm open={specialOpen} onClose={() => setSpecialOpen(false)} />
+      {/* 주간 기록 모달 */}
+      <WeeklyItemsForm open={weeklyOpen} onClose={() => setWeeklyOpen(false)} />
 
       {/* 캡처 toast */}
       {captureToast && (
@@ -152,6 +156,11 @@ export default function TradeManagerPage() {
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0">
                 <HandHeart size={13} />
                 <span className="whitespace-nowrap">부양 등록</span>
+              </button>
+              <button onClick={() => setWeeklyOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0">
+                <MapPin size={13} />
+                <span className="whitespace-nowrap">주간 기록</span>
               </button>
               <button onClick={() => setSpecialOpen(true)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0">
