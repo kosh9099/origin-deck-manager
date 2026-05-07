@@ -75,7 +75,7 @@ function topN(recs: SeasonRecommendation[], n: number, strict = false): SeasonRe
   const kept: SeasonRecommendation[] = [];
   for (let i = 0; i < candidates.length; i++) {
     if (i > 0 && kept[0].high > 0) {
-      const dropRate = 1 - candidates[i].high / kept[i - 1].high;
+      const dropRate = 1 - candidates[i].high / kept[0].high;
       if (dropRate >= 0.3) break;
     }
     kept.push(candidates[i]);
