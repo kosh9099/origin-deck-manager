@@ -68,7 +68,7 @@ function buildRec(city: string, itemName: string, lowIdx: number, highIdx: numbe
 
 function topN(recs: SeasonRecommendation[], n: number): SeasonRecommendation[] {
   const sorted = [...recs].sort((a, b) => b.high - a.high);
-  const nonSpecials = sorted.filter(r => !SPECIAL_BARTER_ITEMS.has(r.name));
+  const nonSpecials = sorted.filter(r => !SPECIAL_BARTER_ITEMS.has(r.name) && r.high >= 200000);
   const candidates = nonSpecials.slice(0, n);
   const kept: SeasonRecommendation[] = [];
   for (let i = 0; i < candidates.length; i++) {
