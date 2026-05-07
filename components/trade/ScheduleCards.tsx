@@ -89,11 +89,13 @@ export default function ScheduleCards({
         const cityName = isBoost ? (event.city || event.zone || '항구 미상') : event.zone;
         const hasCombo = hasCityCombination(cityName);
         const isActive = isCurrentlyActive(event);
+        const isAfter12Hours = event.isBoost && event.startTime > now + 12 * 60 * 60 * 1000;
 
         return (
           <div
             key={event.id}
             className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden relative"
+            style={isAfter12Hours ? { opacity: 0.45 } : undefined}
           >
             <div className={`absolute left-0 top-0 bottom-0 w-1 ${indicatorCls}`} />
 

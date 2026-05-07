@@ -116,7 +116,7 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
 
             // 💡 수정된 부분: 현재 시간(now) 기준 12시간 이후인지 판별
             const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
-            const isAfter12Hours = event.startTime > now + TWELVE_HOURS_MS;
+            const isAfter12Hours = event.isBoost && event.startTime > now + TWELVE_HOURS_MS;
 
             return (
               <tr
