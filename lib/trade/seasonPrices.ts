@@ -24,7 +24,7 @@ const IDX_PANDEMIC_HIGH = 2; // 대유행↑
 const IDX_BOOST_LOW = 3;     // 부양↓
 const IDX_BOOST_HIGH = 4;    // 부양↑
 
-const TOP_N_BOOST = 6;     // 부양: 최상위 6개 (급매는 itemsByName 경로에서 1개 직접 반환)
+const TOP_N_BOOST = 3;     // 부양: 최상위 3개 (급매는 itemsByName 경로에서 1개 직접 반환)
 const TOP_N_EPIDEMIC = 6;  // 대유행: 최상위 6개
 
 // 추천에서 제외할 품목 (단가표 추천 로직에서 자동 제외)
