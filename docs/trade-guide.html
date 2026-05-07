@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>교역 스케줄 사용 가이드</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Noto Sans KR',sans-serif;background:#ddd8cf;display:flex;justify-content:center;padding:40px 16px;}
+  @media print{body{background:#fff;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+
+  .poster{width:560px;background:#f0ece4;border-radius:20px;box-shadow:0 8px 40px rgba(0,0,0,0.18);overflow:hidden;}
+  .poster-header{background:linear-gradient(135deg,#1a3a2a,#234a36);padding:18px 24px 14px;text-align:center;}
+  .poster-header h1{font-size:18px;font-weight:900;background:linear-gradient(to right,#6ee7b7,#5eead4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .poster-header p{font-size:9px;color:#94a3b8;font-weight:600;margin-top:3px;letter-spacing:1.5px;text-transform:uppercase;}
+  .poster-body{padding:14px 16px 16px;}
+  .footer{text-align:center;padding:8px;font-size:8px;color:#a8a199;font-weight:600;}
+
+  /* 섹션 헤딩 */
+  .sec{font-size:11px;font-weight:900;color:#1a3a2a;margin:0 0 8px;display:flex;align-items:center;gap:6px;}
+  .sec::after{content:'';flex:1;height:1px;background:#c5bfb4;}
+
+  /* 흰색 패널 (실제 앱의 bg-white rounded-2xl) */
+  .panel{background:#fff;border-radius:16px;border:1px solid #e0dbd2;box-shadow:0 1px 6px rgba(0,0,0,0.04);margin-bottom:12px;overflow:hidden;}
+
+  /* ====== 상단 액션 버튼 바 (bg-[#f0ece4] 위) ====== */
+  .action-area{background:#f0ece4;padding:8px 10px;display:flex;justify-content:flex-end;gap:6px;border-radius:16px;border:1px solid #e0dbd2;margin-bottom:12px;box-shadow:0 1px 6px rgba(0,0,0,0.04);}
+  .ab{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.12);}
+  .ab-g{background:#059669;} .ab-t{background:#0d9488;} .ab-a{background:#eab308;} .ab-i{background:#4f46e5;}
+
+  /* ====== 스케줄 헤더 (bg-emerald-600 rounded-xl) ====== */
+  .sch{background:#059669;border-radius:12px;border:1px solid #047857;padding:8px 12px;margin:12px 12px 0;box-shadow:0 1px 4px rgba(0,0,0,0.08);}
+  .sch-top{display:flex;align-items:center;justify-content:space-between;}
+  .sch-left{display:flex;align-items:center;gap:5px;}
+  .sch-title{font-size:13px;font-weight:900;color:#fff;}
+  .sch-badge{font-size:9px;font-weight:900;background:#fff;color:#059669;padding:2px 6px;border-radius:6px;border:1px solid #a7f3d0;}
+  .sch-btn{font-size:10px;font-weight:900;color:#fff;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);border-radius:7px;padding:3px 8px;}
+  .sch-sub{font-size:9px;color:#a7f3d0;font-weight:600;margin-top:3px;}
+
+  /* ====== 필터 바 ====== */
+  .fbar{display:flex;align-items:center;gap:5px;padding:8px 12px;flex-wrap:wrap;}
+  .fi{font-size:10px;color:#94a3b8;display:flex;align-items:center;}
+  .fp{font-size:10px;font-weight:900;padding:2px 8px;border-radius:14px;color:#fff;border:1px solid;}
+  .fp-v{background:#8b5cf6;border-color:#7c3aed;} .fp-o{background:#f97316;border-color:#ea580c;}
+  .fp-g{background:#10b981;border-color:#059669;} .fp-y{background:#f59e0b;border-color:#d97706;}
+
+  /* ====== 스케줄 카드 ====== */
+  .cards{padding:6px 12px 12px;}
+  .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:9px 10px 7px;margin-bottom:5px;position:relative;overflow:visible;}
+  .card-ind{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;}
+  .ci-g{background:#10b981;} .ci-v{background:#8b5cf6;} .ci-o{background:#f97316;}
+  .card-top{display:flex;align-items:center;gap:7px;padding-left:5px;margin-bottom:4px;}
+  .c-star{font-size:15px;line-height:1;}
+  .c-star-on{color:#fbbf24;} .c-star-off{color:#d1d5db;}
+  .c-time{display:flex;flex-direction:column;flex-shrink:0;}
+  .c-date{font-size:7px;color:#94a3b8;font-weight:600;}
+  .c-hour{font-size:12px;font-weight:900;color:#1e293b;}
+  .c-city{font-size:11px;font-weight:700;color:#1e293b;flex:1;}
+  .c-city-link{color:#4f46e5;text-decoration:underline;text-underline-offset:2px;}
+  .c-badge{font-size:8px;font-weight:700;padding:2px 6px;border-radius:5px;border:1px solid;white-space:nowrap;flex-shrink:0;}
+  .cb-fest{background:#dcfce7;color:#166534;border-color:#86efac;}
+  .cb-sup{background:#f3e8ff;color:#6b21a8;border-color:#d8b4fe;}
+  .cb-flash{background:#fff7ed;color:#9a3412;border-color:#fdba74;}
+  .card-items{display:flex;flex-wrap:wrap;gap:3px;padding-left:28px;}
+  .chip{font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;border:1px solid;display:inline-flex;align-items:center;gap:2px;}
+  .chip-sky{background:#f0f9ff;color:#0c4a6e;border-color:#7dd3fc;}
+  .chip-grn{background:#f0fdf4;color:#166534;border-color:#86efac;}
+  .chip-price{font-size:8px;color:#64748b;}
+
+  /* ====================================================
+     주석 시스템 — 빨간 원 + 점선
+     ==================================================== */
+  /* 주석을 달 영역 */
+  .anno-wrap{position:relative;}
+
+  /* 번호 원 (인라인용, 요소 옆에 배치) */
+  .tag{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:18px;height:18px;border-radius:50%;
+    background:#ef4444;color:#fff;font-size:9px;font-weight:900;
+    box-shadow:0 1px 4px rgba(239,68,68,0.45);
+    flex-shrink:0;vertical-align:middle;
+    margin:0 2px;
+  }
+
+  /* ====== 설명 박스 ====== */
+  .info{background:#fafaf8;border:1px solid #e0dbd2;border-radius:12px;padding:12px 14px;margin-bottom:12px;}
+  .info-head{font-size:11px;font-weight:900;color:#1a3a2a;margin-bottom:8px;padding-bottom:6px;border-bottom:1.5px solid #d1fae5;display:flex;align-items:center;gap:5px;}
+  .info-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;}
+  .info-row:last-child{margin-bottom:0;}
+  .info-n{
+    width:18px;height:18px;border-radius:50%;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    background:#ef4444;color:#fff;font-size:9px;font-weight:900;
+    margin-top:1px;
+  }
+  .info-txt{flex:1;font-size:10px;line-height:1.6;color:#475569;}
+  .info-txt strong{font-weight:900;color:#1e293b;font-size:10.5px;}
+
+  /* 범례 컬러 블록 */
+  .clr{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:middle;margin:0 2px;}
+
+  /* ====== 팁 ====== */
+  .tips{background:#1a3a2a;border-radius:12px;padding:12px 14px;}
+  .tips-h{font-size:10px;font-weight:900;color:#6ee7b7;margin-bottom:5px;}
+  .tips-body{font-size:9.5px;color:#cbd5e1;line-height:1.8;font-weight:500;}
+  .tips-body b{color:#6ee7b7;font-weight:700;}
+</style>
+</head>
+<body>
+
+<div class="poster">
+
+<div class="poster-header">
+  <h1>⚓ 교역 스케줄 사용 가이드</h1>
+  <p>Origin Deck Manager</p>
+</div>
+
+<div class="poster-body">
+
+<!-- ─────────────────────────────────────── -->
+<!-- STEP 1: 상단 액션 버튼 -->
+<!-- ─────────────────────────────────────── -->
+<div class="sec">상단 버튼</div>
+
+<!-- 실제 앱: #f0ece4 배경 위 우측 정렬 버튼 4개 -->
+<div class="action-area">
+  <span class="ab ab-g"><span class="tag">1</span> ✋ 부양 등록</span>
+  <span class="ab ab-t"><span class="tag">2</span> 📍 주간 기록</span>
+  <span class="ab ab-a"><span class="tag">3</span> ✦ 특수 등록</span>
+  <span class="ab ab-i"><span class="tag">4</span> 📥 캡처</span>
+</div>
+
+<div class="info">
+  <div class="info-head">📌 버튼 설명</div>
+  <div class="info-row"><span class="info-n">1</span><div class="info-txt"><strong>부양 등록</strong> — 부양/급매를 발견하면 여기서 제보합니다. 항구 → 카테고리(또는 품목) → 시간 선택 후 등록하면 스케줄에 즉시 반영.</div></div>
+  <div class="info-row"><span class="info-n">2</span><div class="info-txt"><strong>주간 기록</strong> — 주요 물교 품목(파이프, 야쿠트 칼, 금괴, 은괴 등)이 이번 주에 어느 항구에서 나왔는지 한눈에 확인.</div></div>
+  <div class="info-row"><span class="info-n">3</span><div class="info-txt"><strong>특수 등록</strong> — 특수 물교 품목을 등록하면 스케줄 추천 목록에서 ✦ 강조 표시됩니다.</div></div>
+  <div class="info-row"><span class="info-n">4</span><div class="info-txt"><strong>캡처</strong> — 오늘의 스케줄을 PNG 이미지로 저장하거나 클립보드에 복사합니다.</div></div>
+</div>
+
+
+<!-- ─────────────────────────────────────── -->
+<!-- STEP 2: 스케줄 화면 -->
+<!-- ─────────────────────────────────────── -->
+<div class="sec">스케줄 화면</div>
+
+<div class="panel">
+
+  <!-- 스케줄 헤더 -->
+  <div class="sch">
+    <div class="sch-top">
+      <div class="sch-left">
+        <span style="font-size:13px;">🔥</span>
+        <span class="sch-title">교역 스케줄</span>
+        <span class="sch-badge">인게임 12월</span>
+      </div>
+      <span class="sch-btn">↻ 새로고침 <span class="tag">5</span></span>
+    </div>
+    <div class="sch-sub">추천 품목 가격은 판매지식 20렙 / 할증 0% 기준</div>
+  </div>
+
+  <!-- 필터 바 -->
+  <div class="fbar">
+    <span class="fi">▽</span>
+    <span class="fp fp-v">✓ 부양</span>
+    <span class="fp fp-o">✓ 급매</span>
+    <span class="fp fp-g">✓ 대유행</span>
+    <span class="fp fp-y">★ 즐겨찾기</span>
+    <span class="tag" style="margin-left:2px;">6</span>
+  </div>
+
+  <!-- 카드 목록 -->
+  <div class="cards">
+
+    <!-- 카드 1: 대유행 축제 -->
+    <div class="card">
+      <div class="card-ind ci-g"></div>
+      <div class="card-top">
+        <span class="c-star c-star-on">★</span> <span class="tag">7</span>
+        <div class="c-time">
+          <span class="c-date">4.28(월)</span>
+          <span class="c-hour">05시</span>
+        </div>
+        <span class="c-city">동아시아</span>
+        <span class="c-badge cb-fest">축제</span>
+        <span class="tag">8</span>
+      </div>
+      <div class="card-items">
+        <span class="chip chip-sky">로즈 매더 <span class="chip-price">25.6~21.0만</span></span>
+        <span class="chip chip-sky">아줄 마야 <span class="chip-price">25.5~20.8만</span></span>
+        <span class="tag">9</span>
+      </div>
+    </div>
+
+    <!-- 카드 2: 부양 -->
+    <div class="card">
+      <div class="card-ind ci-v"></div>
+      <div class="card-top">
+        <span class="c-star c-star-off">☆</span>
+        <div class="c-time">
+          <span class="c-date">4.28(월)</span>
+          <span class="c-hour">08시</span>
+        </div>
+        <span class="tag" style="margin-right:-2px;">10</span>
+        <span class="c-city"><span class="c-city-link">산후안</span></span> <span class="tag">11</span>
+        <span class="c-badge cb-sup">식료품 <span style="opacity:0.6;font-size:7px;">부양</span></span>
+      </div>
+      <div class="card-items">
+        <span class="chip chip-grn">사고 <span class="chip-price">18.1~17.4만</span></span>
+        <span class="chip chip-grn">카마스 <span class="chip-price">16.1~15.4만</span></span>
+      </div>
+    </div>
+
+    <!-- 카드 3: 급매 -->
+    <div class="card">
+      <div class="card-ind ci-o"></div>
+      <div class="card-top">
+        <span class="c-star c-star-off">☆</span>
+        <div class="c-time">
+          <span class="c-date">4.28(월)</span>
+          <span class="c-hour">09시</span>
+        </div>
+        <span class="c-city">리스본</span>
+        <span class="c-badge cb-flash">금괴 <span style="opacity:0.6;font-size:7px;">급매</span></span>
+      </div>
+      <div class="card-items">
+        <span class="chip chip-grn">금괴 <span class="chip-price">69.6~56.7만</span></span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="info">
+  <div class="info-head">📌 화면 요소 설명</div>
+  <div class="info-row"><span class="info-n">5</span><div class="info-txt"><strong>새로고침</strong> — 매시 정각 자동 갱신됩니다. 수동으로도 즉시 새로고침 가능.</div></div>
+  <div class="info-row"><span class="info-n">6</span><div class="info-txt"><strong>필터</strong> — 부양 · 급매 · 대유행 · 즐겨찾기를 각각 ON/OFF 해서 원하는 이벤트만 표시.</div></div>
+  <div class="info-row"><span class="info-n">7</span><div class="info-txt"><strong>★ 즐겨찾기</strong> — 별 클릭으로 북마크. 필터에서 "즐겨찾기"를 켜면 저장한 것만 볼 수 있습니다.</div></div>
+  <div class="info-row"><span class="info-n">8</span><div class="info-txt"><strong>이벤트 종류</strong> — 왼쪽 세로선과 뱃지로 구분합니다.<br><span class="clr" style="background:#10b981;"></span> 대유행(자동)&ensp;<span class="clr" style="background:#8b5cf6;"></span> 부양(유저 제보)&ensp;<span class="clr" style="background:#f97316;"></span> 급매(유저 제보)</div></div>
+  <div class="info-row"><span class="info-n">9</span><div class="info-txt"><strong>추천 품목 + 예상 시세</strong> — 시즌 데이터 기반 자동 추천. 품목 칩을 클릭하면 물물교환 상세 시세를 확인할 수 있습니다.</div></div>
+  <div class="info-row"><span class="info-n">10</span><div class="info-txt"><strong>시간 클릭 → 수정/삭제</strong> — 부양·급매 카드의 시간 영역을 클릭하면 수정하거나 삭제할 수 있습니다. (본인이 등록한 건만)</div></div>
+  <div class="info-row"><span class="info-n">11</span><div class="info-txt"><strong>도시 이름 클릭 → 풍근 조합식</strong> — 밑줄이 있는 도시를 클릭하면 해당 도시의 풍근 조합식을 확인할 수 있습니다.</div></div>
+</div>
+
+
+<!-- ─────────────────────────────────────── -->
+<!-- 팁 -->
+<!-- ─────────────────────────────────────── -->
+<div class="tips">
+  <div class="tips-h">💡 알아두면 좋은 것</div>
+  <div class="tips-body">
+    • <b>대유행</b> 8종류 — 사치 · 호황 · 개발 · 후원 · 전쟁 · 홍수 · 전염병 · 축제<br>
+    • <b>부양/급매</b>를 발견하면 빠르게 제보해주세요 — 다른 유저에게 큰 도움이 됩니다<br>
+    • 추천 품목 가격 기준: <b>판매지식 20렙 / 할증 0%</b><br>
+    • <b>특수 물교 품목</b>을 등록하면 추천 목록에서 ✦ 강조 표시됩니다
+  </div>
+</div>
+
+</div><!-- /poster-body -->
+
+<div class="footer">Origin Deck Manager · 교역 스케줄 사용 가이드 v1.0</div>
+
+</div><!-- /poster -->
+
+</body>
+</html>

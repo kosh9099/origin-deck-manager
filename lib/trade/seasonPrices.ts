@@ -24,8 +24,8 @@ const IDX_PANDEMIC_HIGH = 2; // 대유행↑
 const IDX_BOOST_LOW = 3;     // 부양↓
 const IDX_BOOST_HIGH = 4;    // 부양↑
 
-const TOP_N_BOOST = 2;     // 부양: 최상위 2개 (급매는 itemsByName 경로에서 1개 직접 반환)
-const TOP_N_EPIDEMIC = 2;  // 대유행: 최상위 2개
+const TOP_N_BOOST = 6;     // 부양: 최상위 6개 (급매는 itemsByName 경로에서 1개 직접 반환)
+const TOP_N_EPIDEMIC = 6;  // 대유행: 최상위 6개
 
 // 추천에서 제외할 품목 (단가표 추천 로직에서 자동 제외)
 const EXCLUDED_ITEMS = new Set<string>(['거울', '오크통', '개량된 청어 운반통', '대형철판']);
@@ -69,11 +69,14 @@ function buildRec(city: string, itemName: string, lowIdx: number, highIdx: numbe
 function topN(recs: SeasonRecommendation[], n: number): SeasonRecommendation[] {
   const sorted = [...recs].sort((a, b) => b.high - a.high);
   const nonSpecials = sorted.filter(r => !SPECIAL_BARTER_ITEMS.has(r.name));
-  // 비-특수 상위 N개 (20% 게이트는 비-특수 간에만 적용)
-  let kept = nonSpecials.slice(0, n);
-  if (kept.length >= 2 && kept[0].high > 0) {
-    const ratio = kept[1].high / kept[0].high;
-    if (ratio < 0.7) kept = [kept[0]];
+  const candidates = nonSpecials.slice(0, n);
+  const kept: SeasonRecommendation[] = [];
+  for (let i = 0; i < candidates.length; i++) {
+    if (i > 0 && kept[0].high > 0) {
+      const dropRate = 1 - candidates[i].high / kept[i - 1].high;
+      if (dropRate >= 0.3) break;
+    }
+    kept.push(candidates[i]);
   }
   // 특수 품목: 유지된 비-특수 최저가 이상이면 함께 노출 (가격순으로 자연스럽게 끼움)
   const minKept = kept.length > 0 ? kept[kept.length - 1].high : 0;
