@@ -11,7 +11,7 @@ interface Props {
   onAddOptimistic: (item: TradeItem) => void;
   onDeleteItem?: (itemId: string) => void;
   onItemClick?: (itemName: string) => void;
-  specialItems?: Set<string>;
+  specialItems?: Map<string, string>;
 }
 
 const KRW = new Intl.NumberFormat('ko-KR');
@@ -48,7 +48,8 @@ export default function ItemVotePanel({ event, onItemClick, specialItems }: Prop
   }
 
   const chipClass = getRecChipClass(event);
-  const isRegisteredSpecial = (name: string) => specialItems?.has(name) ?? false;
+  const eventKstDate = new Date(event.startTime + 9 * 3600 * 1000).toISOString().slice(0, 10);
+  const isRegisteredSpecial = (name: string) => specialItems?.get(name) === eventKstDate;
   const isInactiveSpecial = (name: string) =>
     SPECIAL_BARTER_ITEMS.has(name) && !isRegisteredSpecial(name);
 

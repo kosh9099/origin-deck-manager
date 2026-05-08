@@ -173,7 +173,7 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
 
   const [zoneMap, setZoneMap] = useState<SheetItemMap>({});
   const [cityMap, setCityMap] = useState<SheetItemMap>({});
-  const [specialItems, setSpecialItems] = useState<Set<string>>(new Set());
+  const [specialItems, setSpecialItems] = useState<Map<string, string>>(new Map());
   const [sheetStatus, setSheetStatus] = useState<{
     zone: SheetLoadStatus; city: SheetLoadStatus;
   }>({ zone: 'idle', city: 'idle' });
@@ -256,7 +256,13 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
     try {
       const { getActiveSpecials } = await import('@/lib/supabaseClient');
       const list = await getActiveSpecials();
-      setSpecialItems(new Set(list.map(s => s.name)));
+      const map = new Map<string, string>();
+      for (const s of list) {
+        const d = new Date(s.created_at);
+        const kstDate = new Date(d.getTime() + 9 * 3600 * 1000).toISOString().slice(0, 10);
+        map.set(s.name, kstDate);
+      }
+      setSpecialItems(map);
     } catch (e) {
       console.error('Failed to load specials:', e);
     }

@@ -26,7 +26,7 @@ interface Props {
   onDeleteItem: (eventId: string, itemId: string) => void;
   favorites: Set<string>;
   onToggleFavorite: (eventId: string) => void;
-  specialItems?: Set<string>;
+  specialItems?: Map<string, string>;
 }
 
 const typeColors: Record<string, string> = {
