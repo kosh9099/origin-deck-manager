@@ -37,6 +37,19 @@ body {
   z-index: 1;
 }
 
+/* 월요일 관세 할인 카드 금색 반짝이 */
+@keyframes tariffGlow {
+  0%, 100% {
+    box-shadow: 0 0 4px 1px rgba(251, 191, 36, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 12px 3px rgba(251, 191, 36, 0.6);
+  }
+}
+.tariff-glow {
+  animation: tariffGlow 2s ease-in-out infinite;
+}
+
 /* 이벤트 카드 진행 물결 효과 */
 @keyframes waveShimmer {
   0% { transform: translateX(-100%); }

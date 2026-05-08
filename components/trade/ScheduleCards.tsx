@@ -14,6 +14,16 @@ import { hasCityCombination } from '@/lib/trade/combinationRotation';
 import { getInGameTimeInfo } from '@/lib/trade/time';
 import { isCurrentlyActive } from './TradeDashboard';
 
+function getTariffDiscount(startTime: number): { label: string; level: number } | null {
+  const kst = new Date(startTime + 9 * 3600 * 1000);
+  if (kst.getUTCDay() !== 1) return null; // 월요일만 (KST 기준)
+  const h = kst.getUTCHours();
+  if (h >= 18 && h <= 19) return { label: '관세 10%↓', level: 1 };
+  if (h >= 20 && h <= 21) return { label: '관세 30%↓', level: 2 };
+  if (h >= 22 && h <= 23) return { label: '면세 핫타임', level: 3 };
+  return null;
+}
+
 interface Props {
   events: TradeEvent[];
   now: number;
@@ -91,11 +101,14 @@ export default function ScheduleCards({
         const isActive = isCurrentlyActive(event);
         const isAfter12Hours = event.isBoost && event.startTime > now + 12 * 60 * 60 * 1000;
         const progress = isActive ? Math.min(100, ((now - event.startTime) / (3600 * 1000)) * 100) : 0;
+        const tariff = getTariffDiscount(event.startTime);
 
         return (
           <div
             key={event.id}
-            className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden relative"
+            className={`bg-white rounded-xl shadow-sm overflow-hidden relative ${
+              tariff ? 'tariff-glow border-2 border-amber-400' : 'border border-slate-200'
+            }`}
             style={isAfter12Hours ? { opacity: 0.45 } : undefined}
           >
             {isActive && (
@@ -183,6 +196,18 @@ export default function ScheduleCards({
                     event.type
                   )}
                 </span>
+
+                {tariff && (
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black border whitespace-nowrap shrink-0 ${
+                    tariff.level === 3
+                      ? 'bg-amber-400 text-amber-950 border-amber-500 animate-sparkle'
+                      : tariff.level === 2
+                      ? 'bg-amber-100 text-amber-800 border-amber-400'
+                      : 'bg-yellow-50 text-yellow-800 border-yellow-300'
+                  }`}>
+                    {tariff.label}
+                  </span>
+                )}
               </div>
 
               {/* 하단: 추천 품목 칩 */}

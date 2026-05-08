@@ -16,6 +16,16 @@ import CityCombinationModal from './CityCombinationModal';
 import EditBoostModal from './EditBoostModal';
 import { hasCityCombination } from '@/lib/trade/combinationRotation';
 
+function getTariffDiscount(startTime: number): { label: string; level: number } | null {
+  const kst = new Date(startTime + 9 * 3600 * 1000);
+  if (kst.getUTCDay() !== 1) return null;
+  const h = kst.getUTCHours();
+  if (h >= 18 && h <= 19) return { label: '관세 10%↓', level: 1 };
+  if (h >= 20 && h <= 21) return { label: '관세 30%↓', level: 2 };
+  if (h >= 22 && h <= 23) return { label: '면세 핫타임', level: 3 };
+  return null;
+}
+
 interface Props {
   events: TradeEvent[];
   now: number;
@@ -113,18 +123,18 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
             const isActive = isCurrentlyActive(event);
             const bonuses = getGoldBonuses(event, cityMap);
             const isGold = bonuses.length > 0;
+            const tariff = getTariffDiscount(event.startTime);
 
-            // 💡 수정된 부분: 현재 시간(now) 기준 12시간 이후인지 판별
             const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
             const isAfter12Hours = event.isBoost && event.startTime > now + TWELVE_HOURS_MS;
 
             return (
               <tr
                 key={event.id}
-                className={`transition-colors ${rowColorCls} ${isGold ? 'gold-shimmer' : ''} shadow-sm hover:shadow-md`}
+                className={`transition-colors ${rowColorCls} ${isGold ? 'gold-shimmer' : ''} ${tariff ? 'tariff-glow' : ''} shadow-sm hover:shadow-md`}
                 style={{
                   ...(isGold ? { borderWidth: 2, borderStyle: 'solid' as const } : {}),
-                  // 💡 12시간 이후면 반투명 처리
+                  ...(tariff ? { borderWidth: 2, borderStyle: 'solid' as const, borderColor: '#fbbf24' } : {}),
                   ...(isAfter12Hours ? { opacity: 0.45 } : {}),
                 }}
               >
@@ -205,9 +215,22 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
 
                 {/* 이벤트 */}
                 <td className="pl-3 pr-4 py-1.5 align-middle border-y border-slate-200/60">
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold border whitespace-nowrap ${badgeCls}`} title={tooltip}>
-                    {isBoost ? <>{event.type || '?'}<span className="opacity-60 text-[10px]">{boostType}</span></> : event.type}
-                  </span>
+                  <div className="flex flex-col gap-1">
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold border whitespace-nowrap ${badgeCls}`} title={tooltip}>
+                      {isBoost ? <>{event.type || '?'}<span className="opacity-60 text-[10px]">{boostType}</span></> : event.type}
+                    </span>
+                    {tariff && (
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black border whitespace-nowrap ${
+                        tariff.level === 3
+                          ? 'bg-amber-400 text-amber-950 border-amber-500 animate-sparkle'
+                          : tariff.level === 2
+                          ? 'bg-amber-100 text-amber-800 border-amber-400'
+                          : 'bg-yellow-50 text-yellow-800 border-yellow-300'
+                      }`}>
+                        {tariff.label}
+                      </span>
+                    )}
+                  </div>
                 </td>
 
                 {/* 추천 품목 */}
