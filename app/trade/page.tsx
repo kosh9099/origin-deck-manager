@@ -54,8 +54,8 @@ export default function TradeManagerPage() {
       <div className="md:hidden flex items-center justify-between p-4 border-b border-slate-300 bg-white z-50 sticky top-0 shadow-sm">
         <div className="flex items-center gap-2">
           <Anchor className="text-emerald-500" size={20} />
-          <h1 className="text-xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-600">
-            교역 매니저 V1
+          <h1 className="text-xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-600 pr-1">
+            교역 매니저 V2
           </h1>
         </div>
         <button
@@ -87,9 +87,9 @@ export default function TradeManagerPage() {
         {/* 사이드바 헤더 */}
         <div className="p-6 border-b border-white/10 hidden md:block">
           <Link href="/" className="inline-block group pb-1">
-            <h1 className="text-2xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-400 flex items-center gap-2 group-hover:scale-105 transition-transform">
+            <h1 className="text-2xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-400 flex items-center gap-2 group-hover:scale-105 transition-transform pr-1">
               <Anchor className="text-emerald-400 shrink-0" size={24} />
-              교역 매니저 V1
+              교역 매니저 V2
             </h1>
           </Link>
           <p className="text-xs text-slate-400 mt-2 font-medium tracking-wide">
