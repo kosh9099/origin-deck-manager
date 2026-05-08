@@ -123,7 +123,7 @@ export function getBoostRecommendations(city: string, type: string): SeasonRecom
 /**
  * 대유행: 해역(짧은 이름 OR 풀네임) + 대유행 종류 → 대유행↑이 가장 비싼 품목 최대 3개.
  * 매칭 카테고리: APPLIED_PANDEMIC_ITEMS[type] (예: 전쟁 → 가축/무기류/총포류)
- * 가격: 해역 내 도시 중 대유행↑ 최대값 (가장 좋은 매도 도시 기준)
+ * 가격: 해역 내 전체 도시에서 대유행↑ 최대값 / 대유행↓ 최소값
  */
 export function getEpidemicRecommendations(zone: string, type: string): SeasonRecommendation[] {
   const cats = APPLIED_PANDEMIC_ITEMS[type];
@@ -141,23 +141,21 @@ export function getEpidemicRecommendations(zone: string, type: string): SeasonRe
   }
   if (candidates.length === 0) return [];
 
-  // 각 후보 → 해역 내 도시 중 대유행↑ 최대값
+  // 각 후보 → 해역 내 전체 도시에서 대유행↑ 최대값, 대유행↓ 최소값
   const recs: SeasonRecommendation[] = [];
   for (const item of candidates) {
     let bestHigh = -Infinity;
-    let bestLow = 0;
+    let bestLow = Infinity;
     for (const city of zoneCities) {
       const p = pricesAt(city, item.name);
       if (!p) continue;
       const high = p[IDX_PANDEMIC_HIGH];
-      if (high == null) continue;
-      if (high > bestHigh) {
-        bestHigh = high;
-        bestLow = p[IDX_PANDEMIC_LOW] ?? 0;
-      }
+      const low = p[IDX_PANDEMIC_LOW];
+      if (high != null && high > bestHigh) bestHigh = high;
+      if (low != null && low < bestLow) bestLow = low;
     }
     if (bestHigh > -Infinity) {
-      recs.push({ name: item.name, high: bestHigh, low: bestLow });
+      recs.push({ name: item.name, high: bestHigh, low: bestLow === Infinity ? 0 : bestLow });
     }
   }
 
