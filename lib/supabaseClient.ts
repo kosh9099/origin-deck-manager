@@ -61,7 +61,7 @@ export async function insertBoost(port_name: string, category: string, start_tim
 /**
  * 등록된 부양 스케줄의 도시/이벤트를 수정합니다.
  */
-export async function updateBoost(boostId: string, updates: { port_name?: string; category?: string }) {
+export async function updateBoost(boostId: string, updates: { port_name?: string; category?: string; start_time?: string }) {
   const patch: Record<string, string> = {};
   if (updates.port_name !== undefined) {
     patch.city = updates.port_name;
@@ -69,6 +69,9 @@ export async function updateBoost(boostId: string, updates: { port_name?: string
   }
   if (updates.category !== undefined) {
     patch.type = updates.category;
+  }
+  if (updates.start_time !== undefined) {
+    patch.start_time = updates.start_time;
   }
   const { data, error } = await supabase
     .from('trade_boosts')

@@ -36,3 +36,52 @@ body {
   position: relative;
   z-index: 1;
 }
+
+/* 이벤트 카드 진행 물결 효과 */
+@keyframes waveShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.event-progress-wave {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: inherit;
+}
+
+.event-progress-wave::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--progress, 0%);
+  background: linear-gradient(90deg,
+    rgba(16, 185, 129, 0.13) 0%,
+    rgba(16, 185, 129, 0.22) 60%,
+    rgba(16, 185, 129, 0.10) 100%
+  );
+  transition: width 1s ease-out;
+}
+
+.event-progress-wave::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--progress, 0%);
+  background: linear-gradient(90deg,
+    transparent 0%,
+    transparent 40%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 60%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: waveShimmer 2.5s ease-in-out infinite;
+  transition: width 1s ease-out;
+}

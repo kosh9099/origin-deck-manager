@@ -53,12 +53,16 @@ function matchPort(port: string, query: string): boolean {
 
 export default function EditBoostModal({ boost, onClose }: Props) {
   const initialCity = boost.city || boost.zone || '';
+  const initialDate = new Date(boost.startTime);
   const [city, setCity] = useState(initialCity);
   const [portQuery, setPortQuery] = useState(initialCity);
   const [showSuggest, setShowSuggest] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [boostType, setBoostType] = useState<'부양' | '급매'>(() => getBoostType(boost.type));
   const [category, setCategory] = useState(boost.type);
+  const [month, setMonth] = useState(initialDate.getMonth() + 1);
+  const [day, setDay] = useState(initialDate.getDate());
+  const [hour, setHour] = useState(initialDate.getHours());
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -106,7 +110,9 @@ export default function EditBoostModal({ boost, onClose }: Props) {
     if (!category) { alert('이벤트를 선택하세요'); return; }
     setSaving(true);
     try {
-      await updateBoost(boost.id, { port_name: city, category });
+      const now = new Date();
+      const startDate = new Date(now.getFullYear(), month - 1, day, hour, 0, 0);
+      await updateBoost(boost.id, { port_name: city, category, start_time: startDate.toISOString() });
       emitBoostChanged();
       onClose();
     } catch (e) {
@@ -178,6 +184,22 @@ export default function EditBoostModal({ boost, onClose }: Props) {
                 ))}
               </ul>
             )}
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider">시작 시간</label>
+            <div className="flex gap-2">
+              {[
+                { value: month, setter: setMonth, options: Array.from({ length: 12 }, (_, i) => ({ v: i + 1, label: `${i + 1}월` })) },
+                { value: day, setter: setDay, options: Array.from({ length: 31 }, (_, i) => ({ v: i + 1, label: `${i + 1}일` })) },
+                { value: hour, setter: setHour, options: Array.from({ length: 24 }, (_, i) => ({ v: i, label: `${String(i).padStart(2, '0')}시` })) },
+              ].map((sel, i) => (
+                <select key={i} value={sel.value} onChange={e => sel.setter(Number(e.target.value))}
+                  className="flex-1 bg-white border border-slate-200 rounded-xl px-2 py-2 text-sm text-slate-700 focus:outline-none focus:border-emerald-400">
+                  {sel.options.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+                </select>
+              ))}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2">

@@ -90,6 +90,7 @@ export default function ScheduleCards({
         const hasCombo = hasCityCombination(cityName);
         const isActive = isCurrentlyActive(event);
         const isAfter12Hours = event.isBoost && event.startTime > now + 12 * 60 * 60 * 1000;
+        const progress = isActive ? Math.min(100, ((now - event.startTime) / (3600 * 1000)) * 100) : 0;
 
         return (
           <div
@@ -97,9 +98,15 @@ export default function ScheduleCards({
             className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden relative"
             style={isAfter12Hours ? { opacity: 0.45 } : undefined}
           >
+            {isActive && (
+              <div
+                className="event-progress-wave"
+                style={{ '--progress': `${progress}%` } as React.CSSProperties}
+              />
+            )}
             <div className={`absolute left-0 top-0 bottom-0 w-1 ${indicatorCls}`} />
 
-            <div className="pl-3 pr-3 py-2.5">
+            <div className="pl-3 pr-3 py-2.5 relative z-[1]">
               {/* 상단 행: [별표] [시간] [도시] [이벤트 배지] */}
               <div className="flex items-center gap-2 mb-2">
                 {/* 즐겨찾기 별표 */}
