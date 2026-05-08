@@ -36,7 +36,7 @@ export const SPECIAL_BARTER_ITEMS = new Set<string>([
   '홍삼',
   '쿨릭',
   '리하쿠루',
-  '수정세공',
+  '수정 세공',
   '에뮤',
   '일렉트럼',
   '패각 세공품',
