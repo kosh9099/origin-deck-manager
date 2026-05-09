@@ -30,8 +30,8 @@ const TOP_N_EPIDEMIC = 6;  // 대유행: 최상위 6개
 // 추천에서 제외할 품목 (단가표 추천 로직에서 자동 제외)
 const EXCLUDED_ITEMS = new Set<string>(['거울', '오크통', '개량된 청어 운반통', '대형철판', '백금']);
 
-// 프리시즌 한정 품목: KST 2025-05-12 23:59:59 이후 제외
-const PRESEASON_DEADLINE_UTC = new Date('2025-05-12T14:59:59Z').getTime();
+// 프리시즌 한정 품목: KST 2026-05-12 23:59:59 이후 제외
+const PRESEASON_DEADLINE_UTC = new Date('2026-05-12T14:59:59Z').getTime();
 const PRESEASON_ITEMS = new Set<string>(['금괴', '은괴', '목탄']);
 const isPreseasonExpired = Date.now() > PRESEASON_DEADLINE_UTC;
 
