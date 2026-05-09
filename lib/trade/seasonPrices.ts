@@ -25,7 +25,7 @@ const IDX_BOOST_LOW = 3;     // 부양↓
 const IDX_BOOST_HIGH = 4;    // 부양↑
 
 const TOP_N_BOOST = 3;     // 부양: 최상위 3개 (급매는 itemsByName 경로에서 1개 직접 반환)
-const TOP_N_EPIDEMIC = 6;  // 대유행: 최상위 6개
+const TOP_N_EPIDEMIC = 5;  // 대유행: 최상위 5개 (편차 컷 없이 그대로 노출)
 
 // 추천에서 제외할 품목 (단가표 추천 로직에서 자동 제외)
 const EXCLUDED_ITEMS = new Set<string>(['거울', '오크통', '개량된 청어 운반통', '대형철판', '백금']);
@@ -46,6 +46,9 @@ export const SPECIAL_BARTER_ITEMS = new Set<string>([
   '일렉트럼',
   '패각 세공품',
   '유목',
+  '팔레파이',
+  '코아우아우',
+  '아이더 깃털',
 ]);
 
 // 카테고리/이름 룩업 인덱스 (제외 품목은 후보에 포함하지 않음)
@@ -72,19 +75,30 @@ function buildRec(city: string, itemName: string, lowIdx: number, highIdx: numbe
   return { name: itemName, high, low: p[lowIdx] ?? 0 };
 }
 
-function topN(recs: SeasonRecommendation[], n: number, strict = false): SeasonRecommendation[] {
+function topN(
+  recs: SeasonRecommendation[],
+  n: number,
+  strict = false,
+  skipDeviationCut = false,
+): SeasonRecommendation[] {
   const sorted = [...recs].sort((a, b) => b.high - a.high);
   const nonSpecials = sorted.filter(r =>
     !SPECIAL_BARTER_ITEMS.has(r.name) && (!strict || r.high >= 200000)
   );
   const candidates = nonSpecials.slice(0, n);
-  const kept: SeasonRecommendation[] = [];
-  for (let i = 0; i < candidates.length; i++) {
-    if (i > 0 && kept[0].high > 0) {
-      const dropRate = 1 - candidates[i].high / kept[0].high;
-      if (dropRate >= 0.3) break;
+  let kept: SeasonRecommendation[];
+  if (skipDeviationCut) {
+    // 편차 컷 비활성화 — 후보 N개를 그대로 채택.
+    kept = candidates;
+  } else {
+    kept = [];
+    for (let i = 0; i < candidates.length; i++) {
+      if (i > 0 && kept[0].high > 0) {
+        const dropRate = 1 - candidates[i].high / kept[0].high;
+        if (dropRate >= 0.3) break;
+      }
+      kept.push(candidates[i]);
     }
-    kept.push(candidates[i]);
   }
   // 특수 품목: 유지된 비-특수 최저가 이상이면 함께 노출 (가격순으로 자연스럽게 끼움)
   const minKept = kept.length > 0 ? kept[kept.length - 1].high : 0;
@@ -173,5 +187,5 @@ export function getEpidemicRecommendations(zone: string, type: string): SeasonRe
     }
   }
 
-  return topN(recs, TOP_N_EPIDEMIC, true);
+  return topN(recs, TOP_N_EPIDEMIC, true, true);
 }

@@ -357,15 +357,23 @@ function BulkForm() {
     if (validRows.length === 0) return;
     setIsUploading(true); setResultMsg('');
     let success = 0, fail = 0;
+    let sampleSuccess = 0, sampleFail = 0;
     for (const row of validRows) {
       try {
         await insertBoost(row.city, row.category, row.startTime!.toISOString());
-        // 스캔 등록만 분(minute) 샘플 적재
+        // 스캔 등록만 분(minute) 샘플 적재 — boost 등록 자체는 sample 실패와 무관하게 성공 처리.
         const minute = row.startTime!.getUTCMinutes();
-        await insertCityMinuteSample(row.city, minute).catch(() => {});
+        try {
+          await insertCityMinuteSample(row.city, minute);
+          sampleSuccess++;
+        } catch (e) {
+          sampleFail++;
+          console.warn(`[BulkForm] insertCityMinuteSample failed for ${row.city} :${minute}:`, e);
+        }
         success++;
       } catch { fail++; }
     }
+    console.info(`[BulkForm] minute samples: ${sampleSuccess} ok, ${sampleFail} failed`);
     setResultMsg(`✅ ${success}건 등록 완료${fail > 0 ? ` / ⚠️ ${fail}건 실패` : ''}`);
     setIsUploading(false);
     setImageFile(null); setImagePreview(null);
