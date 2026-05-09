@@ -2,16 +2,17 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Home, Menu, X, Anchor, Download, RefreshCw, HandHeart, Calculator, Sparkles, MapPin, Settings, Compass } from 'lucide-react';
+import { Home, Menu, X, Anchor, Download, RefreshCw, HandHeart, Calculator, Sparkles, MapPin, Settings, Compass, CalendarDays } from 'lucide-react';
 import TradeDashboard from '@/components/trade/TradeDashboard';
 import BoostForm from '@/components/trade/BoostForm';
 import BarterCalculator from '@/components/trade/BarterCalculator';
 import CityCombinationSearch from '@/components/trade/CityCombinationSearch';
+import SeasonSearch from '@/components/trade/SeasonSearch';
 import SpecialForm from '@/components/trade/SpecialForm';
 import WeeklyItemsForm from '@/components/trade/WeeklyItemsForm';
 import { captureAndDownload } from '@/lib/utils/capture';
 
-type TradeViewType = 'dashboard' | 'boosts' | 'barter' | 'combination';
+type TradeViewType = 'dashboard' | 'boosts' | 'barter' | 'combination' | 'season';
 
 export default function TradeManagerPage() {
   const [activeTab, setActiveTab] = useState<TradeViewType>('dashboard');
@@ -30,6 +31,7 @@ export default function TradeManagerPage() {
     { id: 'dashboard' as const, label: '교역 스케줄', icon: <RefreshCw size={18} /> },
     { id: 'barter' as const, label: '물물교환 계산기', icon: <Calculator size={18} /> },
     { id: 'combination' as const, label: '풍근 조합식 검색', icon: <Compass size={18} /> },
+    { id: 'season' as const, label: '교역품 성수기 검색', icon: <CalendarDays size={18} /> },
   ];
 
   const handleCapture = async () => {
@@ -201,6 +203,11 @@ export default function TradeManagerPage() {
             {activeTab === 'combination' && (
               <div className="w-full py-2 overflow-y-auto">
                 <CityCombinationSearch />
+              </div>
+            )}
+            {activeTab === 'season' && (
+              <div className="w-full py-2 overflow-y-auto">
+                <SeasonSearch />
               </div>
             )}
           </div>
