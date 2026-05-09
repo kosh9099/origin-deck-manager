@@ -2,19 +2,22 @@
 
 import Link from 'next/link';
 import { Sword, Map, Ship, Anchor, Compass, ArrowRight, X, Clock, Sparkles, Bug, Wrench, AlertTriangle } from 'lucide-react';
-import DonateButton from '@/components/DonateButton';
 
 const managers = [
   {
-    href: null,
-    icon: Sword,
-    iconColor: 'text-slate-400',
-    iconBg: 'bg-slate-100',
-    gradient: 'from-slate-300 to-slate-400',
-    label: '전투 매니저',
-    desc: '최적의 전투 함대를 구성하기 위한 승무원 배치 도구.',
-    badge: '개발 중',
-    active: false,
+    href: '/trade',
+    icon: Ship,
+    iconColor: 'text-emerald-600',
+    iconBg: 'bg-emerald-50',
+    gradient: 'from-emerald-400 via-teal-500 to-cyan-500',
+    label: '교역 매니저',
+    desc: '대유행 예측과 실시간 부양 이벤트 공유 스케줄.',
+    badge: null,
+    active: true,
+    border: 'border-emerald-200',
+    shadow: 'shadow-[0_4px_20px_rgba(16,185,129,0.2)] hover:shadow-[0_8px_30px_rgba(16,185,129,0.35)]',
+    ctaColor: 'bg-gradient-to-r from-emerald-400 to-teal-500',
+    headerColor: 'bg-emerald-500',
   },
   {
     href: '/land',
@@ -33,19 +36,15 @@ const managers = [
     headerColor: 'bg-amber-500',
   },
   {
-    href: '/trade',
-    icon: Ship,
-    iconColor: 'text-emerald-600',
-    iconBg: 'bg-emerald-50',
-    gradient: 'from-emerald-400 via-teal-500 to-cyan-500',
-    label: '교역 매니저',
-    desc: '대유행 예측과 실시간 부양 이벤트 공유 스케줄.',
-    badge: null,
-    active: true,
-    border: 'border-emerald-200',
-    shadow: 'shadow-[0_4px_20px_rgba(16,185,129,0.2)] hover:shadow-[0_8px_30px_rgba(16,185,129,0.35)]',
-    ctaColor: 'bg-gradient-to-r from-emerald-400 to-teal-500',
-    headerColor: 'bg-emerald-500',
+    href: null,
+    icon: Sword,
+    iconColor: 'text-slate-400',
+    iconBg: 'bg-slate-100',
+    gradient: 'from-slate-300 to-slate-400',
+    label: '전투 매니저',
+    desc: '최적의 전투 함대를 구성하기 위한 승무원 배치 도구.',
+    badge: '개발 중',
+    active: false,
   },
 ];
 
@@ -119,8 +118,6 @@ export default function Home() {
 
         {/* 버튼 영역 */}
         <div className="flex items-center justify-center gap-3 flex-wrap">
-          <DonateButton />
-
           {/* 업데이트 내역 버튼 */}
           <label
             htmlFor="update-modal"
