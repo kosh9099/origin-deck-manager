@@ -12,6 +12,7 @@ interface Props {
   onDeleteItem?: (itemId: string) => void;
   onItemClick?: (itemName: string) => void;
   specialItems?: Map<string, string>;
+  tierFxEnabled?: boolean;
 }
 
 const KRW = new Intl.NumberFormat('ko-KR');
@@ -26,6 +27,16 @@ function manNumber(n: number): string {
 // 두 가격 한꺼번에: "23.6~19.0만"
 function priceRange(high: number, low: number): string {
   return `${manNumber(high)}~${manNumber(low)}만`;
+}
+
+// 최저가(low) 기준 tier 별 반짝이 효과 클래스.
+// 40만+ 빨강, 30~40만 주황, 20~30만 파랑, 그 외 없음.
+// 클래스 자체에 배경/색상 강제 override 가 들어있어 ring 별도 불필요.
+function lowPriceTierClass(low: number): string {
+  if (low >= 400000) return 'animate-sparkle-red';
+  if (low >= 300000) return 'animate-sparkle-orange';
+  if (low >= 200000) return 'animate-sparkle-blue';
+  return '';
 }
 
 // 툴팁 본문: 대유행이면 도시명 포함 두 줄, 아니면 기존 한 줄
@@ -50,7 +61,7 @@ function getRecChipClass(event: TradeEvent): string {
   return 'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100';
 }
 
-export default function ItemVotePanel({ event, onItemClick, specialItems }: Props) {
+export default function ItemVotePanel({ event, onItemClick, specialItems, tierFxEnabled = true }: Props) {
   const hasItems = event.items.length > 0;
   const recs = event.seasonRecs ?? [];
 
@@ -79,13 +90,16 @@ export default function ItemVotePanel({ event, onItemClick, specialItems }: Prop
         const inactive = isInactiveSpecial(rec.name);
         const body = formatRecTooltip(rec);
         const prefix = inactive ? '특수 물교 (미등록)\n' : sparkle ? '★ 특수 물교\n' : '';
+        // 비활성 특수 물교는 tier 효과 적용 안 함. 활성 특수 물교는 노란 sparkle 우선.
+        // 그 외에는 최저가 tier 반짝이 적용 — 단, 필터에서 OFF 면 비활성화.
+        const tierFx = !tierFxEnabled || inactive || sparkle ? '' : lowPriceTierClass(rec.low);
         return (
           <button
             key={`rec-${idx}-${rec.name}`}
             onClick={() => onItemClick?.(rec.name)}
             title={prefix + body}
             className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-bold border whitespace-nowrap transition-all active:scale-95 cursor-pointer ${chipClass} ${
-              sparkle ? 'animate-sparkle ring-1 ring-amber-400' : ''
+              sparkle ? 'animate-sparkle ring-1 ring-amber-400' : tierFx
             } ${inactive ? 'opacity-40 grayscale' : ''}`}
           >
             <span>{rec.name}</span>

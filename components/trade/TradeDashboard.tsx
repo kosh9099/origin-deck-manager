@@ -151,7 +151,7 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
   const [isLoading, setIsLoading] = useState(true);
   const [now, setNow] = useState(Date.now());
   // localStorage는 hydration 후에만 읽어서 SSR/CSR mismatch 방지
-  const [filters, setFilters] = useState({ boost: true, flash: true, epidemic: true, favorite: false });
+  const [filters, setFilters] = useState({ boost: true, flash: true, epidemic: true, favorite: false, tierFx: true });
   const [favorites, setFavorites] = useState<Set<string>>(() => new Set());
   const [hydrated, setHydrated] = useState(false);
 
@@ -159,7 +159,7 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
     try {
       const raw = localStorage.getItem(FILTER_STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as Partial<{ boost: boolean; flash: boolean; epidemic: boolean; favorite: boolean }>;
+        const parsed = JSON.parse(raw) as Partial<{ boost: boolean; flash: boolean; epidemic: boolean; favorite: boolean; tierFx: boolean }>;
         setFilters(prev => ({ ...prev, ...parsed }));
       }
     } catch {}
@@ -447,6 +447,7 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
           { key: 'flash' as const, label: '급매', activeColor: 'bg-orange-500 text-white border-orange-600', inactiveColor: 'bg-white text-orange-600 border-orange-300 opacity-50' },
           { key: 'epidemic' as const, label: '대유행', activeColor: 'bg-emerald-500 text-white border-emerald-600', inactiveColor: 'bg-white text-emerald-600 border-emerald-300 opacity-50' },
           { key: 'favorite' as const, label: '★ 즐겨찾기', activeColor: 'bg-amber-500 text-white border-amber-600', inactiveColor: 'bg-white text-amber-600 border-amber-300 opacity-50' },
+          { key: 'tierFx' as const, label: '✨ 가격 강조', activeColor: 'bg-rose-500 text-white border-rose-600', inactiveColor: 'bg-white text-rose-600 border-rose-300 opacity-50' },
         ]).map(f => (
           <button
             key={f.key}
@@ -481,6 +482,7 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
                 favorites={favorites}
                 onToggleFavorite={toggleFavorite}
                 specialItems={specialItems}
+                tierFxEnabled={filters.tierFx}
               />
             </div>
             <div className="md:hidden">
@@ -494,6 +496,7 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
                 favorites={favorites}
                 onToggleFavorite={toggleFavorite}
                 specialItems={specialItems}
+                tierFxEnabled={filters.tierFx}
               />
             </div>
           </div>

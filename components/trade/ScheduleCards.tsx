@@ -34,6 +34,7 @@ interface Props {
   favorites: Set<string>;
   onToggleFavorite: (eventId: string) => void;
   specialItems?: Map<string, string>;
+  tierFxEnabled?: boolean;
 }
 
 const typeColors: Record<string, string> = {
@@ -62,6 +63,7 @@ export default function ScheduleCards({
   favorites,
   onToggleFavorite,
   specialItems,
+  tierFxEnabled = true,
 }: Props) {
   const [selectedCity, setSelectedCity] = React.useState<string | null>(null);
   const [selectedItem, setSelectedItem] = React.useState<string | null>(null);
@@ -225,6 +227,7 @@ export default function ScheduleCards({
                   onDeleteItem={(itemId) => onDeleteItem(event.id, itemId)}
                   onItemClick={setSelectedItem}
                   specialItems={specialItems}
+                  tierFxEnabled={tierFxEnabled}
                 />
               </div>
             </div>

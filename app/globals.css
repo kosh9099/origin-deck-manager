@@ -37,6 +37,61 @@ body {
   z-index: 1;
 }
 
+/* 추천 품목 최저가 tier 반짝이 — 차분한 글로우 펄스 (펄스 진폭 축소) */
+@keyframes sparkleGlowRed {
+  0%, 100% {
+    box-shadow: 0 0 4px 1px rgba(239, 68, 68, 0.5), 0 0 0 1.5px rgba(220, 38, 38, 0.7);
+    background-color: rgb(254, 226, 226);
+  }
+  50% {
+    box-shadow: 0 0 10px 3px rgba(239, 68, 68, 0.7), 0 0 0 2px rgba(220, 38, 38, 0.85);
+    background-color: rgb(254, 215, 215);
+  }
+}
+.animate-sparkle-red {
+  animation: sparkleGlowRed 2.6s ease-in-out infinite;
+  color: rgb(153, 27, 27) !important;
+  border-color: rgb(220, 38, 38) !important;
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes sparkleGlowOrange {
+  0%, 100% {
+    box-shadow: 0 0 4px 1px rgba(249, 115, 22, 0.45), 0 0 0 1.5px rgba(234, 88, 12, 0.65);
+    background-color: rgb(255, 237, 213);
+  }
+  50% {
+    box-shadow: 0 0 9px 2.5px rgba(249, 115, 22, 0.65), 0 0 0 2px rgba(234, 88, 12, 0.8);
+    background-color: rgb(254, 226, 192);
+  }
+}
+.animate-sparkle-orange {
+  animation: sparkleGlowOrange 2.8s ease-in-out infinite;
+  color: rgb(154, 52, 18) !important;
+  border-color: rgb(234, 88, 12) !important;
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes sparkleGlowBlue {
+  0%, 100% {
+    box-shadow: 0 0 3px 1px rgba(96, 165, 250, 0.25), 0 0 0 1px rgba(96, 165, 250, 0.4);
+    background-color: rgb(239, 246, 255);
+  }
+  50% {
+    box-shadow: 0 0 6px 2px rgba(96, 165, 250, 0.4), 0 0 0 1.5px rgba(96, 165, 250, 0.55);
+    background-color: rgb(229, 240, 254);
+  }
+}
+.animate-sparkle-blue {
+  animation: sparkleGlowBlue 3.0s ease-in-out infinite;
+  color: rgb(30, 64, 175) !important;
+  border-color: rgb(96, 165, 250) !important;
+  position: relative;
+  z-index: 1;
+}
+
 /* 월요일 관세 할인 카드 금색 반짝이 */
 @keyframes tariffGlow {
   0%, 100% {
