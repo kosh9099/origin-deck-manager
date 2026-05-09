@@ -152,16 +152,24 @@ export function getEpidemicRecommendations(zone: string, type: string): SeasonRe
   for (const item of candidates) {
     let bestHigh = -Infinity;
     let bestLow = Infinity;
+    let highCity: string | undefined;
+    let lowCity: string | undefined;
     for (const city of zoneCities) {
       const p = pricesAt(city, item.name);
       if (!p) continue;
       const high = p[IDX_PANDEMIC_HIGH];
       const low = p[IDX_PANDEMIC_LOW];
-      if (high != null && high > bestHigh) bestHigh = high;
-      if (low != null && low < bestLow) bestLow = low;
+      if (high != null && high > bestHigh) { bestHigh = high; highCity = city; }
+      if (low != null && low < bestLow) { bestLow = low; lowCity = city; }
     }
     if (bestHigh > -Infinity) {
-      recs.push({ name: item.name, high: bestHigh, low: bestLow === Infinity ? 0 : bestLow });
+      recs.push({
+        name: item.name,
+        high: bestHigh,
+        low: bestLow === Infinity ? 0 : bestLow,
+        highCity,
+        lowCity: bestLow === Infinity ? undefined : lowCity,
+      });
     }
   }
 

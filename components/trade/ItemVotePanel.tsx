@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { TradeEvent, TradeItem } from '@/types/trade';
+import { TradeEvent, TradeItem, SeasonRecommendation } from '@/types/trade';
 import { getBoostType } from '@/constants/tradeData';
 import { SPECIAL_BARTER_ITEMS } from '@/lib/trade/seasonPrices';
 
@@ -26,6 +26,17 @@ function manNumber(n: number): string {
 // 두 가격 한꺼번에: "23.6~19.0만"
 function priceRange(high: number, low: number): string {
   return `${manNumber(high)}~${manNumber(low)}만`;
+}
+
+// 툴팁 본문: 대유행이면 도시명 포함 두 줄, 아니면 기존 한 줄
+function formatRecTooltip(rec: SeasonRecommendation): string {
+  if (rec.highCity || rec.lowCity) {
+    const lines: string[] = [];
+    if (rec.highCity) lines.push(`최고가 - ${KRW.format(rec.high)} - ${rec.highCity}`);
+    if (rec.lowCity) lines.push(`최저가 - ${KRW.format(rec.low)} - ${rec.lowCity}`);
+    return lines.join('\n');
+  }
+  return `최대 ${KRW.format(rec.high)} · 최소 ${KRW.format(rec.low)}`;
 }
 
 function getRecChipClass(event: TradeEvent): string {
@@ -66,17 +77,13 @@ export default function ItemVotePanel({ event, onItemClick, specialItems }: Prop
       {orderedRecs.map((rec, idx) => {
         const sparkle = isRegisteredSpecial(rec.name);
         const inactive = isInactiveSpecial(rec.name);
+        const body = formatRecTooltip(rec);
+        const prefix = inactive ? '특수 물교 (미등록)\n' : sparkle ? '★ 특수 물교\n' : '';
         return (
           <button
             key={`rec-${idx}-${rec.name}`}
             onClick={() => onItemClick?.(rec.name)}
-            title={
-              inactive
-                ? `특수 물교 (미등록) · 최대 ${KRW.format(rec.high)} · 최소 ${KRW.format(rec.low)}`
-                : sparkle
-                ? `★ 특수 물교 · 최대 ${KRW.format(rec.high)} · 최소 ${KRW.format(rec.low)}`
-                : `최대 ${KRW.format(rec.high)} · 최소 ${KRW.format(rec.low)}`
-            }
+            title={prefix + body}
             className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-bold border whitespace-nowrap transition-all active:scale-95 cursor-pointer ${chipClass} ${
               sparkle ? 'animate-sparkle ring-1 ring-amber-400' : ''
             } ${inactive ? 'opacity-40 grayscale' : ''}`}

@@ -18,6 +18,8 @@ export interface SeasonRecommendation {
   name: string;  // 품목명
   high: number;  // 부양↑ 또는 대유행↑ 가격
   low: number;   // 부양↓ 또는 대유행↓ 가격
+  highCity?: string;  // 대유행: 해역 내 high 가격이 나온 도시
+  lowCity?: string;   // 대유행: 해역 내 low 가격이 나온 도시
 }
 
 export interface TradeItem {
