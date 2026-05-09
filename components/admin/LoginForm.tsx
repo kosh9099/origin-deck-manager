@@ -14,7 +14,8 @@ export default function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!password) {
+    const cleaned = password.trim();
+    if (!cleaned) {
       setError('비밀번호를 입력하세요.');
       return;
     }
@@ -23,7 +24,7 @@ export default function LoginForm() {
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ password: cleaned }),
       });
       if (res.ok) {
         setPassword('');

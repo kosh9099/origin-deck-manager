@@ -13,7 +13,7 @@ export async function POST(req: Request) {
   let password = '';
   try {
     const body = await req.json();
-    password = typeof body?.password === 'string' ? body.password : '';
+    password = typeof body?.password === 'string' ? body.password.trim() : '';
   } catch {
     return NextResponse.json({ ok: false }, { status: 400 });
   }
@@ -27,6 +27,8 @@ export async function POST(req: Request) {
 
   const inputHash = sha256Hex(password);
   if (!timingSafeEqualHex(inputHash, expected)) {
+    // 디버그: 실제 받은 길이만 로깅 (비번 자체는 안 찍음)
+    console.warn(`[admin login] password mismatch (input len=${password.length})`);
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 

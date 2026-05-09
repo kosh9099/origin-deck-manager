@@ -12,9 +12,10 @@ export function sha256Hex(s: string): string {
 /**
  * .env 의 ADMIN_PASSWORD 를 sha256 해시로 환산. 미설정 시 null.
  * 초기 시드용 fallback. DB row 가 생기면 그쪽이 우선.
+ * trim() — .env.local 줄바꿈/공백 잔여 방어.
  */
 export function envPasswordHash(): string | null {
-  const pw = process.env.ADMIN_PASSWORD;
+  const pw = (process.env.ADMIN_PASSWORD ?? '').trim();
   return pw ? sha256Hex(pw) : null;
 }
 
