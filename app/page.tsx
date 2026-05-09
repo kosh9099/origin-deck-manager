@@ -50,6 +50,22 @@ const managers = [
 
 const UPDATE_LOGS = [
   {
+    version: 'v1.2',
+    label: '교역 매니저',
+    date: '2026.05.10',
+    labelColor: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+    items: [
+      { type: 'new', text: '풍근 조합식 검색 탭 — 도시명 검색으로 쉬움/보통/어려움 조합식과 재료 판매 항구 조회' },
+      { type: 'new', text: '교역품 성수기 검색 탭 — 교역품 검색으로 도시별·12개월 성수기(▲)/평수기(―)/비수기(▼) 매트릭스 노출' },
+      { type: 'new', text: '추천 품목 가격 강조 효과 — 최저가 기준 tier 색상 펄스 (≥40만 빨강 / ≥30만 주황 / ≥20만 파랑), 필터로 ON/OFF 가능' },
+      { type: 'new', text: '특수 물교 품목 추가 — 팔레파이, 코아우아우, 아이더 깃털' },
+      { type: 'improve', text: '대유행 추천 품목 기준 변경 — 편차 컷 제거, 최저가 강한 상위 5개 노출' },
+      { type: 'improve', text: '대유행 추천 툴팁 개편 — 해역 내 최고가·최저가가 어느 도시 가격인지 함께 표시' },
+      { type: 'improve', text: '이벤트 유지 시간 보정 — 실제 종료 시점까지 [진행 중] 상태가 더 정확하게 유지' },
+      { type: 'improve', text: '물결 효과 타이밍 보정 — 실제 이벤트 진행에 맞춰 정확히 60분 동안 차오르도록 변경' },
+    ],
+  },
+  {
     version: 'v1.1',
     label: '교역 매니저',
     date: '2026.03.15',
