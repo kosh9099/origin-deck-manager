@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Home, Menu, X, Anchor, Download, RefreshCw, HandHeart, Calculator, Sparkles, MapPin } from 'lucide-react';
+import { Home, Menu, X, Anchor, Download, RefreshCw, HandHeart, Calculator, Sparkles, MapPin, Settings } from 'lucide-react';
 import TradeDashboard from '@/components/trade/TradeDashboard';
 import BoostForm from '@/components/trade/BoostForm';
 import BarterCalculator from '@/components/trade/BarterCalculator';
@@ -118,6 +118,14 @@ export default function TradeManagerPage() {
             </button>
           ))}
         </nav>
+
+        <div className="p-3 border-t border-white/10">
+          <Link href="/admin"
+            className="flex items-center justify-center p-2 rounded-lg text-slate-500 hover:bg-white/5 hover:text-slate-300 transition-colors"
+            title="설정">
+            <Settings size={16} />
+          </Link>
+        </div>
       </aside>
 
       {/* 특수 등록 모달 */}

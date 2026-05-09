@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { insertBoost, getActiveBoosts } from '@/lib/supabaseClient';
+import { insertBoost, insertCityMinuteSample, getActiveBoosts } from '@/lib/supabaseClient';
 import { REGION_PORTS } from '@/lib/trade/cities';
 import { BOOST_EVENT_TYPES } from '@/constants/tradeData';
 import { emitBoostChanged } from '@/lib/trade/boostEvents';
@@ -358,8 +358,13 @@ function BulkForm() {
     setIsUploading(true); setResultMsg('');
     let success = 0, fail = 0;
     for (const row of validRows) {
-      try { await insertBoost(row.city, row.category, row.startTime!.toISOString()); success++; }
-      catch { fail++; }
+      try {
+        await insertBoost(row.city, row.category, row.startTime!.toISOString());
+        // 스캔 등록만 분(minute) 샘플 적재
+        const minute = row.startTime!.getUTCMinutes();
+        await insertCityMinuteSample(row.city, minute).catch(() => {});
+        success++;
+      } catch { fail++; }
     }
     setResultMsg(`✅ ${success}건 등록 완료${fail > 0 ? ` / ⚠️ ${fail}건 실패` : ''}`);
     setIsUploading(false);

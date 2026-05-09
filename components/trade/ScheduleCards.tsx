@@ -100,7 +100,13 @@ export default function ScheduleCards({
         const hasCombo = hasCityCombination(cityName);
         const isActive = isCurrentlyActive(event);
         const isAfter12Hours = event.isBoost && event.startTime > now + 12 * 60 * 60 * 1000;
-        const progress = isActive ? Math.min(100, ((now - event.startTime) / (3600 * 1000)) * 100) : 0;
+        // 물결: HH:@ 부터 60분 동안 차오름 (@ = city_minute 또는 zone_max_minute, ms 단위로 역산).
+        const cardEndMs = event.endTime ?? event.startTime + 3600 * 1000;
+        const minuteOffsetMs = cardEndMs - event.startTime - 3600 * 1000;
+        const waveStartMs = event.startTime + minuteOffsetMs;
+        const progress = isActive && now >= waveStartMs
+          ? Math.min(100, ((now - waveStartMs) / (3600 * 1000)) * 100)
+          : 0;
         const tariff = getTariffDiscount(event.startTime);
 
         return (

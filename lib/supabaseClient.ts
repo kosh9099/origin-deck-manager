@@ -44,18 +44,29 @@ export async function getTradeItems() {
 }
 
 /**
- * 새로운 부양 스케줄을 등록합니다
+ * 새로운 부양 스케줄을 등록합니다.
  */
 export async function insertBoost(port_name: string, category: string, start_time: string) {
   const { data, error } = await supabase
     .from('trade_boosts')
-    // We map UI concepts port_name -> city, category -> type for backward compat.
-    // The user's remote DB expects 'city' and 'type' and we cannot run raw ALTER TABLE.
     .insert([{ city: port_name, type: category, start_time, zone: port_name }])
     .select();
-    
   if (error) throw error;
   return data[0];
+}
+
+/**
+ * 도시별 이벤트 시작 분(minute) 샘플을 누적 적재.
+ * 스캔 등록(BulkForm) 에서만 호출. 단건 등록은 호출하지 않음.
+ */
+export async function insertCityMinuteSample(city: string, minute: number) {
+  const { error } = await supabase
+    .from('city_minute_samples')
+    .insert([{ city, minute }]);
+  if (error) {
+    console.error('Failed to insert city_minute_sample:', error);
+    throw error;
+  }
 }
 
 /**
@@ -246,6 +257,46 @@ export async function getWeeklySightings(): Promise<WeeklySighting[]> {
     }
   }
   return results;
+}
+
+// --- [도시별 이벤트 시작 분(minute) 패턴 — 스캔 등록 데이터 기반] ---
+
+export type CityMinuteEntry = {
+  id: string;           // city_minute_samples row id
+  city: string;
+  minute: number;       // 0~59
+  observedAt: string;   // recorded_at
+};
+
+/**
+ * city_minute_samples 에서 도시별 가장 최근 관측치 1건씩만 반환.
+ * 데이터는 BulkForm 의 스캔 등록에서만 적재됨.
+ */
+export async function getLatestCityMinutes(): Promise<CityMinuteEntry[]> {
+  type Row = { id: string; city: string; minute: number; recorded_at: string };
+  const { data, error } = await supabase
+    .from('city_minute_samples')
+    .select('id, city, minute, recorded_at')
+    .order('recorded_at', { ascending: false });
+
+  if (error) {
+    // 테이블 미생성 등의 케이스. Next.js dev 오버레이를 띄우지 않도록 warn 으로 격하.
+    console.warn('city_minute_samples query failed (table missing?):', error.message ?? error);
+    return [];
+  }
+
+  const result = new Map<string, CityMinuteEntry>();
+  for (const row of (data ?? []) as Row[]) {
+    if (!row.city) continue;
+    if (result.has(row.city)) continue;
+    result.set(row.city, {
+      id: row.id,
+      city: row.city,
+      minute: row.minute,
+      observedAt: row.recorded_at,
+    });
+  }
+  return Array.from(result.values()).sort((a, b) => a.city.localeCompare(b.city));
 }
 
 /**

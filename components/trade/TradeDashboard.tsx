@@ -18,6 +18,12 @@ import { getInGameTimeInfo } from '@/lib/trade/time';
 import { getBoostRecommendations, getEpidemicRecommendations } from '@/lib/trade/seasonPrices';
 import { onBoostChanged, onSpecialChanged } from '@/lib/trade/boostEvents';
 import { loadFavorites, saveFavorites } from '@/lib/trade/favorites';
+import {
+  loadCityMinuteMaps,
+  eventDurationMs,
+  EMPTY_CITY_MINUTE_MAPS,
+  type CityMinuteMaps,
+} from '@/lib/trade/cityMinutes';
 
 // ── 핫타임 설정 ──────────────────────────────────────────────────
 export const HOTTIME_CONFIG = {
@@ -85,7 +91,7 @@ export function getGoldBonuses(
 export function isCurrentlyActive(event: TradeEvent): boolean {
   const now = Date.now();
   const start = event.startTime;
-  const end = start + 3600 * 1000;
+  const end = event.endTime ?? start + 3600 * 1000;
   return now >= start && now < end;
 }
 
@@ -174,9 +180,23 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
   const [zoneMap, setZoneMap] = useState<SheetItemMap>({});
   const [cityMap, setCityMap] = useState<SheetItemMap>({});
   const [specialItems, setSpecialItems] = useState<Map<string, string>>(new Map());
+  const [cityMinuteMaps, setCityMinuteMaps] = useState<CityMinuteMaps>(EMPTY_CITY_MINUTE_MAPS);
   const [sheetStatus, setSheetStatus] = useState<{
     zone: SheetLoadStatus; city: SheetLoadStatus;
   }>({ zone: 'idle', city: 'idle' });
+
+  // 도시별 분 데이터 로드 (해역 max minute 까지 전처리). 한 번 로드 후 재사용.
+  useEffect(() => {
+    loadCityMinuteMaps().then(setCityMinuteMaps).catch(() => {});
+  }, []);
+
+  // events 와 cityMinuteMaps 를 결합해 각 이벤트의 endTime 을 실제 유지 시간으로 보정.
+  const eventsWithEndTime = useMemo<TradeEvent[]>(() => {
+    return events.map(ev => ({
+      ...ev,
+      endTime: ev.startTime + eventDurationMs(ev, cityMinuteMaps),
+    }));
+  }, [events, cityMinuteMaps]);
 
   // 필터 변경 시 localStorage에 자동 저장 (hydration 이후에만 — 초기 default 덮어쓰기 방지)
   useEffect(() => {
@@ -335,7 +355,7 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
   const inGameTime = getInGameTimeInfo(now);
 
   const filteredEvents = useMemo(() => {
-    let result = events.filter(ev => {
+    let result = eventsWithEndTime.filter(ev => {
       if (ev.isBoost) {
         const bt = getBoostType(ev.type);
         if (bt === '급매') return filters.flash;
@@ -359,7 +379,7 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
     }
 
     return result;
-  }, [events, filters, favorites, captureMode]);
+  }, [eventsWithEndTime, filters, favorites, captureMode]);
 
   return (
     <div className="w-full flex-1 flex flex-col h-full relative" id="trade-dashboard-capture-area">
