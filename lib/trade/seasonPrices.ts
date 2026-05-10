@@ -49,6 +49,7 @@ export const SPECIAL_BARTER_ITEMS = new Set<string>([
   '팔레파이',
   '코아우아우',
   '아이더 깃털',
+  '수마',
 ]);
 
 // 카테고리/이름 룩업 인덱스 (제외 품목은 후보에 포함하지 않음)

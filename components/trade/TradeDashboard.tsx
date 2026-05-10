@@ -448,7 +448,7 @@ export default function TradeDashboard({
       })()}
 
       {/* 필터 토글 */}
-      <div className="flex items-center gap-1 md:gap-1.5 mb-3 shrink-0 flex-wrap">
+      <div className="flex items-center gap-1 md:gap-1.5 mb-3 shrink-0 flex-nowrap">
         <span className="hidden md:flex items-center gap-1 text-[11px] font-bold text-slate-500 shrink-0"><Filter size={11} /></span>
         {([
           { key: 'boost' as const, label: '부양', activeColor: 'bg-violet-500 text-white border-violet-600', inactiveColor: 'bg-white text-violet-600 border-violet-300 opacity-50' },
@@ -460,7 +460,7 @@ export default function TradeDashboard({
           <button
             key={f.key}
             onClick={() => setFilters(prev => ({ ...prev, [f.key]: !prev[f.key] }))}
-            className={`px-2 py-0.5 rounded-full text-[11px] font-black border transition-all active:scale-95 shrink-0 ${
+            className={`px-1.5 md:px-2 py-0.5 rounded-full text-[10px] md:text-[11px] font-black border transition-all active:scale-95 shrink-0 whitespace-nowrap ${
               filters[f.key] ? f.activeColor : f.inactiveColor
             }`}
           >
