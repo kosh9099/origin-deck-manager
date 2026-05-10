@@ -281,36 +281,124 @@ export default function CityMapView({ focus = null }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewport.h]);
 
-  // 드래그 패닝
+  // 드래그 패닝 + 핀치 줌
   const dragStateRef = useRef({ active: false, startX: 0, startY: 0, panX: 0, panY: 0 });
+  const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const pinchRef = useRef<{
+    initialDistance: number;
+    initialZoom: number;
+    midX: number;       // container-relative midpoint at pinch start
+    midY: number;
+    worldMidX: number;  // world coords under midpoint at pinch start
+    worldMidY: number;
+  } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+
+  // 글로벌 listener 로 pointermove / pointerup 잡기 (pointer capture 의존성 제거 — 다중 포인터 안정).
+  // pan/zoom 최신 값을 ref 로 동기화해 stale closure 회피.
+  const panRef = useRef(pan);
+  const zoomRef = useRef(zoom);
+  const viewportHRef = useRef(viewport.h);
+  useEffect(() => { panRef.current = pan; }, [pan]);
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
+  useEffect(() => { viewportHRef.current = viewport.h; }, [viewport.h]);
 
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest('button')) return;
-    dragStateRef.current = {
-      active: true,
-      startX: e.clientX,
-      startY: e.clientY,
-      panX: pan.x,
-      panY: pan.y,
-    };
-    setIsDragging(true);
-    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-  }, [pan.x, pan.y]);
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const c = containerRef.current;
+    if (!c) return;
+    const rect = c.getBoundingClientRect();
 
-  const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    const s = dragStateRef.current;
-    if (!s.active) return;
-    const newY = clampPanY(s.panY + (e.clientY - s.startY), zoom, viewport.h);
-    setPan({ x: s.panX + (e.clientX - s.startX), y: newY });
-  }, [zoom, viewport.h, clampPanY]);
-
-  const onPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragStateRef.current.active) return;
-    dragStateRef.current.active = false;
-    setIsDragging(false);
-    (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+    if (pointersRef.current.size === 1) {
+      dragStateRef.current = {
+        active: true,
+        startX: e.clientX,
+        startY: e.clientY,
+        panX: panRef.current.x,
+        panY: panRef.current.y,
+      };
+      setIsDragging(true);
+    } else if (pointersRef.current.size === 2) {
+      dragStateRef.current.active = false;
+      setIsDragging(false);
+      const pts = [...pointersRef.current.values()];
+      const dx = pts[1].x - pts[0].x;
+      const dy = pts[1].y - pts[0].y;
+      const distance = Math.hypot(dx, dy);
+      const midX = (pts[0].x + pts[1].x) / 2 - rect.left;
+      const midY = (pts[0].y + pts[1].y) / 2 - rect.top;
+      pinchRef.current = {
+        initialDistance: distance,
+        initialZoom: zoomRef.current,
+        midX,
+        midY,
+        worldMidX: (midX - panRef.current.x) / zoomRef.current,
+        worldMidY: (midY - panRef.current.y) / zoomRef.current,
+      };
+    }
   }, []);
+
+  // 글로벌 pointermove / pointerup — 포인터가 컨테이너 밖으로 나가도 추적, 다중 포인터 안전.
+  useEffect(() => {
+    const handleMove = (e: PointerEvent) => {
+      if (!pointersRef.current.has(e.pointerId)) return;
+      pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (pinchRef.current && pointersRef.current.size >= 2) {
+        const pts = [...pointersRef.current.values()].slice(0, 2);
+        const dx = pts[1].x - pts[0].x;
+        const dy = pts[1].y - pts[0].y;
+        const distance = Math.hypot(dx, dy);
+        if (distance < 1) return;
+        const scale = distance / pinchRef.current.initialDistance;
+        const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, snapZoom(pinchRef.current.initialZoom * scale)));
+        const targetPanX = pinchRef.current.midX - pinchRef.current.worldMidX * newZoom;
+        const targetPanY = pinchRef.current.midY - pinchRef.current.worldMidY * newZoom;
+        setZoom(newZoom);
+        setPan({ x: targetPanX, y: clampPanY(targetPanY, newZoom, viewportHRef.current) });
+        return;
+      }
+
+      const s = dragStateRef.current;
+      if (!s.active) return;
+      const newY = clampPanY(s.panY + (e.clientY - s.startY), zoomRef.current, viewportHRef.current);
+      setPan({ x: s.panX + (e.clientX - s.startX), y: newY });
+    };
+
+    const handleUp = (e: PointerEvent) => {
+      if (!pointersRef.current.has(e.pointerId)) return;
+      pointersRef.current.delete(e.pointerId);
+
+      if (pointersRef.current.size === 0) {
+        pinchRef.current = null;
+        if (dragStateRef.current.active) {
+          dragStateRef.current.active = false;
+          setIsDragging(false);
+        }
+      } else if (pointersRef.current.size === 1 && pinchRef.current) {
+        pinchRef.current = null;
+        const remaining = [...pointersRef.current.values()][0];
+        dragStateRef.current = {
+          active: true,
+          startX: remaining.x,
+          startY: remaining.y,
+          panX: panRef.current.x,
+          panY: panRef.current.y,
+        };
+        setIsDragging(true);
+      }
+    };
+
+    window.addEventListener('pointermove', handleMove);
+    window.addEventListener('pointerup', handleUp);
+    window.addEventListener('pointercancel', handleUp);
+    return () => {
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleUp);
+      window.removeEventListener('pointercancel', handleUp);
+    };
+  }, [clampPanY]);
 
   const onWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -436,24 +524,24 @@ export default function CityMapView({ focus = null }: Props) {
   return (
     <div className="w-full h-full flex flex-col">
       {/* 상단 툴바 */}
-      <div className="shrink-0 px-3 md:px-5 py-2 border-b border-slate-200 bg-white flex flex-wrap items-center gap-3">
-        <h2 className="text-[14px] font-black text-slate-800 flex items-center gap-1.5">
+      <div className="shrink-0 px-3 md:px-5 py-2 border-b border-slate-200 bg-white flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-3">
+        <h2 className="hidden md:flex text-[14px] font-black text-slate-800 items-center gap-1.5 shrink-0">
           <Globe size={16} className="text-indigo-500" />
           세계 지도
         </h2>
-        <span className="text-[11px] font-bold text-slate-500">
+        <span className="hidden md:inline text-[11px] font-bold text-slate-500 shrink-0">
           224개 항구 · 18개 해역
         </span>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="relative ml-auto flex items-center gap-1.5 md:gap-2 order-1 md:order-none">
           {/* 교역품 검색 드롭다운 */}
-          <div className="relative" ref={itemMenuRef}>
+          <div className="static md:relative" ref={itemMenuRef}>
             <button
               onClick={() => {
                 setItemMenuOpen((v) => !v);
                 if (!itemMenuOpen) setTimeout(() => itemInputRef.current?.focus(), 50);
               }}
               title="교역품 검색 — 선택 시 생산 도시만 시즌 색으로 표시"
-              className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[12px] font-bold transition-colors
+              className={`inline-flex items-center gap-1 px-2 md:px-2.5 py-1.5 rounded-lg border text-[12px] font-bold transition-colors whitespace-nowrap shrink-0
                 ${selectedItem
                   ? 'bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-700'
                   : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
@@ -477,7 +565,7 @@ export default function CityMapView({ focus = null }: Props) {
               <ChevronDown size={12} className={`transition-transform ${itemMenuOpen ? 'rotate-180' : ''}`} />
             </button>
             {itemMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 z-30 w-72 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+              <div className="absolute right-3 md:right-0 top-full mt-1 z-30 w-[min(18rem,calc(100vw-1.5rem))] md:w-72 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
                 <div className="px-2 py-2 border-b border-slate-100 bg-slate-50">
                   <div className="relative">
                     <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
@@ -527,11 +615,11 @@ export default function CityMapView({ focus = null }: Props) {
             )}
           </div>
 
-          <div className="relative" ref={regionMenuRef}>
+          <div className="static md:relative" ref={regionMenuRef}>
             <button
               onClick={() => setRegionMenuOpen((v) => !v)}
               title="해역 영역 표시 선택"
-              className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[12px] font-bold transition-colors
+              className={`inline-flex items-center gap-1 px-2 md:px-2.5 py-1.5 rounded-lg border text-[12px] font-bold transition-colors whitespace-nowrap shrink-0
                 ${noneOn
                   ? 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
                   : allOn
@@ -539,14 +627,15 @@ export default function CityMapView({ focus = null }: Props) {
                     : 'bg-indigo-50 text-indigo-700 border-indigo-300 hover:bg-indigo-100'}`}
             >
               <Layers size={13} />
-              해역 영역
+              <span className="hidden sm:inline">해역 영역</span>
+              <span className="sm:hidden">해역</span>
               <span className="text-[10px] tabular-nums opacity-80">
                 ({visibleRegions.size}/{allRegionNames.length})
               </span>
               <ChevronDown size={12} className={`transition-transform ${regionMenuOpen ? 'rotate-180' : ''}`} />
             </button>
             {regionMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 z-30 w-64 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+              <div className="absolute right-3 md:right-0 top-full mt-1 z-30 w-[min(16rem,calc(100vw-1.5rem))] md:w-64 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
                 <div className="px-3 py-2 border-b border-slate-100 flex items-center justify-between gap-2 bg-slate-50">
                   <span className="text-[11px] font-black text-slate-700">해역 선택</span>
                   <div className="flex gap-1">
@@ -606,23 +695,24 @@ export default function CityMapView({ focus = null }: Props) {
               </div>
             )}
           </div>
-          <div className="relative" ref={searchBoxRef}>
-            <Search size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            <input
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setSearchOpen(true); }}
-              onFocus={() => setSearchOpen(true)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && searchSuggestions.length > 0) {
-                  e.preventDefault();
-                  pickSearchedCity(searchSuggestions[0].city);
-                } else if (e.key === 'Escape') {
-                  setSearchOpen(false);
-                }
-              }}
-              placeholder="도시명 또는 해역 (초성 가능)"
-              className="pl-7 pr-2 py-1.5 text-[12px] border border-slate-200 rounded-lg bg-white focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 w-56"
-            />
+        </div>
+        <div className="relative w-full md:w-auto order-2 md:order-none" ref={searchBoxRef}>
+          <Search size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <input
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setSearchOpen(true); }}
+            onFocus={() => setSearchOpen(true)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && searchSuggestions.length > 0) {
+                e.preventDefault();
+                pickSearchedCity(searchSuggestions[0].city);
+              } else if (e.key === 'Escape') {
+                setSearchOpen(false);
+              }
+            }}
+            placeholder="도시 검색 (초성 가능)"
+            className="pl-7 pr-2 py-1.5 text-[12px] border border-slate-200 rounded-lg bg-white focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 w-full md:w-56 min-w-0"
+          />
             {searchOpen && searchTrim && (
               <div className="absolute right-0 top-full mt-1 z-30 w-64 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
                 {searchSuggestions.length === 0 ? (
@@ -649,7 +739,6 @@ export default function CityMapView({ focus = null }: Props) {
                 )}
               </div>
             )}
-          </div>
         </div>
       </div>
 
@@ -662,9 +751,6 @@ export default function CityMapView({ focus = null }: Props) {
           touchAction: 'none',
         }}
         onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
         onWheel={onWheel}
       >
         {(() => {

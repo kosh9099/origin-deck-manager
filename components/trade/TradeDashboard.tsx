@@ -448,8 +448,8 @@ export default function TradeDashboard({
       })()}
 
       {/* 필터 토글 */}
-      <div className="flex items-center gap-1.5 mb-3 shrink-0 flex-wrap">
-        <span className="flex items-center gap-1 text-[11px] font-bold text-slate-500 shrink-0"><Filter size={11} /></span>
+      <div className="flex items-center gap-1 md:gap-1.5 mb-3 shrink-0 flex-wrap">
+        <span className="hidden md:flex items-center gap-1 text-[11px] font-bold text-slate-500 shrink-0"><Filter size={11} /></span>
         {([
           { key: 'boost' as const, label: '부양', activeColor: 'bg-violet-500 text-white border-violet-600', inactiveColor: 'bg-white text-violet-600 border-violet-300 opacity-50' },
           { key: 'flash' as const, label: '급매', activeColor: 'bg-orange-500 text-white border-orange-600', inactiveColor: 'bg-white text-orange-600 border-orange-300 opacity-50' },

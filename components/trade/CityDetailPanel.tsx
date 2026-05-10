@@ -163,16 +163,23 @@ export default function CityDetailPanel({ city, onClose }: Props) {
 
   return (
     <>
-      {/* 오버레이 (모바일에서만 클릭으로 닫기 — 데스크톱 사이드는 그냥 옆에 떠있음) */}
+      {/* 오버레이 — 모바일에서 panel 위쪽 영역 클릭 시 닫기. dim 은 가볍게 (지도 시야 확보). */}
       <div
-        className="fixed inset-0 z-[150] bg-black/30 md:hidden"
+        className="fixed inset-0 z-[150] bg-black/20 md:hidden"
         onClick={onClose}
       />
 
-      {/* 패널 */}
+      {/* 패널 — 모바일: 하단 70vh 바텀시트 / 데스크톱: 우측 380px 풀높이 */}
       <aside
-        className="fixed right-0 top-0 bottom-0 z-[160] w-full md:w-[380px] bg-white border-l border-slate-200 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200"
+        className="fixed z-[160] bg-white shadow-2xl flex flex-col
+          inset-x-0 bottom-0 h-[70vh] rounded-t-2xl border-t border-slate-200
+          md:inset-x-auto md:right-0 md:top-0 md:bottom-0 md:h-auto md:w-[380px] md:rounded-none md:border-t-0 md:border-l
+          animate-in slide-in-from-bottom md:slide-in-from-right duration-200"
       >
+        {/* 모바일 드래그 핸들 표시 */}
+        <div className="flex justify-center pt-2 pb-1 md:hidden shrink-0">
+          <div className="w-10 h-1 bg-slate-300 rounded-full" />
+        </div>
         {/* 헤더 */}
         <div className={`shrink-0 px-4 py-3 border-b border-slate-200
           ${isHomeBase ? 'bg-gradient-to-r from-amber-50 to-amber-100' : 'bg-slate-50'}`}>

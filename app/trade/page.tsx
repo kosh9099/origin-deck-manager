@@ -153,8 +153,12 @@ export default function TradeManagerPage() {
       )}
 
       {/* ── 메인 콘텐츠 ── */}
-      <main className="flex-1 overflow-y-auto bg-[#f0ece4] p-4 md:p-6 lg:p-8 flex flex-col w-full relative">
-        <div className="max-w-[1400px] w-full mx-auto space-y-4 md:space-y-6 flex-1 flex flex-col pb-20 md:pb-0">
+      <main className={`flex-1 overflow-y-auto bg-[#f0ece4] flex flex-col w-full relative ${
+        activeTab === 'map' ? 'p-0 md:p-6 lg:p-8' : 'p-4 md:p-6 lg:p-8'
+      }`}>
+        <div className={`max-w-[1400px] w-full mx-auto flex-1 flex flex-col md:pb-0 ${
+          activeTab === 'map' ? 'space-y-0 md:space-y-6' : 'space-y-4 md:space-y-6 pb-20'
+        }`}>
 
           {/* 상단 헤더 (대시보드 모드에서는 액션 버튼들, 부양 모드에서는 제목) */}
           {activeTab === 'boosts' && (
@@ -171,32 +175,40 @@ export default function TradeManagerPage() {
             </div>
           )}
           {activeTab === 'dashboard' && (
-            <div className="flex justify-end gap-2 mb-1">
+            <div className="flex justify-end gap-1.5 sm:gap-2 mb-1">
               <button onClick={() => setActiveTab('boosts')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0">
+                title="부양 등록"
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0">
                 <HandHeart size={13} />
-                <span className="whitespace-nowrap">부양 등록</span>
+                <span className="hidden sm:inline whitespace-nowrap">부양 등록</span>
               </button>
               <button onClick={() => setWeeklyOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0">
+                title="주간 기록"
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0">
                 <MapPin size={13} />
-                <span className="whitespace-nowrap">주간 기록</span>
+                <span className="hidden sm:inline whitespace-nowrap">주간 기록</span>
               </button>
               <button onClick={() => setSpecialOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0">
+                title="특수 등록"
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0">
                 <Sparkles size={13} />
-                <span className="whitespace-nowrap">특수 등록</span>
+                <span className="hidden sm:inline whitespace-nowrap">특수 등록</span>
               </button>
               <button onClick={handleCapture}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 group shrink-0">
+                title="캡처"
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 group shrink-0">
                 <Download size={13} className="group-hover:-translate-y-0.5 transition-transform" />
-                <span className="whitespace-nowrap">캡처</span>
+                <span className="hidden sm:inline whitespace-nowrap">캡처</span>
               </button>
             </div>
           )}
 
-          {/* 컨텐츠 패널 */}
-          <div className="flex-1 min-h-0 bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm relative animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-hidden flex flex-col">
+          {/* 컨텐츠 패널 — map 탭은 모바일에서 full-bleed (테두리/라운드/패딩 제거) */}
+          <div className={`flex-1 min-h-0 bg-white relative animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-hidden flex flex-col ${
+            activeTab === 'map'
+              ? 'rounded-none md:rounded-2xl border-0 md:border md:border-slate-200 shadow-none md:shadow-sm'
+              : 'rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm'
+          }`}>
             {activeTab === 'dashboard' && <TradeDashboard onMapJump={handleMapJump} />}
             {activeTab === 'boosts' && (
               <div className="flex justify-center w-full py-4 overflow-y-auto">
