@@ -175,30 +175,30 @@ export default function TradeManagerPage() {
             </div>
           )}
           {activeTab === 'dashboard' && (
-            <div className="flex justify-end gap-1.5 sm:gap-2 mb-1">
+            <div className="flex justify-end gap-1 sm:gap-2 mb-1">
               <button onClick={() => setActiveTab('boosts')}
                 title="부양 등록"
-                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0">
+                className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] sm:text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0">
                 <HandHeart size={13} />
-                <span className="hidden sm:inline whitespace-nowrap">부양 등록</span>
+                <span className="whitespace-nowrap"><span className="sm:hidden">부양</span><span className="hidden sm:inline">부양 등록</span></span>
               </button>
               <button onClick={() => setWeeklyOpen(true)}
                 title="주간 기록"
-                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0">
+                className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-[11px] sm:text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0">
                 <MapPin size={13} />
-                <span className="hidden sm:inline whitespace-nowrap">주간 기록</span>
+                <span className="whitespace-nowrap"><span className="sm:hidden">주간</span><span className="hidden sm:inline">주간 기록</span></span>
               </button>
               <button onClick={() => setSpecialOpen(true)}
                 title="특수 등록"
-                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0">
+                className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white text-[11px] sm:text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0">
                 <Sparkles size={13} />
-                <span className="hidden sm:inline whitespace-nowrap">특수 등록</span>
+                <span className="whitespace-nowrap"><span className="sm:hidden">특수</span><span className="hidden sm:inline">특수 등록</span></span>
               </button>
               <button onClick={handleCapture}
                 title="캡처"
-                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 group shrink-0">
+                className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] sm:text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 group shrink-0">
                 <Download size={13} className="group-hover:-translate-y-0.5 transition-transform" />
-                <span className="hidden sm:inline whitespace-nowrap">캡처</span>
+                <span className="whitespace-nowrap">캡처</span>
               </button>
             </div>
           )}
