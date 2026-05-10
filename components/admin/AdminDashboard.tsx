@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, LogOut, Loader2, Clock, KeyRound, Check } from 'lucide-react';
+import { ArrowLeft, LogOut, Loader2, Clock, KeyRound, Check, Users } from 'lucide-react';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -55,6 +55,23 @@ export default function AdminDashboard() {
                 <h2 className="font-black text-slate-800 text-[14px]">도시별 이벤트 시작 분 수집 현황</h2>
                 <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
                   스캔 등록으로 쌓인 도시별 분 데이터의 현재 커버리지를 확인.
+                </p>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/visitors"
+            className="block bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:border-indigo-300 hover:shadow-md transition-all group"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-100 transition-colors shrink-0">
+                <Users size={18} />
+              </div>
+              <div className="min-w-0">
+                <h2 className="font-black text-slate-800 text-[14px]">방문자 통계</h2>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                  현재 접속 중인 방문자, 오늘·누적 접속, 최근 7일 일별 추이.
                 </p>
               </div>
             </div>
