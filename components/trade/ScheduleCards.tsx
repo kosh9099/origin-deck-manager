@@ -13,6 +13,8 @@ import BarterDetailModal from './BarterDetailModal';
 import { hasCityCombination } from '@/lib/trade/combinationRotation';
 import { getInGameTimeInfo } from '@/lib/trade/time';
 import { isCurrentlyActive } from './TradeDashboard';
+import { normalizeZoneName } from '@/lib/trade/sheetSync';
+import { Map as MapIcon } from 'lucide-react';
 
 function getTariffDiscount(startTime: number): { label: string; level: number } | null {
   const kst = new Date(startTime + 9 * 3600 * 1000);
@@ -35,6 +37,7 @@ interface Props {
   onToggleFavorite: (eventId: string) => void;
   specialItems?: Map<string, string>;
   tierFxEnabled?: boolean;
+  onMapJump?: (target: { city?: string; region?: string }) => void;
 }
 
 const typeColors: Record<string, string> = {
@@ -64,6 +67,7 @@ export default function ScheduleCards({
   onToggleFavorite,
   specialItems,
   tierFxEnabled = true,
+  onMapJump,
 }: Props) {
   const [selectedCity, setSelectedCity] = React.useState<string | null>(null);
   const [selectedItem, setSelectedItem] = React.useState<string | null>(null);
@@ -186,6 +190,17 @@ export default function ScheduleCards({
                     cityName
                   )}
                 </span>
+
+                {/* 지도 점프 버튼 */}
+                {onMapJump && (
+                  <button
+                    onClick={() => onMapJump(isBoost ? { city: event.city || event.zone } : { region: normalizeZoneName(event.zone) })}
+                    title={isBoost ? '지도에서 해당 도시 보기' : '지도에서 해역 보기'}
+                    className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors active:scale-95 shrink-0"
+                  >
+                    <MapIcon size={10} /> 지도
+                  </button>
+                )}
 
                 {/* 이벤트 배지 */}
                 <span

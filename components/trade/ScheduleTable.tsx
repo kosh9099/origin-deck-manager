@@ -15,6 +15,8 @@ import BarterDetailModal from './BarterDetailModal';
 import CityCombinationModal from './CityCombinationModal';
 import EditBoostModal from './EditBoostModal';
 import { hasCityCombination } from '@/lib/trade/combinationRotation';
+import { normalizeZoneName } from '@/lib/trade/sheetSync';
+import { Map as MapIcon } from 'lucide-react';
 
 function getTariffDiscount(startTime: number): { label: string; level: number } | null {
   const kst = new Date(startTime + 9 * 3600 * 1000);
@@ -38,6 +40,7 @@ interface Props {
   onToggleFavorite: (eventId: string) => void;
   specialItems?: Map<string, string>;
   tierFxEnabled?: boolean;
+  onMapJump?: (target: { city?: string; region?: string }) => void;
 }
 
 const typeColors: Record<string, string> = {
@@ -68,7 +71,7 @@ const typeRowColors: Record<string, string> = {
   '축제': 'bg-emerald-100/80 hover:bg-emerald-200/80',
 };
 
-export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, onAddOptimistic, onDeleteItem, favorites, onToggleFavorite, specialItems, tierFxEnabled = true }: Props) {
+export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, onAddOptimistic, onDeleteItem, favorites, onToggleFavorite, specialItems, tierFxEnabled = true, onMapJump }: Props) {
   const [selectedItem, setSelectedItem] = React.useState<string | null>(null);
   const [selectedCity, setSelectedCity] = React.useState<string | null>(null);
   const [editingBoost, setEditingBoost] = React.useState<TradeEvent | null>(null);
@@ -193,25 +196,41 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
 
                 {/* 해역/항구 */}
                 <td className="pl-6 pr-3 py-1.5 align-middle border-y border-slate-200/60">
-                  <span className="text-[12px] font-bold text-slate-800 break-keep leading-tight whitespace-normal">
-                    {(() => {
-                      const cityName = isBoost ? (event.city || event.zone || '항구 미상') : event.zone;
-                      const hasCombination = hasCityCombination(cityName);
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[12px] font-bold text-slate-800 break-keep leading-tight whitespace-normal">
+                      {(() => {
+                        const cityName = isBoost ? (event.city || event.zone || '항구 미상') : event.zone;
+                        const hasCombination = hasCityCombination(cityName);
 
-                      if (hasCombination) {
-                        return (
-                          <button
-                            onClick={() => setSelectedCity(cityName)}
-                            className="text-indigo-600 hover:text-indigo-800 hover:underline underline-offset-2 transition-colors text-left active:scale-95 break-keep"
-                            title={`${cityName} 조합식 보기`}
-                          >
-                            {cityName}
-                          </button>
-                        );
-                      }
-                      return cityName;
+                        if (hasCombination) {
+                          return (
+                            <button
+                              onClick={() => setSelectedCity(cityName)}
+                              className="text-indigo-600 hover:text-indigo-800 hover:underline underline-offset-2 transition-colors text-left active:scale-95 break-keep"
+                              title={`${cityName} 조합식 보기`}
+                            >
+                              {cityName}
+                            </button>
+                          );
+                        }
+                        return cityName;
+                      })()}
+                    </span>
+                    {onMapJump && (() => {
+                      const target = isBoost
+                        ? { city: event.city || event.zone }
+                        : { region: normalizeZoneName(event.zone) };
+                      return (
+                        <button
+                          onClick={() => onMapJump(target)}
+                          title={isBoost ? '지도에서 해당 도시 보기' : '지도에서 해역 보기'}
+                          className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors active:scale-95 shrink-0"
+                        >
+                          <MapIcon size={10} /> 지도
+                        </button>
+                      );
                     })()}
-                  </span>
+                  </div>
                 </td>
 
                 {/* 이벤트 */}

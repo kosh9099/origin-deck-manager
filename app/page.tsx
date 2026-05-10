@@ -50,6 +50,20 @@ const managers = [
 
 const UPDATE_LOGS = [
   {
+    version: 'v1.3',
+    label: '교역 매니저',
+    date: '2026.05.10',
+    labelColor: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+    items: [
+      { type: 'new', text: '세계 지도 신설 — 224개 항구를 해역별 컬러 배지로 표시, 드래그 + 휠 줌 + 가로 wrap 지원' },
+      { type: 'new', text: '도시 클릭 → 상세 패널 — 활성/예정 교역 스케줄, 풍근 조합식, 12개월 시즌 매트릭스 한 곳에서 조회' },
+      { type: 'new', text: '교역 스케줄 ↔ 지도 연동 — 스케줄 행의 [지도] 버튼으로 해당 해역/도시 즉시 이동' },
+      { type: 'new', text: '교역품 검색을 지도 위로 통합 — 품목 선택 시 생산 도시만 시즌 색(▲성수기/▼비수기/―평) 으로 강조' },
+      { type: 'improve', text: '검색 자동완성 + 초성 지원 — 도시명/해역명 부분 일치 + ㄹㄷ → 런던 같은 초성 매칭' },
+      { type: 'improve', text: '사이드바 단순화 — 풍근/성수기 검색 탭을 지도로 흡수해 메뉴 정리' },
+    ],
+  },
+  {
     version: 'v1.2',
     label: '교역 매니저',
     date: '2026.05.10',

@@ -2,17 +2,16 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Home, Menu, X, Anchor, Download, RefreshCw, HandHeart, Calculator, Sparkles, MapPin, Settings, Compass, CalendarDays } from 'lucide-react';
+import { Home, Menu, X, Anchor, Download, RefreshCw, HandHeart, Calculator, Sparkles, MapPin, Settings, Globe } from 'lucide-react';
 import TradeDashboard from '@/components/trade/TradeDashboard';
 import BoostForm from '@/components/trade/BoostForm';
 import BarterCalculator from '@/components/trade/BarterCalculator';
-import CityCombinationSearch from '@/components/trade/CityCombinationSearch';
-import SeasonSearch from '@/components/trade/SeasonSearch';
+import CityMapView, { type MapFocus } from '@/components/trade/CityMapView';
 import SpecialForm from '@/components/trade/SpecialForm';
 import WeeklyItemsForm from '@/components/trade/WeeklyItemsForm';
 import { captureAndDownload } from '@/lib/utils/capture';
 
-type TradeViewType = 'dashboard' | 'boosts' | 'barter' | 'combination' | 'season';
+type TradeViewType = 'dashboard' | 'boosts' | 'barter' | 'map';
 
 export default function TradeManagerPage() {
   const [activeTab, setActiveTab] = useState<TradeViewType>('dashboard');
@@ -21,17 +20,26 @@ export default function TradeManagerPage() {
   const [captureToast, setCaptureToast] = useState<string | null>(null);
   const [specialOpen, setSpecialOpen] = useState(false);
   const [weeklyOpen, setWeeklyOpen] = useState(false);
+  const [mapFocus, setMapFocus] = useState<MapFocus | null>(null);
 
   const handleTabChange = (tab: TradeViewType) => {
+    // 사이드바로 탭 이동 시 지도 점프 focus 정리 — 다음에 지도 탭 다시 진입해도 기본값(세비야/40%/해역off)으로 시작.
+    if (mapFocus) setMapFocus(null);
     setActiveTab(tab);
+    setIsMobileMenuOpen(false);
+  };
+
+  // 교역 스케줄에서 [지도] 버튼 클릭 시: 지도 탭으로 전환 + 해당 도시/해역 포커싱.
+  const handleMapJump = (target: { city?: string; region?: string }) => {
+    setMapFocus({ ...target, epoch: Date.now() });
+    setActiveTab('map');
     setIsMobileMenuOpen(false);
   };
 
   const navItems = [
     { id: 'dashboard' as const, label: '교역 스케줄', icon: <RefreshCw size={18} /> },
+    { id: 'map' as const, label: '세계 지도', icon: <Globe size={18} /> },
     { id: 'barter' as const, label: '물물교환 계산기', icon: <Calculator size={18} /> },
-    { id: 'combination' as const, label: '풍근 조합식 검색', icon: <Compass size={18} /> },
-    { id: 'season' as const, label: '교역품 성수기 검색', icon: <CalendarDays size={18} /> },
   ];
 
   const handleCapture = async () => {
@@ -189,7 +197,7 @@ export default function TradeManagerPage() {
 
           {/* 컨텐츠 패널 */}
           <div className="flex-1 min-h-0 bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm relative animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-hidden flex flex-col">
-            {activeTab === 'dashboard' && <TradeDashboard />}
+            {activeTab === 'dashboard' && <TradeDashboard onMapJump={handleMapJump} />}
             {activeTab === 'boosts' && (
               <div className="flex justify-center w-full py-4 overflow-y-auto">
                 <BoostForm />
@@ -200,14 +208,9 @@ export default function TradeManagerPage() {
                 <BarterCalculator />
               </div>
             )}
-            {activeTab === 'combination' && (
-              <div className="w-full py-2 overflow-y-auto">
-                <CityCombinationSearch />
-              </div>
-            )}
-            {activeTab === 'season' && (
-              <div className="w-full py-2 overflow-y-auto">
-                <SeasonSearch />
+            {activeTab === 'map' && (
+              <div className="w-full h-full">
+                <CityMapView focus={mapFocus} />
               </div>
             )}
           </div>

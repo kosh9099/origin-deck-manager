@@ -146,7 +146,15 @@ function mergeSheetItems(
   });
 }
 
-export default function TradeDashboard({ captureMode = false }: { captureMode?: boolean }) {
+type MapJumpTarget = { city?: string; region?: string };
+
+export default function TradeDashboard({
+  captureMode = false,
+  onMapJump,
+}: {
+  captureMode?: boolean;
+  onMapJump?: (target: MapJumpTarget) => void;
+}) {
   const [events, setEvents] = useState<TradeEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [now, setNow] = useState(Date.now());
@@ -483,6 +491,7 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
                 onToggleFavorite={toggleFavorite}
                 specialItems={specialItems}
                 tierFxEnabled={filters.tierFx}
+                onMapJump={onMapJump}
               />
             </div>
             <div className="md:hidden">
@@ -497,6 +506,7 @@ export default function TradeDashboard({ captureMode = false }: { captureMode?: 
                 onToggleFavorite={toggleFavorite}
                 specialItems={specialItems}
                 tierFxEnabled={filters.tierFx}
+                onMapJump={onMapJump}
               />
             </div>
           </div>
