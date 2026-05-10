@@ -1,0 +1,551 @@
+{
+  "villages": [
+    {
+      "id": "custom_1",
+      "x": 4467,
+      "y": 1649,
+      "r": "1",
+      "barterCount": 0
+    },
+    {
+      "id": "discov01c025",
+      "x": 2897,
+      "y": 1893,
+      "r": "2",
+      "discovery": "discov19d026",
+      "barterCount": 4
+    },
+    {
+      "id": "discov19cT118",
+      "x": 9780,
+      "y": 3584,
+      "r": "2",
+      "discovery": "discov19d017",
+      "barterCount": 4
+    },
+    {
+      "id": "discov19cT148",
+      "x": 6377,
+      "y": 435,
+      "r": "2",
+      "discovery": "discov19d017",
+      "barterCount": 0
+    },
+    {
+      "id": "discov19cT149",
+      "x": 8585,
+      "y": 206,
+      "r": "2",
+      "discovery": "discov19d017",
+      "barterCount": 0
+    },
+    {
+      "id": "discov19cT150",
+      "x": 8433,
+      "y": 771,
+      "r": "2",
+      "discovery": "discov19d017",
+      "barterCount": 4
+    },
+    {
+      "id": "discov19cT151",
+      "x": 7070,
+      "y": 688,
+      "r": "2",
+      "discovery": "discov19d017",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19cT173",
+      "x": 1644,
+      "y": 186,
+      "r": "2",
+      "discovery": "discov19d017",
+      "barterCount": 2
+    },
+    {
+      "id": "discov19cT174",
+      "x": 1130,
+      "y": 392,
+      "r": "2",
+      "discovery": "discov19d017",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19cT209",
+      "x": 6771,
+      "y": 2955,
+      "r": "1",
+      "discovery": "discov19d017",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19cT238",
+      "x": 4950,
+      "y": 1440,
+      "r": "2",
+      "discovery": "discov19d017",
+      "barterCount": 1
+    },
+    {
+      "id": "discov19d001",
+      "x": 8293,
+      "y": 1704,
+      "r": "1",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d002",
+      "x": 3150,
+      "y": 3781,
+      "r": "1",
+      "barterCount": 2
+    },
+    {
+      "id": "discov19d003",
+      "x": 8372,
+      "y": 2023,
+      "r": "1",
+      "discovery": "discov19d032",
+      "barterCount": 2
+    },
+    {
+      "id": "discov19d004",
+      "x": 2857,
+      "y": 678,
+      "r": "1",
+      "barterCount": 0
+    },
+    {
+      "id": "discov19d005",
+      "x": 1690,
+      "y": 3741,
+      "r": "1",
+      "discovery": "discov19d002",
+      "barterCount": 0
+    },
+    {
+      "id": "discov19d006",
+      "x": 5603,
+      "y": 2300,
+      "r": "1",
+      "discovery": "discov19d018",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d007",
+      "x": 4454,
+      "y": 4043,
+      "r": "1",
+      "discovery": "discov19d038",
+      "barterCount": 0
+    },
+    {
+      "id": "discov19d008",
+      "x": 6040,
+      "y": 1952,
+      "r": "1",
+      "discovery": "discov19d045",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d009",
+      "x": 5937,
+      "y": 3519,
+      "r": "1",
+      "discovery": "discov19d018",
+      "barterCount": 4
+    },
+    {
+      "id": "discov19d010",
+      "x": 7530,
+      "y": 3036,
+      "r": "1",
+      "discovery": "discov19d017",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d011",
+      "x": 4440,
+      "y": 2663,
+      "r": "1",
+      "discovery": "discov19d018",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d012",
+      "x": 9480,
+      "y": 4312,
+      "r": "1",
+      "discovery": "discov19d017",
+      "barterCount": 4
+    },
+    {
+      "id": "discov19d013",
+      "x": 2940,
+      "y": 3122,
+      "r": "1",
+      "discovery": "discov19d002",
+      "barterCount": 2
+    },
+    {
+      "id": "discov19d014",
+      "x": 5653,
+      "y": 2891,
+      "r": "1",
+      "discovery": "discov19d018",
+      "barterCount": 4
+    },
+    {
+      "id": "discov19d015",
+      "x": 5567,
+      "y": 2713,
+      "r": "1",
+      "discovery": "discov19d018",
+      "barterCount": 4
+    },
+    {
+      "id": "discov19d016",
+      "x": 5067,
+      "y": 2672,
+      "r": "1",
+      "discovery": "discov19d018",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d017",
+      "x": 7320,
+      "y": 2414,
+      "r": "1",
+      "barterCount": 4
+    },
+    {
+      "id": "discov19d018",
+      "x": 4289,
+      "y": 2212,
+      "r": "1",
+      "barterCount": 2
+    },
+    {
+      "id": "discov19d019",
+      "x": 3293,
+      "y": 3475,
+      "r": "1",
+      "discovery": "discov19d002",
+      "barterCount": 4
+    },
+    {
+      "id": "discov19d020",
+      "x": 8208,
+      "y": 1864,
+      "r": "1",
+      "discovery": "discov19d001",
+      "barterCount": 4
+    },
+    {
+      "id": "discov19d021",
+      "x": 5106,
+      "y": 3620,
+      "r": "1",
+      "discovery": "discov19d018",
+      "barterCount": 2
+    },
+    {
+      "id": "discov19d022",
+      "x": 1851,
+      "y": 1582,
+      "r": "1",
+      "discovery": "discov19d002",
+      "barterCount": 4
+    },
+    {
+      "id": "discov19d023",
+      "x": 5427,
+      "y": 3444,
+      "r": "1",
+      "discovery": "discov19d018",
+      "barterCount": 5
+    },
+    {
+      "id": "discov19d024",
+      "x": 1987,
+      "y": 1204,
+      "r": "1",
+      "discovery": "discov19d002",
+      "barterCount": 4
+    },
+    {
+      "id": "discov19d025",
+      "x": 5202,
+      "y": 726,
+      "r": "1",
+      "barterCount": 5
+    },
+    {
+      "id": "discov19d026",
+      "x": 2683,
+      "y": 2387,
+      "r": "1",
+      "barterCount": 4
+    },
+    {
+      "id": "discov19d027",
+      "x": 3048,
+      "y": 3409,
+      "r": "1",
+      "discovery": "discov19d002",
+      "barterCount": 4
+    },
+    {
+      "id": "discov19d028",
+      "x": 2163,
+      "y": 2994,
+      "r": "1",
+      "discovery": "discov19d038",
+      "barterCount": 2
+    },
+    {
+      "id": "discov19d029",
+      "x": 8092,
+      "y": 2295,
+      "r": "1",
+      "discovery": "discov19d050",
+      "barterCount": 2
+    },
+    {
+      "id": "discov19d030",
+      "x": 1545,
+      "y": 2019,
+      "r": "1",
+      "discovery": "discov19d002",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d031",
+      "x": 2750,
+      "y": 4696,
+      "r": "1",
+      "discovery": "discov19d004",
+      "barterCount": 0
+    },
+    {
+      "id": "discov19d032",
+      "x": 8671,
+      "y": 1762,
+      "r": "1",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d033",
+      "x": 8490,
+      "y": 1886,
+      "r": "1",
+      "discovery": "discov19d032",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d034",
+      "x": 7073,
+      "y": 2396,
+      "r": "1",
+      "barterCount": 5
+    },
+    {
+      "id": "discov19d035",
+      "x": 4808,
+      "y": 2664,
+      "r": "1",
+      "discovery": "discov19d018",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d036",
+      "x": 2587,
+      "y": 3002,
+      "r": "1",
+      "discovery": "discov19d002",
+      "barterCount": 4
+    },
+    {
+      "id": "discov19d037",
+      "x": 3437,
+      "y": 834,
+      "r": "1",
+      "discovery": "discov19d004",
+      "barterCount": 0
+    },
+    {
+      "id": "discov19d038",
+      "x": 6327,
+      "y": 3394,
+      "r": "1",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d039",
+      "x": 7895,
+      "y": 2058,
+      "r": "1",
+      "discovery": "discov19d050",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d040",
+      "x": 1278,
+      "y": 1357,
+      "r": "1",
+      "discovery": "discov19d002",
+      "barterCount": 2
+    },
+    {
+      "id": "discov19d041",
+      "x": 6180,
+      "y": 2157,
+      "r": "1",
+      "discovery": "discov19d045",
+      "barterCount": 2
+    },
+    {
+      "id": "discov19d042",
+      "x": 2717,
+      "y": 3434,
+      "r": "1",
+      "discovery": "discov19d002",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d043",
+      "x": 2070,
+      "y": 2079,
+      "r": "1",
+      "discovery": "discov19d002",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d044",
+      "x": 1992,
+      "y": 2315,
+      "r": "1",
+      "discovery": "discov19d002",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d045",
+      "x": 5658,
+      "y": 1651,
+      "r": "1",
+      "barterCount": 2
+    },
+    {
+      "id": "discov19d046",
+      "x": 7574,
+      "y": 2629,
+      "r": "1",
+      "discovery": "discov19d017",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d047",
+      "x": 2945,
+      "y": 2941,
+      "r": "1",
+      "discovery": "discov19d002",
+      "barterCount": 2
+    },
+    {
+      "id": "discov19d048",
+      "x": 5688,
+      "y": 1830,
+      "r": "1",
+      "discovery": "discov19d045",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d049",
+      "x": 2102,
+      "y": 1547,
+      "r": "1",
+      "discovery": "discov19d002",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d050",
+      "x": 7893,
+      "y": 1896,
+      "r": "1",
+      "barterCount": 4
+    },
+    {
+      "id": "discov19d051",
+      "x": 5281,
+      "y": 2970,
+      "r": "1",
+      "discovery": "discov19d018",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d052",
+      "x": 2568,
+      "y": 3141,
+      "r": "1",
+      "discovery": "discov19d002",
+      "barterCount": 4
+    },
+    {
+      "id": "discov19d053",
+      "x": 8357,
+      "y": 3866,
+      "r": "1",
+      "discovery": "discov19d017",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d054",
+      "x": 8066,
+      "y": 3486,
+      "r": "1",
+      "discovery": "discov19d017",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d055",
+      "x": 8815,
+      "y": 3515,
+      "r": "1",
+      "discovery": "discov19d017",
+      "barterCount": 2
+    },
+    {
+      "id": "discov19d056",
+      "x": 9906,
+      "y": 524,
+      "r": "1",
+      "discovery": "discov19d004",
+      "barterCount": 0
+    },
+    {
+      "id": "discov19d057",
+      "x": 4971,
+      "y": 614,
+      "r": "1",
+      "discovery": "discov19d025",
+      "barterCount": 4
+    },
+    {
+      "id": "discov19d058",
+      "x": 8554,
+      "y": 3105,
+      "r": "1",
+      "discovery": "discov19d017",
+      "barterCount": 3
+    },
+    {
+      "id": "discov19d059",
+      "x": 329,
+      "y": 2360,
+      "r": "1",
+      "discovery": "discov19d017",
+      "barterCount": 0
+    }
+  ]
+}

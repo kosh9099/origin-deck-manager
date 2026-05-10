@@ -154,10 +154,12 @@ export default function TradeManagerPage() {
 
       {/* ── 메인 콘텐츠 ── */}
       <main className={`flex-1 overflow-y-auto bg-[#f0ece4] flex flex-col w-full relative ${
-        activeTab === 'map' ? 'p-0 md:p-6 lg:p-8' : 'p-4 md:p-6 lg:p-8'
+        activeTab === 'map' ? 'p-0' : 'p-4 md:p-6 lg:p-8'
       }`}>
-        <div className={`max-w-[1400px] w-full mx-auto flex-1 flex flex-col md:pb-0 ${
-          activeTab === 'map' ? 'space-y-0 md:space-y-6' : 'space-y-4 md:space-y-6 pb-20'
+        <div className={`w-full flex-1 flex flex-col md:pb-0 ${
+          activeTab === 'map'
+            ? 'space-y-0'
+            : 'max-w-[1400px] mx-auto space-y-4 md:space-y-6 pb-20'
         }`}>
 
           {/* 상단 헤더 (대시보드 모드에서는 액션 버튼들, 부양 모드에서는 제목) */}
@@ -203,10 +205,10 @@ export default function TradeManagerPage() {
             </div>
           )}
 
-          {/* 컨텐츠 패널 — map 탭은 모바일에서 full-bleed (테두리/라운드/패딩 제거) */}
+          {/* 컨텐츠 패널 — map 탭은 항상 full-bleed (테두리/라운드/패딩 제거) */}
           <div className={`flex-1 min-h-0 bg-white relative animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-hidden flex flex-col ${
             activeTab === 'map'
-              ? 'rounded-none md:rounded-2xl border-0 md:border md:border-slate-200 shadow-none md:shadow-sm'
+              ? 'rounded-none border-0 shadow-none'
               : 'rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm'
           }`}>
             {activeTab === 'dashboard' && <TradeDashboard onMapJump={handleMapJump} />}

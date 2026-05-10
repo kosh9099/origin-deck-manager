@@ -1,11 +1,20 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Globe, Search, Anchor, Castle, Layers, Check, ChevronDown, Package, X } from 'lucide-react';
+import { Globe, Search, Anchor, Castle, Layers, Check, ChevronDown, Package, X, Tent, Eye } from 'lucide-react';
 import { ALL_CITIES, REGION_TO_CITIES, CITY_MAP } from '@/lib/trade/cityMap';
 import { getInGameTimeInfo } from '@/lib/trade/time';
 import seasonCalendarData from '@/constants/seasonCalendar.json';
+import villageCoordsRaw from '@/constants/villageCoords.json';
+import villageLabelsRaw from '@/constants/villageLabels.json';
+import villageBartersRaw from '@/constants/villageBarters.json';
 import CityDetailPanel from './CityDetailPanel';
+import VillageDetailPanel from './VillageDetailPanel';
+
+type Village = { id: string; x: number; y: number; r: string; discovery: string; barterCount: number };
+const VILLAGES: Village[] = (villageCoordsRaw as { villages?: Village[] } | null)?.villages ?? [];
+const VILLAGE_LABELS: Record<string, string> = villageLabelsRaw as Record<string, string>;
+const VILLAGE_BARTERS: Record<string, string[]> = villageBartersRaw as Record<string, string[]>;
 
 type SeasonCal = {
   cities: Record<string, { region: string; months: string[] }>;
@@ -19,6 +28,7 @@ const ALL_ITEMS = Object.keys(seasonCal.items).sort((a, b) => a.localeCompare(b)
 export type MapFocus = {
   city?: string;
   region?: string;
+  village?: string;
   epoch: number;
 };
 
@@ -30,6 +40,9 @@ const MAP_NATURAL_WIDTH = 9972;
 const MAP_NATURAL_HEIGHT = 5886;
 const DOT_OFFSET_X = 30;
 const DOT_OFFSET_Y = 20;
+// 마을은 도시 마커와 hotspot 기준이 달라 별도 보정. 도시 (+30,+20) 보다 서쪽으로 이동.
+const VILLAGE_OFFSET_X = -30;
+const VILLAGE_OFFSET_Y = 20;
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 4;
 const ZOOM_STEP = 0.05;
@@ -155,11 +168,18 @@ export default function CityMapView({ focus = null }: Props) {
   const [viewport, setViewport] = useState({ w: 0, h: 0 });
   const [hoveredCity, setHoveredCity] = useState<string | null>(null);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const [selectedVillageId, setSelectedVillageId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   // 기본은 해역 영역 모두 OFF. 사용자가 드롭다운에서 골라서 표시.
   const [visibleRegions, setVisibleRegions] = useState<Set<string>>(() => new Set());
   const [regionMenuOpen, setRegionMenuOpen] = useState(false);
   const regionMenuRef = useRef<HTMLDivElement | null>(null);
+
+  // 도시/마을 표시 토글 — 도시는 기본 ON, 마을은 기본 OFF
+  const [showCities, setShowCities] = useState(true);
+  const [showVillages, setShowVillages] = useState(false);
+  const [displayMenuOpen, setDisplayMenuOpen] = useState(false);
+  const displayMenuRef = useRef<HTMLDivElement | null>(null);
 
   // 교역품 검색 — 선택 시 해당 품목 생산 도시만 시즌 색으로 표시.
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
@@ -167,6 +187,36 @@ export default function CityMapView({ focus = null }: Props) {
   const [itemQuery, setItemQuery] = useState('');
   const itemMenuRef = useRef<HTMLDivElement | null>(null);
   const itemInputRef = useRef<HTMLInputElement | null>(null);
+
+  // 물교 검색 — 선택 시 해당 물교품을 생산하는 마을 강조.
+  const [selectedBarter, setSelectedBarter] = useState<string | null>(null);
+  const [barterMenuOpen, setBarterMenuOpen] = useState(false);
+  const [barterQuery, setBarterQuery] = useState('');
+  const barterMenuRef = useRef<HTMLDivElement | null>(null);
+  const barterInputRef = useRef<HTMLInputElement | null>(null);
+
+  // 물교 가능한 마을 품목 마스터 — villageBarters의 모든 unique 품목
+  const ALL_BARTER_ITEMS = useMemo(() => {
+    const set = new Set<string>();
+    for (const items of Object.values(VILLAGE_BARTERS)) {
+      for (const it of items) set.add(it);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, []);
+  const barterSuggestions = useMemo(() => {
+    const q = barterQuery.trim();
+    if (!q) return ALL_BARTER_ITEMS.slice(0, 100);
+    return ALL_BARTER_ITEMS.filter((n) => matchesQuery(q, n)).slice(0, 100);
+  }, [ALL_BARTER_ITEMS, barterQuery]);
+  // 물교 선택 시: 해당 품목 생산 마을 ID set
+  const barterVillagesSet = useMemo(() => {
+    if (!selectedBarter) return null;
+    const s = new Set<string>();
+    for (const [vid, items] of Object.entries(VILLAGE_BARTERS)) {
+      if (items.includes(selectedBarter)) s.add(vid);
+    }
+    return s;
+  }, [selectedBarter]);
   const inGameMonth = useMemo(() => getInGameTimeInfo(Date.now()).month, []);
 
   useEffect(() => {
@@ -179,6 +229,28 @@ export default function CityMapView({ focus = null }: Props) {
     window.addEventListener('mousedown', handler);
     return () => window.removeEventListener('mousedown', handler);
   }, [itemMenuOpen]);
+
+  useEffect(() => {
+    if (!barterMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (!barterMenuRef.current?.contains(e.target as Node)) {
+        setBarterMenuOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', handler);
+    return () => window.removeEventListener('mousedown', handler);
+  }, [barterMenuOpen]);
+
+  useEffect(() => {
+    if (!displayMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (!displayMenuRef.current?.contains(e.target as Node)) {
+        setDisplayMenuOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', handler);
+    return () => window.removeEventListener('mousedown', handler);
+  }, [displayMenuOpen]);
 
   // 선택된 품목의 도시별 시즌 (현재 월) — Map<도시명, '성'|'평'|'비'>
   const itemSeasonByCity = useMemo(() => {
@@ -516,6 +588,19 @@ export default function CityMapView({ focus = null }: Props) {
         }
       }
     }
+    if (focus.village) {
+      const entry = VILLAGES.find((v) => v.id === focus.village);
+      if (entry) {
+        if (!showVillages) setShowVillages(true);
+        setSelectedVillageId(focus.village);
+        if (viewport.w > 0 && viewport.h > 0) {
+          setPan({
+            x: viewport.w / 2 - (entry.x + VILLAGE_OFFSET_X) * zoom,
+            y: clampPanY(viewport.h / 2 - (entry.y + VILLAGE_OFFSET_Y) * zoom, zoom, viewport.h),
+          });
+        }
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focus?.epoch, viewport.w, viewport.h]);
 
@@ -538,7 +623,10 @@ export default function CityMapView({ focus = null }: Props) {
             <button
               onClick={() => {
                 setItemMenuOpen((v) => !v);
-                if (!itemMenuOpen) setTimeout(() => itemInputRef.current?.focus(), 50);
+                if (!itemMenuOpen) {
+                  if (selectedBarter) { setSelectedBarter(null); setBarterQuery(''); }
+                  setTimeout(() => itemInputRef.current?.focus(), 50);
+                }
               }}
               title="교역품 검색 — 선택 시 생산 도시만 시즌 색으로 표시"
               className={`inline-flex items-center gap-1 px-2 md:px-2.5 py-1.5 rounded-lg border text-[12px] font-bold transition-colors whitespace-nowrap shrink-0
@@ -547,7 +635,11 @@ export default function CityMapView({ focus = null }: Props) {
                   : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
             >
               <Package size={13} />
-              {selectedItem ? selectedItem : '교역품'}
+              {selectedItem ? (
+                <span className="max-w-[88px] md:max-w-none truncate">{selectedItem}</span>
+              ) : (
+                <span className="hidden md:inline">교역품</span>
+              )}
               {selectedItem && (
                 <span
                   role="button"
@@ -615,6 +707,162 @@ export default function CityMapView({ focus = null }: Props) {
             )}
           </div>
 
+          {/* 물교 검색 드롭다운 */}
+          <div className="static md:relative" ref={barterMenuRef}>
+            <button
+              onClick={() => {
+                setBarterMenuOpen((v) => !v);
+                if (!barterMenuOpen) {
+                  // 모드 전환 — 교역품 검색 끄기
+                  if (selectedItem) { setSelectedItem(null); setItemQuery(''); }
+                  // 마을은 자동 표시
+                  if (!showVillages) setShowVillages(true);
+                  setTimeout(() => barterInputRef.current?.focus(), 50);
+                }
+              }}
+              title="물교 검색 — 선택 시 그 품목을 가진 마을만 강조"
+              className={`inline-flex items-center gap-1 px-2 md:px-2.5 py-1.5 rounded-lg border text-[12px] font-bold transition-colors whitespace-nowrap shrink-0
+                ${selectedBarter
+                  ? 'bg-amber-600 text-white border-amber-700 hover:bg-amber-700'
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+            >
+              <Tent size={13} />
+              {selectedBarter ? (
+                <span className="max-w-[88px] md:max-w-none truncate">{selectedBarter}</span>
+              ) : (
+                <span className="hidden md:inline">물교</span>
+              )}
+              {selectedBarter && (
+                <span
+                  role="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedBarter(null);
+                    setBarterQuery('');
+                  }}
+                  className="ml-1 inline-flex items-center justify-center w-3.5 h-3.5 rounded-full hover:bg-white/20"
+                  title="선택 해제"
+                >
+                  <X size={10} />
+                </span>
+              )}
+              <ChevronDown size={12} className={`transition-transform ${barterMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {barterMenuOpen && (
+              <div className="absolute right-3 md:right-0 top-full mt-1 z-30 w-[min(18rem,calc(100vw-1.5rem))] md:w-72 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+                <div className="px-2 py-2 border-b border-slate-100 bg-slate-50">
+                  <div className="relative">
+                    <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    <input
+                      ref={barterInputRef}
+                      value={barterQuery}
+                      onChange={(e) => setBarterQuery(e.target.value)}
+                      placeholder="물교 검색 (초성 가능)..."
+                      className="w-full pl-7 pr-2 py-1.5 text-[12px] border border-slate-200 rounded-md bg-white focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                    />
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-1 px-1">
+                    전체 {ALL_BARTER_ITEMS.length}개 중 {barterSuggestions.length}개 일치
+                  </div>
+                </div>
+                <ul className="max-h-80 overflow-y-auto py-1">
+                  {barterSuggestions.length === 0 ? (
+                    <li className="px-3 py-2 text-[12px] text-slate-400 italic">일치 항목 없음</li>
+                  ) : (
+                    barterSuggestions.map((name) => {
+                      const villageCount = Object.values(VILLAGE_BARTERS).filter((items) => items.includes(name)).length;
+                      const meta = seasonCal.items[name];
+                      return (
+                        <li key={name}>
+                          <button
+                            onClick={() => {
+                              setSelectedBarter(name);
+                              setBarterMenuOpen(false);
+                              setBarterQuery('');
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-1.5 text-[12px] hover:bg-amber-50 transition-colors text-left"
+                          >
+                            <span className="flex-1 truncate">
+                              <span className="font-bold text-slate-800">{name}</span>
+                              {meta?.category && <span className="text-[10px] text-slate-400 ml-1">({meta.category})</span>}
+                            </span>
+                            <span className="text-[10px] text-slate-400 tabular-nums shrink-0">{villageCount}곳</span>
+                          </button>
+                        </li>
+                      );
+                    })
+                  )}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {/* 표시 옵션 — 도시/마을 보이기/숨기기 */}
+          <div className="static md:relative" ref={displayMenuRef}>
+            <button
+              onClick={() => setDisplayMenuOpen((v) => !v)}
+              title="도시 / 마을 표시 선택"
+              className={`inline-flex items-center gap-1 px-2 md:px-2.5 py-1.5 rounded-lg border text-[12px] font-bold transition-colors whitespace-nowrap shrink-0
+                ${(showCities && showVillages)
+                  ? 'bg-slate-700 text-white border-slate-800 hover:bg-slate-800'
+                  : (!showCities && !showVillages)
+                    ? 'bg-white text-slate-400 border-slate-200 hover:bg-slate-50'
+                    : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'}`}
+            >
+              <Eye size={13} />
+              <span className="hidden md:inline">표시</span>
+              <span className="text-[10px] tabular-nums opacity-80">
+                ({(showCities ? 1 : 0) + (showVillages ? 1 : 0)}/2)
+              </span>
+              <ChevronDown size={12} className={`transition-transform ${displayMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {displayMenuOpen && (
+              <div className="absolute right-3 md:right-0 top-full mt-1 z-30 w-[min(14rem,calc(100vw-1.5rem))] md:w-56 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+                <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
+                  <span className="text-[11px] font-black text-slate-700">표시 옵션</span>
+                </div>
+                <ul className="py-1">
+                  <li>
+                    <button
+                      onClick={() => setShowCities((v) => !v)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-[12px] hover:bg-slate-50 transition-colors text-left"
+                    >
+                      <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors
+                        ${showCities ? 'bg-indigo-600 border-indigo-700' : 'bg-white border-slate-300'}`}>
+                        {showCities && <Check size={10} className="text-white" strokeWidth={3} />}
+                      </span>
+                      <Anchor size={13} className="text-indigo-500 shrink-0" />
+                      <span className={`flex-1 truncate ${showCities ? 'text-slate-800 font-bold' : 'text-slate-500'}`}>
+                        도시
+                      </span>
+                      <span className="text-[10px] text-slate-400 tabular-nums shrink-0">
+                        {ALL_CITIES.length}
+                      </span>
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => setShowVillages((v) => !v)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-[12px] hover:bg-slate-50 transition-colors text-left"
+                    >
+                      <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors
+                        ${showVillages ? 'bg-amber-600 border-amber-700' : 'bg-white border-slate-300'}`}>
+                        {showVillages && <Check size={10} className="text-white" strokeWidth={3} />}
+                      </span>
+                      <Tent size={13} className="text-amber-500 shrink-0" />
+                      <span className={`flex-1 truncate ${showVillages ? 'text-slate-800 font-bold' : 'text-slate-500'}`}>
+                        마을
+                      </span>
+                      <span className="text-[10px] text-slate-400 tabular-nums shrink-0">
+                        {VILLAGES.length}
+                      </span>
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            )}
+          </div>
+
           <div className="static md:relative" ref={regionMenuRef}>
             <button
               onClick={() => setRegionMenuOpen((v) => !v)}
@@ -627,8 +875,7 @@ export default function CityMapView({ focus = null }: Props) {
                     : 'bg-indigo-50 text-indigo-700 border-indigo-300 hover:bg-indigo-100'}`}
             >
               <Layers size={13} />
-              <span className="hidden sm:inline">해역 영역</span>
-              <span className="sm:hidden">해역</span>
+              <span className="hidden md:inline">해역 영역</span>
               <span className="text-[10px] tabular-nums opacity-80">
                 ({visibleRegions.size}/{allRegionNames.length})
               </span>
@@ -826,8 +1073,90 @@ export default function CityMapView({ focus = null }: Props) {
                 </svg>
               ))}
 
+              {/* 마을 마커 — 발견물 마을. 도시 배지보다 작고 갈색 텐트로 구분. */}
+              {showVillages && VILLAGES.map((v) =>
+                copies.map((n) => {
+                  const wx = v.x + VILLAGE_OFFSET_X + n * MAP_NATURAL_WIDTH;
+                  const wy = v.y + VILLAGE_OFFSET_Y;
+                  const screenX = pan.x + wx * zoom;
+                  const screenY = pan.y + wy * zoom;
+                  if (
+                    screenX < -40 ||
+                    screenX > viewport.w + 40 ||
+                    screenY < -40 ||
+                    screenY > viewport.h + 40
+                  ) return null;
+                  const hasBarter = v.barterCount > 0;
+                  const label = VILLAGE_LABELS[v.id];
+                  const items = VILLAGE_BARTERS[v.id] ?? [];
+                  const itemMode = !!selectedItem;
+                  const barterMode = !!selectedBarter;
+                  const isItemProducer = itemMode && selectedItem ? items.includes(selectedItem) : false;
+                  const isBarterProducer = barterMode && barterVillagesSet ? barterVillagesSet.has(v.id) : false;
+                  const highlighted = isItemProducer || isBarterProducer;
+                  const dimmedV = (itemMode || barterMode) && !highlighted;
+                  const badgeSize = highlighted ? 22 : 16;
+                  const badgeBg = highlighted
+                    ? 'bg-emerald-500'
+                    : hasBarter
+                      ? 'bg-gradient-to-br from-amber-500 to-amber-700'
+                      : 'bg-gradient-to-br from-stone-500 to-stone-700';
+                  const tooltipParts = [label ?? v.id];
+                  if (items.length > 0) tooltipParts.push(`물교: ${items.join(', ')}`);
+                  else if (hasBarter) tooltipParts.push(`물물교환 ${v.barterCount}`);
+                  if (barterMode && isBarterProducer && selectedBarter) tooltipParts.push(`★ ${selectedBarter} 생산`);
+                  return (
+                    <React.Fragment key={`village-${v.id}-${n}`}>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedVillageId(v.id);
+                          setSelectedCity(null);
+                        }}
+                        title={tooltipParts.join(' · ')}
+                        className="absolute p-0 bg-transparent border-0 cursor-pointer"
+                        style={{
+                          left: wx,
+                          top: wy,
+                          transform: `translate(-50%, -50%) scale(${dotInvScale})`,
+                          transformOrigin: 'center',
+                          zIndex: isItemProducer ? 5 : 1,
+                          opacity: dimmedV ? 0.25 : 1,
+                          transition: 'opacity 0.15s',
+                        }}
+                      >
+                        <div
+                          className={`rounded-sm ${badgeBg} flex items-center justify-center border border-white/80 shadow hover:brightness-110 transition-all`}
+                          style={{ width: badgeSize, height: badgeSize }}
+                        >
+                          <Tent size={11} strokeWidth={2.5} className="text-white drop-shadow" />
+                        </div>
+                      </button>
+                      {showLabels && label && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            left: wx,
+                            top: wy,
+                            transform: `translate(-50%, calc(-100% - 6px)) scale(${dotInvScale})`,
+                            transformOrigin: 'center bottom',
+                            pointerEvents: 'none',
+                            zIndex: 2,
+                          }}
+                        >
+                          <div className="px-1 py-0 rounded bg-white/90 text-amber-800 text-[9px] font-bold whitespace-nowrap border border-amber-200 shadow-sm">
+                            {label}
+                          </div>
+                        </div>
+                      )}
+                    </React.Fragment>
+                  );
+                })
+              )}
+
               {/* 도시 배지 + 라벨 — 본거지는 골드 성 모양, 일반은 해역색 닻 모양 */}
-              {ALL_CITIES.map((entry) =>
+              {showCities && ALL_CITIES.map((entry) =>
                 copies.map((n) => {
                   const wx = entry.x + DOT_OFFSET_X + n * MAP_NATURAL_WIDTH;
                   const wy = entry.y + DOT_OFFSET_Y;
@@ -850,13 +1179,15 @@ export default function CityMapView({ focus = null }: Props) {
                   const seasonStatus = itemSeasonByCity?.get(entry.city) ?? null;
                   const isProducer = !!seasonStatus;
                   const itemMode = !!selectedItem;
-                  const dimmed = itemMode && !isProducer;
+                  const barterMode = !!selectedBarter;
+                  // 물교 모드에서는 도시 모두 dim, 교역품 모드에서는 비생산 도시만 dim
+                  const dimmed = barterMode ? true : (itemMode && !isProducer);
 
                   // 배지 사이즈 — 본거지가 일반 도시보다 살짝 크게. itemMode 생산도시는 +4 키움.
                   const badgeSize = isHomeBase
-                    ? (isProducer ? 22 : 18)
-                    : (isProducer ? 18 : 14);
-                  const iconSize = isHomeBase ? 11 : 9;
+                    ? (isProducer ? 28 : 24)
+                    : (isProducer ? 22 : 18);
+                  const iconSize = isHomeBase ? 14 : 11;
 
                   // itemMode 에선 시즌 색이 모든 시각요소를 지배.
                   let badgeBg = isHomeBase
@@ -889,6 +1220,7 @@ export default function CityMapView({ focus = null }: Props) {
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedCity(entry.city);
+                          setSelectedVillageId(null);
                         }}
                         title={`${entry.city} (${entry.region})${isHomeBase ? ' · 본거지' : ''}${seasonStatus ? ` · ${selectedItem} ${seasonSym}` : ''}`}
                         className="absolute p-0 bg-transparent border-0 cursor-pointer"
@@ -954,10 +1286,113 @@ export default function CityMapView({ focus = null }: Props) {
         <div className="absolute bottom-3 right-3 bg-white/90 border border-slate-300 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-700 shadow-sm pointer-events-none">
           {Math.round(zoom * 100)}%
         </div>
+
+        {/* 검색 결과 — 교역품 또는 물교 선택 시 우상단에 생산지 리스트 표시 */}
+        {(selectedItem || selectedBarter) && (() => {
+          const itemMode = !!selectedItem;
+          const title = selectedItem ?? selectedBarter ?? '';
+          const accentBg = itemMode ? 'bg-emerald-50' : 'bg-amber-50';
+          const accentTxt = itemMode ? 'text-emerald-700' : 'text-amber-700';
+          const accentBorder = itemMode ? 'border-emerald-200' : 'border-amber-200';
+          // 생산지 리스트
+          type Row = { kind: 'city' | 'village'; id: string; name: string; sub: string };
+          const rows: Row[] = [];
+          if (itemMode && selectedItem) {
+            const meta = seasonCal.items[selectedItem];
+            if (meta) {
+              for (const city of meta.cities) {
+                const entry = CITY_MAP.get(city);
+                if (entry) rows.push({ kind: 'city', id: city, name: city, sub: entry.region });
+              }
+            }
+          } else if (selectedBarter) {
+            for (const [vid, items] of Object.entries(VILLAGE_BARTERS)) {
+              if (items.includes(selectedBarter)) {
+                const v = VILLAGES.find((x) => x.id === vid);
+                if (v) rows.push({ kind: 'village', id: vid, name: VILLAGE_LABELS[vid] ?? vid, sub: '마을' });
+              }
+            }
+          }
+          rows.sort((a, b) => a.name.localeCompare(b.name));
+          return (
+            <div className="absolute top-3 right-3 z-20 bg-white/95 backdrop-blur border border-slate-200 rounded-xl shadow-lg overflow-hidden flex flex-col w-[180px] sm:w-[220px] max-h-[calc(100%-1.5rem)]">
+              <div className={`px-3 py-2 border-b ${accentBorder} ${accentBg} flex items-center gap-2 shrink-0`}>
+                {itemMode ? <Package size={13} className={accentTxt} /> : <Tent size={13} className={accentTxt} />}
+                <div className="min-w-0 flex-1">
+                  <div className={`text-[11px] font-black ${accentTxt} truncate`}>{title}</div>
+                  <div className="text-[10px] font-bold text-slate-500">
+                    {rows.length === 0 ? '생산지 없음' : `${rows.length}곳에서 생산`}
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    if (itemMode) { setSelectedItem(null); setItemQuery(''); }
+                    else { setSelectedBarter(null); setBarterQuery(''); }
+                  }}
+                  className={`p-1 ${accentTxt} hover:bg-white/70 rounded`}
+                  title="선택 해제"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+              <ul className="overflow-y-auto py-1 flex-1 min-h-0">
+                {rows.length === 0 ? (
+                  <li className="px-3 py-2 text-[11px] text-slate-400 italic">없음</li>
+                ) : rows.map((row) => (
+                  <li key={`${row.kind}-${row.id}`}>
+                    <button
+                      onClick={() => {
+                        if (row.kind === 'city') {
+                          const entry = CITY_MAP.get(row.id);
+                          if (entry && viewport.w > 0 && viewport.h > 0) {
+                            setSelectedVillageId(null);
+                            setSelectedCity(row.id);
+                            setPan({
+                              x: viewport.w / 2 - (entry.x + DOT_OFFSET_X) * zoom,
+                              y: clampPanY(viewport.h / 2 - (entry.y + DOT_OFFSET_Y) * zoom, zoom, viewport.h),
+                            });
+                          }
+                        } else {
+                          const v = VILLAGES.find((x) => x.id === row.id);
+                          if (v && viewport.w > 0 && viewport.h > 0) {
+                            if (!showVillages) setShowVillages(true);
+                            setSelectedCity(null);
+                            setSelectedVillageId(row.id);
+                            setPan({
+                              x: viewport.w / 2 - (v.x + VILLAGE_OFFSET_X) * zoom,
+                              y: clampPanY(viewport.h / 2 - (v.y + VILLAGE_OFFSET_Y) * zoom, zoom, viewport.h),
+                            });
+                          }
+                        }
+                      }}
+                      className="w-full text-left px-3 py-1.5 hover:bg-slate-50 transition-colors flex items-center gap-1.5 text-[11px]"
+                    >
+                      {row.kind === 'city' ? (
+                        <Anchor size={10} className="text-slate-400 shrink-0" />
+                      ) : (
+                        <Tent size={10} className="text-amber-500 shrink-0" />
+                      )}
+                      <span className="font-bold text-slate-800 truncate flex-1">{row.name}</span>
+                      <span className="text-[10px] text-slate-400 shrink-0 truncate max-w-[60px]">{row.sub}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })()}
       </div>
 
       {/* 도시 상세 패널 */}
       <CityDetailPanel city={selectedCity} onClose={() => setSelectedCity(null)} />
+      <VillageDetailPanel
+        villageId={selectedVillageId}
+        onClose={() => setSelectedVillageId(null)}
+        onCityClick={(city) => {
+          setSelectedVillageId(null);
+          setSelectedCity(city);
+        }}
+      />
     </div>
   );
 }

@@ -12,6 +12,7 @@ import itemLocationsData from '@/constants/itemLocations.json';
 import { getInGameTimeInfo } from '@/lib/trade/time';
 import { getLatestCityMinutes, getActiveBoosts, type CityMinuteEntry } from '@/lib/supabaseClient';
 import type { TradeEvent } from '@/types/trade';
+import { useDraggableSheetHeight } from '@/lib/hooks/useDraggableSheetHeight';
 
 const HOME_BASES = new Set<string>([
   '런던', '암스테르담', '리스본', '세비야',
@@ -39,6 +40,7 @@ export default function CityDetailPanel({ city, onClose }: Props) {
   const entry = city ? CITY_MAP.get(city) : null;
   const isHomeBase = city ? HOME_BASES.has(city) : false;
   const inGameMonth = useMemo(() => getInGameTimeInfo(Date.now()).month, []);
+  const { heightVh, setHandleRef } = useDraggableSheetHeight();
 
   // Collapsible 섹션 — 기본 펼침.
   const [openCombo, setOpenCombo] = useState(true);
@@ -169,15 +171,20 @@ export default function CityDetailPanel({ city, onClose }: Props) {
         onClick={onClose}
       />
 
-      {/* 패널 — 모바일: 하단 70vh 바텀시트 / 데스크톱: 우측 380px 풀높이 */}
+      {/* 패널 — 모바일: 하단 가변 바텀시트 / 데스크톱: 우측 380px 풀높이 */}
       <aside
+        style={{ height: `${heightVh}vh` }}
         className="fixed z-[160] bg-white shadow-2xl flex flex-col
-          inset-x-0 bottom-0 h-[70vh] rounded-t-2xl border-t border-slate-200
-          md:inset-x-auto md:right-0 md:top-0 md:bottom-0 md:h-auto md:w-[380px] md:rounded-none md:border-t-0 md:border-l
+          inset-x-0 bottom-0 rounded-t-2xl border-t border-slate-200
+          md:inset-x-auto md:right-0 md:top-0 md:bottom-0 md:!h-auto md:w-[380px] md:rounded-none md:border-t-0 md:border-l
           animate-in slide-in-from-bottom md:slide-in-from-right duration-200"
       >
-        {/* 모바일 드래그 핸들 표시 */}
-        <div className="flex justify-center pt-2 pb-1 md:hidden shrink-0">
+        {/* 모바일 드래그 핸들 — 위/아래로 끌어서 패널 높이 조절 */}
+        <div
+          ref={setHandleRef}
+          className="flex justify-center pt-2 pb-1 md:hidden shrink-0 cursor-grab active:cursor-grabbing touch-none select-none"
+          aria-label="패널 높이 조절"
+        >
           <div className="w-10 h-1 bg-slate-300 rounded-full" />
         </div>
         {/* 헤더 */}

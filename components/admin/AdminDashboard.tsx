@@ -93,6 +93,23 @@ export default function AdminDashboard() {
               </div>
             </div>
           </Link>
+
+          <Link
+            href="/admin/village-labeler"
+            className="block bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:border-amber-300 hover:shadow-md transition-all group"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center group-hover:bg-amber-100 transition-colors shrink-0">
+                <MapPin size={18} />
+              </div>
+              <div className="min-w-0">
+                <h2 className="font-black text-slate-800 text-[14px]">마을 라벨링 도구</h2>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                  발견물 마을 69개에 한글명 매핑. 60개는 물물교환 가능.
+                </p>
+              </div>
+            </div>
+          </Link>
         </div>
 
         <ChangePasswordCard />
