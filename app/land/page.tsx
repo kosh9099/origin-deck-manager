@@ -68,7 +68,7 @@ export default function FleetMasterV2() {
   );
 
   // 엔진 계산을 위해 기본 설정값은 유지
-  const [options, setOptions] = useState<OptimizerOptions>({
+  const [options] = useState<OptimizerOptions>({
     includeBoarding: false,
     includeSpecialForces: false,
     includeTrade: false,
@@ -215,20 +215,25 @@ export default function FleetMasterV2() {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-[#f0ece4] text-slate-800 font-sans flex flex-col md:flex-row">
+    <div className="app-shell app-bg flex min-h-screen flex-col font-sans md:flex-row">
 
       {/* --- 모바일 헤더 --- */}
-      <div className="md:hidden flex items-center justify-between p-4 border-b border-slate-300 bg-white z-50 sticky top-0 shadow-sm">
-        <div className="flex items-end gap-2">
-          <h1 className="text-2xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-orange-400 to-indigo-400 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] pr-1">
-            육탐 V3
-          </h1>
+      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-slate-200 bg-white/92 px-4 py-3 shadow-sm backdrop-blur md:hidden">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="flex size-9 items-center justify-center rounded-lg border border-amber-100 bg-amber-50 text-amber-700">
+            <Anchor size={18} />
+          </span>
+          <div className="min-w-0">
+            <h1 className="truncate text-base font-black text-slate-950">육탐 매니저</h1>
+            <p className="text-[11px] font-bold text-slate-500">덱 생성 · 스킬 분석</p>
+          </div>
         </div>
         <button
           onClick={() => setIsMobileMenuOpen(true)}
-          className="p-2 bg-slate-100 rounded-lg text-slate-700 hover:bg-slate-200 border border-slate-300"
+          className="tool-button size-9"
+          aria-label="메뉴 열기"
         >
-          <Menu size={24} />
+          <Menu size={20} />
         </button>
       </div>
 
@@ -242,35 +247,38 @@ export default function FleetMasterV2() {
 
       {/* --- 사이드바 (PC에서는 항시 표출, 모바일에서는 드로워 작동) --- */}
       <aside className={`
-        fixed md:sticky top-0 left-0 h-full w-64 bg-[#1a2744] border-r border-white/10 backdrop-blur-md z-[110]
-        transform transition-transform duration-300 ease-in-out flex flex-col
+        app-sidebar fixed left-0 top-0 z-[110] flex h-full w-64 flex-col border-r border-white/10 md:sticky
+        transform transition-transform duration-300 ease-in-out
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
         {/* 모바일 닫기 버튼 */}
-        <div className="md:hidden flex justify-end p-4">
-          <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-300 hover:text-white bg-white/10 rounded-lg border border-white/20">
+        <div className="flex justify-end p-4 md:hidden">
+          <button onClick={() => setIsMobileMenuOpen(false)} className="flex size-9 items-center justify-center rounded-lg border border-white/15 bg-white/10 text-slate-300 transition hover:text-white">
             <X size={20} />
           </button>
         </div>
 
         {/* 사이드바 헤더 (PC) */}
-        <div className="p-6 border-b border-white/10 hidden md:block">
-          <Link href="/" className="inline-block group pb-1">
-            <h1 className="text-2xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-orange-400 to-indigo-400 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] flex items-center gap-2 group-hover:scale-105 transition-transform">
-              <Anchor className="text-amber-400 shrink-0" size={24} />
-              육탐 매니저 V3
-            </h1>
+        <div className="hidden border-b border-white/10 p-5 md:block">
+          <Link href="/" className="group inline-flex items-center gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-amber-300/20 bg-amber-300/10 text-amber-200">
+              <Anchor size={20} />
+            </span>
+            <div>
+              <h1 className="text-lg font-black text-white">육탐 매니저</h1>
+              <p className="mt-0.5 text-xs font-semibold text-slate-400">Expedition Deck</p>
+            </div>
           </Link>
-          <p className="text-xs text-slate-400 mt-2 font-medium tracking-wide">
+          <p className="mt-4 text-xs font-medium leading-5 text-slate-400">
             함대 최적화 및 모험 스킬 분석
           </p>
         </div>
 
         {/* 네비게이션 메뉴 */}
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20">
+        <nav className="flex-1 space-y-2 overflow-y-auto overflow-x-hidden p-4 scrollbar-thin scrollbar-thumb-white/20">
           <Link
             href="/"
-            className="flex items-center gap-3 w-full p-3 rounded-xl text-left text-sm font-bold transition-all text-slate-400 hover:bg-white/10 hover:text-white mb-4"
+            className="nav-item mb-4"
           >
             <Home size={18} className="shrink-0" />
             <span className="truncate">메인으로 돌아가기</span>
@@ -282,12 +290,7 @@ export default function FleetMasterV2() {
             <button
               key={item.id}
               onClick={() => handleTabChange(item.id)}
-              className={`
-                flex items-center gap-3 w-full p-3 rounded-xl text-left text-sm font-bold transition-all
-                ${activeTab === item.id
-                  ? 'bg-gradient-to-r from-amber-500/30 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
-                  : 'text-slate-400 hover:bg-white/10 hover:text-white border border-transparent'}
-              `}
+              className={`nav-item ${activeTab === item.id ? 'border-amber-300/35 bg-amber-500/18 text-amber-200' : ''}`}
             >
               <span className={`shrink-0 ${activeTab === item.id ? 'text-amber-400' : ''}`}>
                 {item.icon}
@@ -298,7 +301,7 @@ export default function FleetMasterV2() {
         </nav>
 
         {/* 계산 시작 버튼 (사이드바 하단 고정) */}
-        <div className="mt-auto p-4 border-t border-white/10 space-y-2">
+        <div className="mt-auto space-y-2 border-t border-white/10 p-4">
 
           {/* 자동 저장 인디케이터 */}
           <div className={`flex items-center justify-center gap-1.5 text-[10px] font-bold transition-all duration-500
@@ -316,7 +319,7 @@ export default function FleetMasterV2() {
           <button
             onClick={handleStart}
             disabled={isOptimizing}
-            className={`w-full py-4 rounded-xl font-black text-lg text-white shadow-[0_0_20px_rgba(245,158,11,0.3)] border border-amber-400/30 transition-all flex items-center justify-center gap-2 group
+            className={`flex w-full items-center justify-center gap-2 rounded-lg border border-amber-400/30 py-3.5 text-base font-black text-white shadow-[0_10px_28px_rgba(183,121,31,0.24)] transition-all group
               ${isOptimizing
                 ? 'bg-gradient-to-r from-slate-500 to-slate-600 cursor-not-allowed opacity-80'
                 : 'bg-gradient-to-r from-amber-600 to-orange-600 hover:brightness-110 active:scale-95'}`}
@@ -337,19 +340,19 @@ export default function FleetMasterV2() {
       </aside>
 
       {/* --- 메인 콘텐츠 뷰 영역 --- */}
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto max-w-[1200px] mx-auto w-full">
+      <main className="mx-auto w-full max-w-[1280px] flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
 
         {/* 1. 대시보드 뷰 */}
         {activeTab === 'dashboard' && (
-          <div id="land-dashboard-capture-area" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
-                <LayoutDashboard className="text-indigo-500" />
-                현재 대시보드 현황
+          <div id="land-dashboard-capture-area" className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="flex items-center gap-2 text-2xl font-black tracking-normal text-slate-950">
+                <LayoutDashboard className="text-amber-600" />
+                대시보드
               </h2>
               <button
                 onClick={() => captureAndDownload('land-dashboard-capture-area')}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-800 text-xs font-bold border border-slate-300 transition-all shadow-sm"
+                className="tool-button h-9 self-start px-3 sm:self-auto"
                 title="대시보드를 클립보드에 복사"
               >
                 <Camera size={14} />
@@ -358,11 +361,11 @@ export default function FleetMasterV2() {
             </div>
             <SkillDashboard result={result} targetLevels={targetLevels} />
             <div className="mt-8">
-              <h3 className="text-xl font-bold text-slate-700 mb-4">함대 배치 결과</h3>
+              <h3 className="mb-4 text-xl font-black text-slate-800">함대 배치 결과</h3>
               {isOptimizing ? (
                 <div className="grid gap-4">
                   {fleetConfig.map((cfg, i) => (
-                    <div key={i} className="bg-white border border-slate-200 rounded-xl p-6 animate-pulse shadow-sm">
+                    <div key={i} className="app-card animate-pulse rounded-lg p-6">
                       <div className="h-6 bg-slate-200 rounded w-1/4 mb-4" />
                       <div className="grid grid-cols-5 gap-2">
                         {Array.from({ length: cfg.총선실 }).map((_, j) => (
@@ -379,9 +382,9 @@ export default function FleetMasterV2() {
                   onBan={handleBanFromDeck}
                 />
               ) : (
-                <div className="bg-white border border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center text-slate-400 min-h-[200px] shadow-sm">
+                <div className="app-card flex min-h-[220px] flex-col items-center justify-center rounded-lg p-8 text-center text-slate-400">
                   <Anchor size={48} className="mb-4 text-slate-300" />
-                  <p>왼쪽 메뉴 하단의 "덱 생성 START" 버튼을 눌러 함대를 생성하세요.</p>
+                  <p>왼쪽 메뉴 하단의 덱 생성 START 버튼을 눌러 함대를 생성하세요.</p>
                 </div>
               )}
             </div>
@@ -391,11 +394,11 @@ export default function FleetMasterV2() {
         {/* 2. 함대 및 선장 설정 뷰 */}
         {activeTab === 'fleet' && (
           <div className="space-y-6 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 mb-4 flex items-center gap-2">
-              <Anchor className="text-indigo-500" />
+            <h2 className="mb-4 flex items-center gap-2 text-2xl font-black tracking-normal text-slate-950">
+              <Anchor className="text-amber-600" />
               함대 및 선장 설정
             </h2>
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-md">
+            <div className="app-panel rounded-lg p-4">
               <FleetSettings
                 sailors={sailors}
                 admiralSearch={admiralSearch}
@@ -414,11 +417,11 @@ export default function FleetMasterV2() {
         {/* 3. 인원 관리 뷰 */}
         {activeTab === 'crew' && (
           <div className="space-y-6 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 mb-4 flex items-center gap-2">
-              <Users className="text-indigo-500" />
+            <h2 className="mb-4 flex items-center gap-2 text-2xl font-black tracking-normal text-slate-950">
+              <Users className="text-amber-600" />
               필수/금지 인원 설정
             </h2>
-            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-md">
+            <div className="app-panel rounded-lg p-4">
               <CrewManager
                 sailors={sailors}
                 essentialIds={essentialIds} setEssentialIds={setEssentialIds}
@@ -433,22 +436,22 @@ export default function FleetMasterV2() {
         {/* 4. 스킬 목표 설정 뷰 */}
         {activeTab === 'skills' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-black text-slate-800 mb-4 flex items-center gap-2">
-              <Target className="text-indigo-500" />
+            <h2 className="mb-4 flex items-center gap-2 text-2xl font-black tracking-normal text-slate-950">
+              <Target className="text-amber-600" />
               배치 모드 설정
             </h2>
 
             {/* 모드 선택 토글 */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <button
                 onClick={() => {
                   setOptimizerMode('skill');
                   setStatConfig(DEFAULT_STAT_WEIGHT_CONFIG);
                 }}
-                className={`flex flex-col items-center gap-2 p-4 rounded-2xl border font-black transition-all
+                className={`app-card flex flex-col items-center gap-2 rounded-lg p-4 font-black transition-all
                   ${optimizerMode === 'skill'
-                    ? 'bg-emerald-50 border-emerald-400 text-emerald-700 shadow-[0_0_20px_rgba(16,185,129,0.15)]'
-                    : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700 shadow-sm'}`}
+                    ? 'border-emerald-400 bg-emerald-50 text-emerald-700'
+                    : 'text-slate-500 hover:border-slate-300 hover:text-slate-700'}`}
               >
                 <SlidersHorizontal size={22} />
                 <span className="text-sm">스킬 개별 설정</span>
@@ -462,10 +465,10 @@ export default function FleetMasterV2() {
                   setOptimizerMode('stat');
                   setTargetLevels({});
                 }}
-                className={`flex flex-col items-center gap-2 p-4 rounded-2xl border font-black transition-all
+                className={`app-card flex flex-col items-center gap-2 rounded-lg p-4 font-black transition-all
                   ${optimizerMode === 'stat'
-                    ? 'bg-indigo-50 border-indigo-400 text-indigo-700 shadow-[0_0_20px_rgba(99,102,241,0.15)]'
-                    : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700 shadow-sm'}`}
+                    ? 'border-sky-400 bg-sky-50 text-sky-700'
+                    : 'text-slate-500 hover:border-slate-300 hover:text-slate-700'}`}
               >
                 <BarChart3 size={22} />
                 <span className="text-sm">능력치 종합 설정</span>
@@ -477,14 +480,14 @@ export default function FleetMasterV2() {
 
             {/* 모드 A: 스킬 개별 설정 */}
             {optimizerMode === 'skill' && (
-              <div className="bg-white p-2 md:p-6 rounded-2xl border border-emerald-200 shadow-md">
+              <div className="app-panel rounded-lg border-emerald-200 p-2 md:p-6">
                 <SkillSettings targetLevels={targetLevels} setTargetLevels={setTargetLevels} />
               </div>
             )}
 
             {/* 모드 B: 능력치 종합 설정 */}
             {optimizerMode === 'stat' && (
-              <div className="bg-white p-2 md:p-6 rounded-2xl border border-indigo-200 shadow-md">
+              <div className="app-panel rounded-lg border-sky-200 p-2 md:p-6">
                 <StatWeightSettings config={statConfig} onChange={setStatConfig} />
               </div>
             )}

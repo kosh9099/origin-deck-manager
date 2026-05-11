@@ -20,9 +20,9 @@ function getTariffDiscount(startTime: number): { label: string; level: number } 
   const kst = new Date(startTime + 9 * 3600 * 1000);
   if (kst.getUTCDay() !== 1) return null; // 월요일만 (KST 기준)
   const h = kst.getUTCHours();
-  if (h >= 18 && h <= 19) return { label: '관세 10%↓', level: 1 };
-  if (h >= 20 && h <= 21) return { label: '관세 30%↓', level: 2 };
-  if (h >= 22 && h <= 23) return { label: '면세 핫타임', level: 3 };
+  if (h >= 18 && h <= 19) return { label: '관세10%', level: 1 };
+  if (h >= 20 && h <= 21) return { label: '관세30%', level: 2 };
+  if (h >= 22 && h <= 23) return { label: '면세', level: 3 };
   return null;
 }
 
@@ -196,15 +196,15 @@ export default function ScheduleCards({
                   <button
                     onClick={() => onMapJump(isBoost ? { city: event.city || event.zone } : { region: normalizeZoneName(event.zone) })}
                     title={isBoost ? '지도에서 해당 도시 보기' : '지도에서 해역 보기'}
-                    className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors active:scale-95 shrink-0"
+                    className="inline-flex size-6 items-center justify-center rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 transition-colors hover:bg-indigo-100 active:scale-95 shrink-0"
                   >
-                    <MapIcon size={10} /> 지도
+                    <MapIcon size={12} />
                   </button>
                 )}
 
                 {/* 이벤트 배지 */}
                 <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border whitespace-nowrap shrink-0 ${badgeCls}`}
+                  className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-bold leading-4 whitespace-nowrap shrink-0 ${badgeCls}`}
                   title={
                     isBoost
                       ? '유저 등록 스케줄'
@@ -221,7 +221,7 @@ export default function ScheduleCards({
                 </span>
 
                 {tariff && (
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black border whitespace-nowrap shrink-0 ${
+                  <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-black leading-4 whitespace-nowrap shrink-0 ${
                     tariff.level === 3
                       ? 'bg-amber-400 text-amber-950 border-amber-500 animate-sparkle'
                       : tariff.level === 2

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
+import { Sailor } from '@/types';
 import { MAX_SKILL_LEVELS } from '@/lib/optimizer/rules';
 import { getSailorSkillLevel, calculateFleetSkills } from '@/lib/optimizer/scoring';
 import { SKILL_STATS, SkillStat } from '@/lib/optimizer/data/skillStats';
@@ -9,8 +10,18 @@ import StatSummaryCard from './StatSummaryCard';
 import { BarChart2 } from 'lucide-react';
 
 interface Props {
-  result: any;
+  result: FleetResult | null;
   targetLevels: Record<string, number>;
+}
+
+interface ResultShip {
+  admiral?: Sailor | null;
+  adventure?: (Sailor | null)[];
+  combat?: (Sailor | null)[];
+}
+
+interface FleetResult {
+  ships?: ResultShip[];
 }
 
 /**
@@ -18,7 +29,7 @@ interface Props {
  * calculateFleetSkills는 내부적으로 맥스레벨로 클램핑하므로,
  * 초과 여부를 표시하려면 이 함수로 원본 합산값을 별도 계산해야 합니다.
  */
-function calculateRawFleetSkills(sailors: any[]): Record<string, number> {
+function calculateRawFleetSkills(sailors: Sailor[]): Record<string, number> {
   const totals: Record<string, number> = {};
   sailors.forEach(sailor => {
     if (!sailor) return;
@@ -43,11 +54,11 @@ export default function SkillDashboard({ result, targetLevels = {} }: Props) {
       };
     }
 
-    const allCrew: any[] = [];
-    result.ships.forEach((ship: any) => {
+    const allCrew: Sailor[] = [];
+    result.ships.forEach((ship: ResultShip) => {
       if (ship.admiral) allCrew.push(ship.admiral);
-      if (ship.adventure) ship.adventure.filter(Boolean).forEach((s: any) => allCrew.push(s));
-      if (ship.combat) ship.combat.filter(Boolean).forEach((s: any) => allCrew.push(s));
+      if (ship.adventure) ship.adventure.filter((s): s is Sailor => Boolean(s)).forEach(s => allCrew.push(s));
+      if (ship.combat) ship.combat.filter((s): s is Sailor => Boolean(s)).forEach(s => allCrew.push(s));
     });
 
     // 클램핑된 값: 능력치 계산용 (맥스 초과분 무시)
@@ -87,15 +98,15 @@ export default function SkillDashboard({ result, targetLevels = {} }: Props) {
   return (
     <div className="relative z-0 mt-4">
       {/* 패널 헤더 */}
-      <div className="bg-slate-700 px-4 py-2.5 rounded-t-xl border-b-2 border-slate-600 shadow-sm">
-        <h2 className="text-[13px] font-black text-white uppercase tracking-widest flex items-center gap-2">
+      <div className="rounded-t-lg border border-slate-900 bg-slate-950 px-4 py-2.5 shadow-sm">
+        <h2 className="flex items-center gap-2 text-[13px] font-black uppercase tracking-widest text-white">
           <BarChart2 size={16} strokeWidth={2.5} />
           스킬 현황 (Skill Status)
         </h2>
       </div>
 
-      <div className="bg-slate-50 rounded-b-xl p-3 border border-slate-200 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="rounded-b-lg border border-t-0 border-slate-200 bg-white/92 p-3 shadow-sm">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5">
           {categories.map(cat => (
             <SkillCategoryCard
               key={cat.name}

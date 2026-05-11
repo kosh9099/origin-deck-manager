@@ -17,14 +17,14 @@ interface Props {
 
 const KRW = new Intl.NumberFormat('ko-KR');
 
-// 만원 단위 숫자만 (suffix 없이): 235,672 → "23.6", 1,234,567 → "123"
+// 만원 단위 정수만 (suffix 없이): 235,672 → "23", 1,234,567 → "123"
 function manNumber(n: number): string {
   if (n < 10000) return KRW.format(n);
   const man = n / 10000;
-  return man >= 100 ? `${Math.round(man)}` : `${man.toFixed(1)}`;
+  return `${Math.floor(man)}`;
 }
 
-// 두 가격 한꺼번에: "23.6~19.0만"
+// 두 가격 한꺼번에: "23~19만"
 function priceRange(high: number, low: number): string {
   return `${manNumber(high)}~${manNumber(low)}만`;
 }
@@ -65,10 +65,6 @@ export default function ItemVotePanel({ event, onItemClick, specialItems, tierFx
   const hasItems = event.items.length > 0;
   const recs = event.seasonRecs ?? [];
 
-  if (!hasItems && recs.length === 0) {
-    return <span className="text-[11px] text-slate-400 italic">추천 품목 없음</span>;
-  }
-
   const chipClass = getRecChipClass(event);
   const eventKstDate = new Date(event.startTime + 9 * 3600 * 1000).toISOString().slice(0, 10);
   const isRegisteredSpecial = (name: string) => specialItems?.get(name) === eventKstDate;
@@ -82,6 +78,10 @@ export default function ItemVotePanel({ event, onItemClick, specialItems, tierFx
     return [...actives, ...inactives];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recs, specialItems]);
+
+  if (!hasItems && recs.length === 0) {
+    return <span className="text-[11px] text-slate-400 italic">추천 품목 없음</span>;
+  }
 
   return (
     <div className="flex flex-wrap items-center gap-1">
@@ -98,12 +98,12 @@ export default function ItemVotePanel({ event, onItemClick, specialItems, tierFx
             key={`rec-${idx}-${rec.name}`}
             onClick={() => onItemClick?.(rec.name)}
             title={prefix + body}
-            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-bold border whitespace-nowrap transition-all active:scale-95 cursor-pointer ${chipClass} ${
+            className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-bold border whitespace-nowrap transition-all active:scale-95 cursor-pointer ${chipClass} ${
               sparkle ? 'animate-sparkle ring-1 ring-amber-400' : tierFx
             } ${inactive ? 'opacity-40 grayscale' : ''}`}
           >
             <span>{rec.name}</span>
-            <span className="text-[9px] font-medium tabular-nums opacity-80 tracking-tight">
+            <span className="text-[9px] font-semibold tabular-nums opacity-75 tracking-tight">
               {priceRange(rec.high, rec.low)}
             </span>
           </button>

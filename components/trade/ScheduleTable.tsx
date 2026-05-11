@@ -22,9 +22,9 @@ function getTariffDiscount(startTime: number): { label: string; level: number } 
   const kst = new Date(startTime + 9 * 3600 * 1000);
   if (kst.getUTCDay() !== 1) return null;
   const h = kst.getUTCHours();
-  if (h >= 18 && h <= 19) return { label: '관세 10%↓', level: 1 };
-  if (h >= 20 && h <= 21) return { label: '관세 30%↓', level: 2 };
-  if (h >= 22 && h <= 23) return { label: '면세 핫타임', level: 3 };
+  if (h >= 18 && h <= 19) return { label: '관세10%', level: 1 };
+  if (h >= 20 && h <= 21) return { label: '관세30%', level: 2 };
+  if (h >= 22 && h <= 23) return { label: '면세', level: 3 };
   return null;
 }
 
@@ -87,9 +87,9 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
   const inGameTime = getInGameTimeInfo(now);
 
   return (
-    <div className="w-full bg-slate-50/60 rounded-2xl border border-slate-200 p-2 shadow-sm">
-      <table className="w-full table-fixed" style={{ borderCollapse: 'separate', borderSpacing: '0 6px' }}>
-        <colgroup><col style={{ width: '14%' }} /><col style={{ width: '18%' }} /><col style={{ width: '12%' }} /><col style={{ width: '56%' }} /></colgroup>
+    <div className="w-full rounded-lg border border-slate-200 bg-slate-50/60 p-1.5 shadow-sm">
+      <table className="w-full table-fixed" style={{ borderCollapse: 'separate', borderSpacing: '0 4px' }}>
+        <colgroup><col style={{ width: '13%' }} /><col style={{ width: '17%' }} /><col style={{ width: '15%' }} /><col style={{ width: '55%' }} /></colgroup>
         <thead>
           <tr>
             <th className="pl-7 pr-3 pb-2 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">시간</th>
@@ -108,19 +108,15 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
             let badgeCls = typeColors[event.type] || 'bg-slate-200 text-slate-800 border-slate-400';
             let indicatorCls = typeIndicators[event.type] || 'bg-slate-400';
             let rowColorCls = typeRowColors[event.type] || 'bg-emerald-100/80 hover:bg-emerald-200/80';
-            let textColorCls = '';
-
             if (isBoost) {
               if (boostType === '급매') {
                 badgeCls = 'bg-orange-100 text-orange-800 border-orange-300';
                 indicatorCls = 'bg-orange-500';
                 rowColorCls = 'bg-orange-100/80 hover:bg-orange-200/80';
-                textColorCls = 'text-orange-600';
               } else {
                 badgeCls = 'bg-violet-100 text-violet-800 border-violet-300';
                 indicatorCls = 'bg-violet-500';
                 rowColorCls = 'bg-violet-100/80 hover:bg-violet-200/80';
-                textColorCls = 'text-violet-600';
               }
             }
 
@@ -143,7 +139,7 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
                 }}
               >
                 {/* 시간 (부양/급매는 클릭으로 편집 모달 열림) */}
-                <td className="pl-4 pr-6 py-1.5 relative align-middle rounded-l-xl border-l border-y border-slate-200/60">
+                <td className="pl-4 pr-4 py-1 relative align-middle rounded-l-lg border-l border-y border-slate-200/60">
                   <div className={`absolute left-0 top-3 bottom-3 w-[3px] rounded-full ${isGold ? 'bg-yellow-400' : indicatorCls}`} />
                   <div className="flex items-center gap-1.5">
                     {/* 즐겨찾기 별표 */}
@@ -195,7 +191,7 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
                 </td>
 
                 {/* 해역/항구 */}
-                <td className="pl-6 pr-3 py-1.5 align-middle border-y border-slate-200/60">
+                <td className="pl-5 pr-2 py-1 align-middle border-y border-slate-200/60">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-[12px] font-bold text-slate-800 break-keep leading-tight whitespace-normal">
                       {(() => {
@@ -224,9 +220,9 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
                         <button
                           onClick={() => onMapJump(target)}
                           title={isBoost ? '지도에서 해당 도시 보기' : '지도에서 해역 보기'}
-                          className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors active:scale-95 shrink-0"
+                          className="inline-flex size-6 items-center justify-center rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 transition-colors hover:bg-indigo-100 active:scale-95 shrink-0"
                         >
-                          <MapIcon size={10} /> 지도
+                          <MapIcon size={12} />
                         </button>
                       );
                     })()}
@@ -234,13 +230,13 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
                 </td>
 
                 {/* 이벤트 */}
-                <td className="pl-3 pr-4 py-1.5 align-middle border-y border-slate-200/60">
-                  <div className="flex flex-col gap-1">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold border whitespace-nowrap ${badgeCls}`} title={tooltip}>
+                <td className="pl-2 pr-2 py-1 align-middle border-y border-slate-200/60">
+                  <div className="flex min-w-0 flex-col items-start gap-1">
+                    <span className={`inline-flex max-w-full items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-bold leading-4 whitespace-nowrap ${badgeCls}`} title={tooltip}>
                       {isBoost ? <>{event.type || '?'}<span className="opacity-60 text-[10px]">{boostType}</span></> : event.type}
                     </span>
                     {tariff && (
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black border whitespace-nowrap ${
+                      <span className={`inline-flex max-w-full items-center rounded-md border px-2 py-0.5 text-[10px] font-black leading-4 whitespace-nowrap ${
                         tariff.level === 3
                           ? 'bg-amber-400 text-amber-950 border-amber-500 animate-sparkle'
                           : tariff.level === 2
@@ -254,7 +250,7 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
                 </td>
 
                 {/* 추천 품목 */}
-                <td className="pl-4 pr-3 py-1.5 align-middle rounded-r-xl border-r border-y border-slate-200/60">
+                <td className="pl-3 pr-2 py-1 align-middle rounded-r-lg border-r border-y border-slate-200/60">
                   {bonuses.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-1.5">
                       {bonuses.map(b => (

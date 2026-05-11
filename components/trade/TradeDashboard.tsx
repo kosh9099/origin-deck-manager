@@ -100,6 +100,22 @@ const FILTER_STORAGE_KEY = 'trade_filters_v1';
 
 type SheetLoadStatus = 'loading' | 'ok' | 'error' | 'idle';
 
+type DbBoostRow = {
+  id: string;
+  city?: string | null;
+  zone?: string | null;
+  type: string;
+  start_time: string;
+};
+
+type DbTradeItemRow = {
+  id: string;
+  schedule_id: string;
+  item_name: string;
+  upvotes: number;
+  downvotes: number;
+};
+
 function mergeSheetItems(
   events: TradeEvent[],
   zoneMap: SheetItemMap,
@@ -244,14 +260,15 @@ export default function TradeDashboard({
         getActiveBoosts().catch(() => []),
         getTradeItems().catch(() => []),
       ]);
-      const boostEvents: TradeEvent[] = dbBoosts.map((b: any) => ({
+      const boostEvents: TradeEvent[] = (dbBoosts as DbBoostRow[]).map(b => ({
         id: b.id, zone: b.city || b.zone || '미상', city: b.city || undefined,
         type: b.type, isBoost: true, startTime: new Date(b.start_time).getTime(), items: [],
       }));
       const allEvents = [...autoGenEvents, ...boostEvents];
-      dbItems.forEach((dbItem: any) => {
+      (dbItems as DbTradeItemRow[]).forEach(dbItem => {
         const target = allEvents.find(e => e.id === dbItem.schedule_id);
-        if (target) target.items.push({ id: dbItem.id, name: dbItem.item_name, upvotes: dbItem.upvotes, downvotes: dbItem.downvotes, isUserVoted: null });
+        const item: TradeItem = { id: dbItem.id, name: dbItem.item_name, upvotes: dbItem.upvotes, downvotes: dbItem.downvotes, isUserVoted: null };
+        if (target) target.items.push(item);
       });
       const merged = mergeSheetItems(allEvents, useZone, useCity);
       merged.sort((a, b) => a.startTime - b.startTime);
@@ -390,24 +407,24 @@ export default function TradeDashboard({
   }, [eventsWithEndTime, filters, favorites, captureMode]);
 
   return (
-    <div className="w-full flex-1 flex flex-col h-full relative" id="trade-dashboard-capture-area">
+    <div className="relative flex h-full w-full flex-1 flex-col" id="trade-dashboard-capture-area">
 
       {/* 헤더 */}
-      <div className="bg-emerald-600 px-3 py-2 rounded-xl border border-emerald-500 mb-3 shadow-sm shrink-0">
+      <div className="mb-2 shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-[14px] font-black text-white flex items-center gap-1.5 min-w-0">
-            <Flame size={15} className="text-amber-300 animate-pulse shrink-0" />
+          <h3 className="flex min-w-0 items-center gap-1.5 text-[14px] font-black text-slate-950">
+            <Flame size={15} className="shrink-0 text-amber-300" />
             <span className="truncate">교역 스케줄</span>
-            <span className="px-1.5 py-0.5 rounded-md bg-white border border-emerald-200 text-[11px] font-black text-emerald-700 shadow-sm leading-tight shrink-0">
+            <span className="shrink-0 rounded-md border border-teal-200 bg-teal-50 px-1.5 py-0.5 text-[11px] font-black leading-tight text-teal-700">
               인게임 {inGameTime.month}월
             </span>
           </h3>
           <button onClick={handleRefresh} disabled={isLoading}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-black bg-white/20 text-white border border-white/30 hover:bg-white/30 transition-all disabled:opacity-50 shrink-0">
+            className="flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-black text-slate-600 transition-all hover:bg-slate-100 disabled:opacity-50">
             <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} /> 새로고침
           </button>
         </div>
-        <p className="text-[10px] text-emerald-100 mt-1 leading-tight">
+        <p className="mt-1 text-[10px] leading-tight text-slate-500">
           추천 품목 가격은 판매지식 20렙 / 할증 0% 기준
         </p>
       </div>
@@ -419,25 +436,25 @@ export default function TradeDashboard({
         const inPeriod = today >= HOTTIME_CONFIG.startDate && today <= HOTTIME_CONFIG.endDate;
         if (!inPeriod) return null;
         return (
-          <div className="mb-3 shrink-0 rounded-xl border border-yellow-300 bg-gradient-to-r from-yellow-50 to-amber-50 px-4 py-2.5 shadow-sm">
+          <div className="mb-3 shrink-0 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 shadow-sm">
             <div className="flex items-start gap-2.5">
               <span className="text-base shrink-0">✦</span>
               <div className="flex-1 min-w-0 space-y-1">
                 <p className="text-[12px] font-black text-amber-800">핫타임 버프 이벤트</p>
                 <div className="flex items-center gap-1.5 flex-wrap text-[11px] font-bold text-amber-700">
-                  <span className="bg-white border border-yellow-300 rounded-lg px-2 py-0.5 whitespace-nowrap">
+                  <span className="whitespace-nowrap rounded-md border border-amber-200 bg-white px-2 py-0.5">
                     2026.03.11 ~ 2026.04.07
                   </span>
                   <span className="text-amber-400">·</span>
-                  <span className="bg-white border border-yellow-300 rounded-lg px-2 py-0.5 whitespace-nowrap">
+                  <span className="whitespace-nowrap rounded-md border border-amber-200 bg-white px-2 py-0.5">
                     매일 17:00 ~ 22:00
                   </span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-[11px] font-black px-2 py-0.5 rounded-lg border whitespace-nowrap ${BONUS_ITEMS['공예품'].color}`}>
+                  <span className={`whitespace-nowrap rounded-md border px-2 py-0.5 text-[11px] font-black ${BONUS_ITEMS['공예품'].color}`}>
                     공예품 판매 가격 +10%
                   </span>
-                  <span className={`text-[11px] font-black px-2 py-0.5 rounded-lg border whitespace-nowrap ${BONUS_ITEMS['귀금속'].color}`}>
+                  <span className={`whitespace-nowrap rounded-md border px-2 py-0.5 text-[11px] font-black ${BONUS_ITEMS['귀금속'].color}`}>
                     귀금속 판매 가격 +30%
                   </span>
                 </div>
@@ -448,19 +465,19 @@ export default function TradeDashboard({
       })()}
 
       {/* 필터 토글 */}
-      <div className="flex items-center gap-1 md:gap-1.5 mb-3 shrink-0 flex-nowrap">
-        <span className="hidden md:flex items-center gap-1 text-[11px] font-bold text-slate-500 shrink-0"><Filter size={11} /></span>
+      <div className="mb-2 flex shrink-0 items-center gap-1.5 overflow-x-auto pb-1 md:overflow-visible md:pb-0">
+        <span className="hidden shrink-0 items-center gap-1 text-[11px] font-bold text-slate-500 md:flex"><Filter size={11} /></span>
         {([
-          { key: 'boost' as const, label: '부양', activeColor: 'bg-violet-500 text-white border-violet-600', inactiveColor: 'bg-white text-violet-600 border-violet-300 opacity-50' },
-          { key: 'flash' as const, label: '급매', activeColor: 'bg-orange-500 text-white border-orange-600', inactiveColor: 'bg-white text-orange-600 border-orange-300 opacity-50' },
-          { key: 'epidemic' as const, label: '대유행', activeColor: 'bg-emerald-500 text-white border-emerald-600', inactiveColor: 'bg-white text-emerald-600 border-emerald-300 opacity-50' },
-          { key: 'favorite' as const, label: '★ 즐겨찾기', activeColor: 'bg-amber-500 text-white border-amber-600', inactiveColor: 'bg-white text-amber-600 border-amber-300 opacity-50' },
-          { key: 'tierFx' as const, label: '✨ 가격 강조', activeColor: 'bg-rose-500 text-white border-rose-600', inactiveColor: 'bg-white text-rose-600 border-rose-300 opacity-50' },
+          { key: 'boost' as const, label: '부양', activeColor: 'bg-violet-700 text-white border-violet-800', inactiveColor: 'bg-white text-violet-700 border-violet-200' },
+          { key: 'flash' as const, label: '급매', activeColor: 'bg-orange-600 text-white border-orange-700', inactiveColor: 'bg-white text-orange-700 border-orange-200' },
+          { key: 'epidemic' as const, label: '대유행', activeColor: 'bg-emerald-700 text-white border-emerald-800', inactiveColor: 'bg-white text-emerald-700 border-emerald-200' },
+          { key: 'favorite' as const, label: '즐겨찾기', activeColor: 'bg-amber-600 text-white border-amber-700', inactiveColor: 'bg-white text-amber-700 border-amber-200' },
+          { key: 'tierFx' as const, label: '가격 강조', activeColor: 'bg-rose-600 text-white border-rose-700', inactiveColor: 'bg-white text-rose-700 border-rose-200' },
         ]).map(f => (
           <button
             key={f.key}
             onClick={() => setFilters(prev => ({ ...prev, [f.key]: !prev[f.key] }))}
-            className={`px-1.5 md:px-2 py-0.5 rounded-full text-[10px] md:text-[11px] font-black border transition-all active:scale-95 shrink-0 whitespace-nowrap ${
+            className={`shrink-0 whitespace-nowrap rounded-md border px-2 py-1 text-[10px] font-black transition-all active:scale-95 md:text-[11px] ${
               filters[f.key] ? f.activeColor : f.inactiveColor
             }`}
           >
@@ -470,9 +487,9 @@ export default function TradeDashboard({
       </div>
 
       {/* 스케줄 테이블 */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 pb-10">
+      <div className="flex-1 overflow-y-auto pb-10 scrollbar-thin scrollbar-thumb-slate-300">
         {isLoading ? (
-          <div className="flex justify-center items-center h-40">
+          <div className="flex h-40 items-center justify-center">
             <div className="w-8 h-8 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin" />
           </div>
         ) : (

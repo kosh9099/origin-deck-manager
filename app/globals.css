@@ -1,23 +1,136 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #eef2f0;
+  --foreground: #17231f;
+  --surface: #ffffff;
+  --surface-muted: #f7f8f5;
+  --surface-strong: #10231f;
+  --border-soft: #d9e0dc;
+  --border-strong: #b8c4bd;
+  --accent-harbor: #0f766e;
+  --accent-gold: #b7791f;
+  --accent-navy: #18324a;
+  --shadow-panel: 0 18px 50px rgba(15, 35, 31, 0.10);
+  --shadow-card: 0 10px 30px rgba(15, 35, 31, 0.08);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
 }
-
-/* 기기 설정에 따른 자동 다크 모드 전환 코드(@media)를 삭제했습니다! */
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  text-rendering: geometricPrecision;
+}
+
+::selection {
+  background: rgba(15, 118, 110, 0.18);
+  color: #0f231f;
+}
+
+button,
+a,
+label {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+label:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgba(15, 118, 110, 0.55);
+  outline-offset: 2px;
+}
+
+.app-bg {
+  background:
+    radial-gradient(circle at top left, rgba(15, 118, 110, 0.10), transparent 34rem),
+    radial-gradient(circle at bottom right, rgba(183, 121, 31, 0.10), transparent 32rem),
+    linear-gradient(135deg, #edf2ef 0%, #f7f4ec 48%, #eef3f2 100%);
+}
+
+.app-shell {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.app-panel {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-panel);
+}
+
+.app-card {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-card);
+}
+
+.app-sidebar {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.06), transparent 28%),
+    linear-gradient(160deg, #10231f 0%, #142b32 58%, #1d2639 100%);
+}
+
+.nav-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid transparent;
+  padding: 0.75rem;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: rgba(226, 232, 240, 0.68);
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.nav-item-active {
+  border-color: rgba(94, 234, 212, 0.32);
+  background: rgba(15, 118, 110, 0.24);
+  color: #99f6e4;
+}
+
+.tool-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  background: #ffffff;
+  color: #24524c;
+  font-size: 0.75rem;
+  font-weight: 850;
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(15, 35, 31, 0.06);
+  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.tool-button:hover {
+  background: #f0fdfa;
+  border-color: rgba(15, 118, 110, 0.35);
+  color: #0f766e;
+}
+
+.tool-button:active {
+  transform: scale(0.98);
 }
 
 /* 특수 물교 등록된 추천 품목 칩 — 노란 빛 반짝임 */

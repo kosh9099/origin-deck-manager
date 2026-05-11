@@ -60,19 +60,23 @@ export default function TradeManagerPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f0ece4] text-slate-800 font-sans flex flex-col md:flex-row h-screen overflow-hidden">
+    <div className="app-shell app-bg flex h-screen flex-col overflow-hidden font-sans md:flex-row">
 
       {/* ── 모바일 헤더 ── */}
-      <div className="md:hidden flex items-center justify-between p-4 border-b border-slate-300 bg-white z-50 sticky top-0 shadow-sm">
-        <div className="flex items-center gap-2">
-          <Anchor className="text-emerald-500" size={20} />
-          <h1 className="text-xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-600 pr-1">
-            교역 매니저 V2
-          </h1>
+      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-slate-200 bg-white/92 px-4 py-3 shadow-sm backdrop-blur md:hidden">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="flex size-9 items-center justify-center rounded-lg border border-teal-100 bg-teal-50 text-teal-700">
+            <Anchor size={18} />
+          </span>
+          <div className="min-w-0">
+            <h1 className="truncate text-base font-black text-slate-950">교역 매니저</h1>
+            <p className="text-[11px] font-bold text-slate-500">스케줄 · 지도 · 물교</p>
+          </div>
         </div>
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 bg-slate-100 rounded-lg text-slate-700 hover:bg-slate-200 border border-slate-300 active:scale-95"
+          className="tool-button size-9"
+          aria-label="메뉴 열기"
         >
           {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
@@ -85,34 +89,37 @@ export default function TradeManagerPage() {
 
       {/* ── 사이드바 ── */}
       <aside className={`
-        fixed md:sticky top-0 left-0 h-full w-64 bg-[#1a3a2a] border-r border-white/10 z-[110]
-        transform transition-transform duration-300 ease-in-out flex flex-col
+        app-sidebar fixed left-0 top-0 z-[110] flex h-full w-64 flex-col border-r border-white/10 md:sticky
+        transform transition-transform duration-300 ease-in-out
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
         {/* 모바일 닫기 */}
-        <div className="md:hidden flex justify-end p-4">
-          <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-300 hover:text-white bg-white/10 rounded-lg border border-white/20">
+        <div className="flex justify-end p-4 md:hidden">
+          <button onClick={() => setIsMobileMenuOpen(false)} className="flex size-9 items-center justify-center rounded-lg border border-white/15 bg-white/10 text-slate-300 transition hover:text-white">
             <X size={20} />
           </button>
         </div>
 
         {/* 사이드바 헤더 */}
-        <div className="p-6 border-b border-white/10 hidden md:block">
-          <Link href="/" className="inline-block group pb-1">
-            <h1 className="text-2xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-400 flex items-center gap-2 group-hover:scale-105 transition-transform pr-1">
-              <Anchor className="text-emerald-400 shrink-0" size={24} />
-              교역 매니저 V2
-            </h1>
+        <div className="hidden border-b border-white/10 p-5 md:block">
+          <Link href="/" className="group inline-flex items-center gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-teal-300/20 bg-teal-300/10 text-teal-200">
+              <Anchor size={20} />
+            </span>
+            <div>
+              <h1 className="text-lg font-black text-white">교역 매니저</h1>
+              <p className="mt-0.5 text-xs font-semibold text-slate-400">Trade Command</p>
+            </div>
           </Link>
-          <p className="text-xs text-slate-400 mt-2 font-medium tracking-wide">
+          <p className="mt-4 text-xs font-medium leading-5 text-slate-400">
             대유행 & 부양 시간표 실시간 동기화
           </p>
         </div>
 
         {/* 네비게이션 */}
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20">
+        <nav className="flex-1 space-y-2 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-white/20">
           <Link href="/"
-            className="flex items-center gap-3 w-full p-3 rounded-xl text-left text-sm font-bold transition-all text-slate-400 hover:bg-white/10 hover:text-white mb-4">
+            className="nav-item mb-4">
             <Home size={18} className="shrink-0" />
             <span className="truncate">메인으로 돌아가기</span>
           </Link>
@@ -121,19 +128,16 @@ export default function TradeManagerPage() {
 
           {navItems.map(item => (
             <button key={item.id} onClick={() => handleTabChange(item.id)}
-              className={`flex items-center gap-3 w-full p-3 rounded-xl text-left text-sm font-bold transition-all
-                ${activeTab === item.id
-                  ? 'bg-gradient-to-r from-emerald-500/30 to-teal-500/20 text-emerald-300 border border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
-                  : 'text-slate-400 hover:bg-white/10 hover:text-white border border-transparent'}`}>
+              className={`nav-item ${activeTab === item.id ? 'nav-item-active' : ''}`}>
               <span className={`shrink-0 ${activeTab === item.id ? 'text-emerald-400' : ''}`}>{item.icon}</span>
               <span className="truncate">{item.label}</span>
             </button>
           ))}
         </nav>
 
-        <div className="p-3 border-t border-white/10">
+        <div className="border-t border-white/10 p-3">
           <Link href="/admin"
-            className="flex items-center justify-center p-2 rounded-lg text-slate-500 hover:bg-white/5 hover:text-slate-300 transition-colors"
+            className="flex items-center justify-center rounded-lg p-2 text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300"
             title="설정">
             <Settings size={16} />
           </Link>
@@ -147,58 +151,58 @@ export default function TradeManagerPage() {
 
       {/* 캡처 toast */}
       {captureToast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[300] px-4 py-2.5 bg-slate-900 text-white text-[13px] font-bold rounded-xl shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="fixed left-1/2 top-4 z-[300] -translate-x-1/2 rounded-lg bg-slate-950 px-4 py-2.5 text-[13px] font-bold text-white shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
           {captureToast}
         </div>
       )}
 
       {/* ── 메인 콘텐츠 ── */}
-      <main className={`flex-1 overflow-y-auto bg-[#f0ece4] flex flex-col w-full relative ${
-        activeTab === 'map' ? 'p-0' : 'p-4 md:p-6 lg:p-8'
+      <main className={`relative flex w-full flex-1 flex-col overflow-y-auto ${
+        activeTab === 'map' ? 'p-0' : 'p-2 md:p-3 lg:p-4'
       }`}>
         <div className={`w-full flex-1 flex flex-col md:pb-0 ${
           activeTab === 'map'
             ? 'space-y-0'
-            : 'max-w-[1400px] mx-auto space-y-4 md:space-y-6 pb-20'
+            : 'max-w-[1500px] mx-auto space-y-2 md:space-y-3 pb-10'
         }`}>
 
           {/* 상단 헤더 (대시보드 모드에서는 액션 버튼들, 부양 모드에서는 제목) */}
           {activeTab === 'boosts' && (
             <div className="mb-2 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">부양 등록 / 관리</h2>
-                <p className="text-sm text-slate-500 mt-1 font-medium">단건 또는 일괄 붙여넣기로 부양 스케줄을 공유하세요.</p>
+                <h2 className="text-2xl font-black tracking-normal text-slate-950 sm:text-3xl">부양 등록 / 관리</h2>
+                <p className="mt-1 text-sm font-medium text-slate-600">단건 또는 일괄 붙여넣기로 부양 스케줄을 공유하세요.</p>
               </div>
               <button onClick={() => setActiveTab('dashboard')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0 self-start sm:self-auto">
+                className="tool-button h-9 shrink-0 self-start px-3 sm:self-auto">
                 <RefreshCw size={13} />
                 <span className="whitespace-nowrap">교역 스케줄</span>
               </button>
             </div>
           )}
           {activeTab === 'dashboard' && (
-            <div className="flex justify-end gap-1 sm:gap-2 mb-1">
+            <div className="mb-0 flex flex-wrap justify-end gap-1.5 sm:gap-2">
               <button onClick={() => setActiveTab('boosts')}
                 title="부양 등록"
-                className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] sm:text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0">
+                className="tool-button h-8 shrink-0 px-2.5 sm:px-3">
                 <HandHeart size={13} />
                 <span className="whitespace-nowrap"><span className="sm:hidden">부양</span><span className="hidden sm:inline">부양 등록</span></span>
               </button>
               <button onClick={() => setWeeklyOpen(true)}
                 title="주간 기록"
-                className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-[11px] sm:text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0">
+                className="tool-button h-8 shrink-0 px-2.5 sm:px-3">
                 <MapPin size={13} />
                 <span className="whitespace-nowrap"><span className="sm:hidden">주간</span><span className="hidden sm:inline">주간 기록</span></span>
               </button>
               <button onClick={() => setSpecialOpen(true)}
                 title="특수 등록"
-                className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white text-[11px] sm:text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 shrink-0">
+                className="tool-button h-8 shrink-0 border-amber-200 text-amber-700 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-800 px-2.5 sm:px-3">
                 <Sparkles size={13} />
                 <span className="whitespace-nowrap"><span className="sm:hidden">특수</span><span className="hidden sm:inline">특수 등록</span></span>
               </button>
               <button onClick={handleCapture}
                 title="캡처"
-                className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] sm:text-[12px] font-bold rounded-lg shadow-sm transition-all active:scale-95 group shrink-0">
+                className="tool-button h-8 shrink-0 px-2.5 sm:px-3">
                 <Download size={13} className="group-hover:-translate-y-0.5 transition-transform" />
                 <span className="whitespace-nowrap">캡처</span>
               </button>
@@ -206,12 +210,12 @@ export default function TradeManagerPage() {
           )}
 
           {/* 컨텐츠 패널 — map 탭은 항상 full-bleed (테두리/라운드/패딩 제거) */}
-          <div className={`flex-1 min-h-0 bg-white relative animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-hidden flex flex-col ${
+          <div className={`relative flex min-h-0 flex-1 flex-col overflow-hidden bg-white animate-in fade-in slide-in-from-bottom-4 duration-500 ${
             activeTab === 'map'
               ? 'rounded-none border-0 shadow-none'
-              : 'rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm'
+              : 'app-panel rounded-lg p-2 sm:p-3'
           }`}>
-            {activeTab === 'dashboard' && <TradeDashboard onMapJump={handleMapJump} />}
+            {activeTab === 'dashboard' && <TradeDashboard captureMode={captureMode} onMapJump={handleMapJump} />}
             {activeTab === 'boosts' && (
               <div className="flex justify-center w-full py-4 overflow-y-auto">
                 <BoostForm />
