@@ -116,7 +116,7 @@ export default function VisitorStats() {
 );
 CREATE INDEX idx_visitor_last_seen ON visitor_sessions (last_seen DESC);
 CREATE INDEX idx_visitor_first_seen ON visitor_sessions (first_seen);
-ALTER TABLE visitor_sessions DISABLE ROW LEVEL SECURITY;`}</pre>
+ALTER TABLE visitor_sessions ENABLE ROW LEVEL SECURITY;`}</pre>
           </div>
         )}
 

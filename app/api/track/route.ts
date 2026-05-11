@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabaseClient';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 /**
  * 익명 방문자 세션 핑.
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   const now = new Date().toISOString();
   // first_seen 은 컬럼 DEFAULT now() 로 INSERT 시 자동 채움 → 페이로드에 포함하지 않음.
   // 충돌 시 페이로드의 컬럼만 SET 되므로 first_seen 은 보존됨.
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('visitor_sessions')
     .upsert(
       { id: sessionId, last_seen: now, page_path: pagePath ?? null },

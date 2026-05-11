@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { isAdminAuthenticated } from '@/lib/admin/auth';
-import { supabase } from '@/lib/supabaseClient';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 /**
  * city_minute_samples 의 특정 row 를 삭제.
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: 'missing_id' }, { status: 400 });
   }
 
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('city_minute_samples')
     .delete()
     .eq('id', id);

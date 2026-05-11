@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { isAdminAuthenticated } from '@/lib/admin/auth';
-import { supabase } from '@/lib/supabaseClient';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 const KST_OFFSET_MS = 9 * 3600 * 1000;
 const ACTIVE_WINDOW_MS = 5 * 60 * 1000; // 5분
@@ -26,7 +26,7 @@ export async function GET() {
   const sevenDaysAgoIso = new Date(kstStartOfDay(nowMs) - 6 * DAY_MS).toISOString();
 
   // 1. 현재 활성 세션 (최근 5분 이내 활동)
-  const activeQ = await supabase
+  const activeQ = await supabaseAdmin
     .from('visitor_sessions')
     .select('id, last_seen, page_path', { count: 'exact' })
     .gte('last_seen', activeSinceIso)
@@ -34,18 +34,18 @@ export async function GET() {
     .limit(50);
 
   // 2. 오늘(KST) 신규 방문 세션 수
-  const todayQ = await supabase
+  const todayQ = await supabaseAdmin
     .from('visitor_sessions')
     .select('id', { count: 'exact', head: true })
     .gte('first_seen', todayStartIso);
 
   // 3. 누적 방문 세션 수 (전체)
-  const totalQ = await supabase
+  const totalQ = await supabaseAdmin
     .from('visitor_sessions')
     .select('id', { count: 'exact', head: true });
 
   // 4. 최근 7일치 일별 신규 방문 (first_seen 기준)
-  const last7Q = await supabase
+  const last7Q = await supabaseAdmin
     .from('visitor_sessions')
     .select('first_seen')
     .gte('first_seen', sevenDaysAgoIso);

@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from 'crypto';
 import { cookies } from 'next/headers';
-import { supabase } from '@/lib/supabaseClient';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export const ADMIN_COOKIE = 'admin_session';
 export const ADMIN_COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30일
@@ -25,7 +25,7 @@ export function envPasswordHash(): string | null {
  */
 export async function getStoredPasswordHash(): Promise<string | null> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('admin_settings')
       .select('password_hash')
       .eq('id', 1)
@@ -42,7 +42,7 @@ export async function getStoredPasswordHash(): Promise<string | null> {
  */
 export async function setStoredPasswordHash(newHash: string): Promise<boolean> {
   try {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('admin_settings')
       .upsert(
         { id: 1, password_hash: newHash, updated_at: new Date().toISOString() },
