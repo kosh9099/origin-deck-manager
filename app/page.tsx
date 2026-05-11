@@ -8,11 +8,14 @@ import {
   Bug,
   Clock,
   Compass,
+  ExternalLink,
+  FileSpreadsheet,
   Map,
   Settings,
   Ship,
   Sparkles,
   Sword,
+  UserCog,
   Wrench,
   X,
 } from 'lucide-react';
@@ -38,6 +41,15 @@ type UpdateLog = {
   date: string;
   tone: string;
   items: { type: UpdateType; text: string }[];
+};
+
+type BoardLink = {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  href?: string;
+  external?: boolean;
+  disabled?: boolean;
 };
 
 const managers: Manager[] = [
@@ -121,6 +133,29 @@ const TYPE_STYLE: Record<UpdateType, { label: string; color: string; icon: Lucid
   improve: { label: 'IMPROVE', color: 'text-teal-700 bg-teal-50 border-teal-200', icon: Wrench },
 };
 
+const boardLinks: BoardLink[] = [
+  {
+    icon: UserCog,
+    label: '내 항해사 관리',
+    value: '설정 준비',
+    disabled: true,
+  },
+  {
+    icon: ExternalLink,
+    label: '대항해시대 오리진 바로가기',
+    value: '공식',
+    href: 'https://uwo.floor.line.games/kr/main',
+    external: true,
+  },
+  {
+    icon: FileSpreadsheet,
+    label: '대항해시대 오리진 통합시트 바로가기',
+    value: '시트',
+    href: 'https://docs.google.com/spreadsheets/d/1rrg8_Wv542-VYUWCQHUhu1HpCXlKfGspcYOFZTXGyLk/edit?pli=1&gid=2021973594#gid=2021973594',
+    external: true,
+  },
+];
+
 export default function Home() {
   return (
     <main className="app-bg min-h-screen overflow-x-hidden px-4 py-5 text-slate-900 sm:px-6 lg:px-8">
@@ -175,19 +210,36 @@ export default function Home() {
             </div>
 
             <div className="mt-4 grid gap-2">
-              {[
-                { icon: Ship, label: '교역 스케줄', value: '실시간 확인' },
-                { icon: Map, label: '육탐 덱', value: '빠른 구성' },
-                { icon: Anchor, label: '항해 도구', value: '즉시 진입' },
-              ].map(item => {
+              {boardLinks.map(item => {
                 const Icon = item.icon;
-                return (
-                  <div key={item.label} className="flex items-center justify-between rounded-lg border border-slate-200 bg-white/80 px-3 py-2.5">
-                    <span className="flex items-center gap-2 text-sm font-black text-slate-800">
-                      <Icon size={16} className="text-teal-700" />
-                      {item.label}
+                const className = `flex min-h-12 items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white/80 px-3 py-2.5 transition ${
+                  item.disabled
+                    ? 'cursor-default opacity-75'
+                    : 'hover:border-teal-300 hover:bg-teal-50/70 hover:shadow-sm'
+                }`;
+                const content = (
+                  <>
+                    <span className="flex min-w-0 items-center gap-2 text-sm font-black leading-5 text-slate-800">
+                      <Icon size={16} className="shrink-0 text-teal-700" />
+                      <span className="min-w-0 [overflow-wrap:anywhere]">{item.label}</span>
                     </span>
-                    <span className="text-[11px] font-black text-slate-500">{item.value}</span>
+                    <span className="shrink-0 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black text-slate-500">
+                      {item.value}
+                    </span>
+                  </>
+                );
+
+                if (item.href && item.external) {
+                  return (
+                    <a key={item.label} href={item.href} target="_blank" rel="noreferrer" className={className}>
+                      {content}
+                    </a>
+                  );
+                }
+
+                return (
+                  <div key={item.label} className={className} aria-disabled={item.disabled}>
+                    {content}
                   </div>
                 );
               })}
