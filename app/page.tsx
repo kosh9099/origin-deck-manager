@@ -9,12 +9,14 @@ import {
   Clock,
   Compass,
   Map,
+  Settings,
   Ship,
   Sparkles,
   Sword,
   Wrench,
   X,
 } from 'lucide-react';
+import ThemeToggle from '@/components/common/ThemeToggle';
 
 type Manager = {
   href: string | null;
@@ -139,14 +141,25 @@ export default function Home() {
             </div>
           </Link>
 
-          <label
-            htmlFor="update-modal"
-            className="tool-button h-9 w-9 cursor-pointer px-0 sm:w-auto sm:px-3"
-            aria-label="업데이트 내역"
-          >
-            <Clock size={14} />
-            <span className="hidden sm:inline">업데이트</span>
-          </label>
+          <div className="flex shrink-0 items-center gap-2">
+            <ThemeToggle compact />
+            <label
+              htmlFor="update-modal"
+              className="tool-button h-9 w-9 cursor-pointer px-0 sm:w-auto sm:px-3"
+              aria-label="업데이트 내역"
+            >
+              <Clock size={14} />
+              <span className="hidden sm:inline">업데이트</span>
+            </label>
+            <Link
+              href="/admin"
+              className="tool-button h-9 w-9 px-0"
+              aria-label="관리자"
+              title="관리자"
+            >
+              <Settings size={14} />
+            </Link>
+          </div>
         </header>
 
         <section className="grid w-full min-w-0 flex-1 items-center gap-6 py-8 lg:grid-cols-[0.76fr_1.24fr] lg:py-10">

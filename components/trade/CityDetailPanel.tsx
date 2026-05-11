@@ -174,7 +174,7 @@ export default function CityDetailPanel({ city, onClose }: Props) {
       {/* 패널 — 모바일: 하단 가변 바텀시트 / 데스크톱: 우측 380px 풀높이 */}
       <aside
         style={{ height: `${heightVh}vh` }}
-        className="fixed z-[160] bg-white shadow-2xl flex flex-col
+        className="city-detail-panel fixed z-[160] bg-white shadow-2xl flex flex-col
           inset-x-0 bottom-0 rounded-t-2xl border-t border-slate-200
           md:inset-x-auto md:right-0 md:top-0 md:bottom-0 md:!h-auto md:w-[380px] md:rounded-none md:border-t-0 md:border-l
           animate-in slide-in-from-bottom md:slide-in-from-right duration-200"
@@ -188,7 +188,7 @@ export default function CityDetailPanel({ city, onClose }: Props) {
           <div className="w-10 h-1 bg-slate-300 rounded-full" />
         </div>
         {/* 헤더 */}
-        <div className={`shrink-0 px-4 py-3 border-b border-slate-200
+        <div className={`city-detail-panel-header shrink-0 px-4 py-3 border-b border-slate-200
           ${isHomeBase ? 'bg-gradient-to-r from-amber-50 to-amber-100' : 'bg-slate-50'}`}>
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
@@ -452,7 +452,7 @@ function ComboRow({ level, formula, color }: { level: string; formula?: string; 
       <div className={`flex items-center justify-center px-3 py-2 font-black text-[12px] border-r w-16 shrink-0 ${color}`}>
         {level}
       </div>
-      <div className="px-3 py-2 text-[12px] font-medium text-slate-700 leading-relaxed flex items-center bg-gradient-to-r from-white to-slate-50 w-full">
+      <div className="city-detail-formula px-3 py-2 text-[12px] font-medium text-slate-700 leading-relaxed flex items-center bg-gradient-to-r from-white to-slate-50 w-full">
         {formula}
       </div>
     </div>

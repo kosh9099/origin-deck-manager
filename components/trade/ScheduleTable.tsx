@@ -92,10 +92,10 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
         <colgroup><col style={{ width: '13%' }} /><col style={{ width: '17%' }} /><col style={{ width: '15%' }} /><col style={{ width: '55%' }} /></colgroup>
         <thead>
           <tr>
-            <th className="pl-7 pr-3 pb-2 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">시간</th>
-            <th className="pl-6 pr-3 pb-2 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">위치</th>
+            <th className="pl-4 pr-4 pb-2 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">시간</th>
+            <th className="pl-3 pr-2 pb-2 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">위치</th>
             <th className="pl-2 pr-2 pb-2 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">이벤트</th>
-            <th className="pl-4 pr-3 pb-2 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">추천 품목</th>
+            <th className="pl-3 pr-2 pb-2 text-left text-[11px] font-black text-slate-500 uppercase tracking-widest">추천 품목</th>
           </tr>
         </thead>
         <tbody>
@@ -191,9 +191,23 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
                 </td>
 
                 {/* 해역/항구 */}
-                <td className="pl-5 pr-2 py-1 align-middle border-y border-slate-200/60">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[12px] font-bold text-slate-800 break-keep leading-tight whitespace-normal">
+                <td className="pl-3 pr-2 py-1 align-middle border-y border-slate-200/60">
+                  <div className="flex items-center gap-1.5">
+                    {onMapJump && (() => {
+                      const target = isBoost
+                        ? { city: event.city || event.zone }
+                        : { region: normalizeZoneName(event.zone) };
+                      return (
+                        <button
+                          onClick={() => onMapJump(target)}
+                          title={isBoost ? '지도에서 해당 도시 보기' : '지도에서 해역 보기'}
+                          className="inline-flex size-6 items-center justify-center rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 transition-colors hover:bg-indigo-100 active:scale-95 shrink-0"
+                        >
+                          <MapIcon size={12} />
+                        </button>
+                      );
+                    })()}
+                    <span className="text-[12px] font-bold text-slate-800 break-keep leading-tight whitespace-normal min-w-0">
                       {(() => {
                         const cityName = isBoost ? (event.city || event.zone || '항구 미상') : event.zone;
                         const hasCombination = hasCityCombination(cityName);
@@ -212,20 +226,6 @@ export default function ScheduleTable({ events, now, cityMap, onVoteOptimistic, 
                         return cityName;
                       })()}
                     </span>
-                    {onMapJump && (() => {
-                      const target = isBoost
-                        ? { city: event.city || event.zone }
-                        : { region: normalizeZoneName(event.zone) };
-                      return (
-                        <button
-                          onClick={() => onMapJump(target)}
-                          title={isBoost ? '지도에서 해당 도시 보기' : '지도에서 해역 보기'}
-                          className="inline-flex size-6 items-center justify-center rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 transition-colors hover:bg-indigo-100 active:scale-95 shrink-0"
-                        >
-                          <MapIcon size={12} />
-                        </button>
-                      );
-                    })()}
                   </div>
                 </td>
 

@@ -175,9 +175,9 @@ export default function CityMapView({ focus = null }: Props) {
   const [regionMenuOpen, setRegionMenuOpen] = useState(false);
   const regionMenuRef = useRef<HTMLDivElement | null>(null);
 
-  // 도시/마을 표시 토글 — 도시는 기본 ON, 마을은 기본 OFF
+  // 도시/마을 표시 토글 — 기본 모두 ON
   const [showCities, setShowCities] = useState(true);
-  const [showVillages, setShowVillages] = useState(false);
+  const [showVillages, setShowVillages] = useState(true);
   const [displayMenuOpen, setDisplayMenuOpen] = useState(false);
   const displayMenuRef = useRef<HTMLDivElement | null>(null);
 

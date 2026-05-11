@@ -7,6 +7,7 @@ import { autoDeployFleet, OptimizerMode } from '@/lib/optimizer';
 import { Play, Home, LayoutDashboard, Anchor, Users, Target, Menu, X, Camera, SlidersHorizontal, BarChart3, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { captureAndDownload } from '@/lib/utils/capture';
+import ThemeToggle from '@/components/common/ThemeToggle';
 
 // 컴포넌트 임포트
 import FleetSettings from '@/components/fleet/FleetSettings';
@@ -252,7 +253,8 @@ export default function FleetMasterV2() {
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
         {/* 모바일 닫기 버튼 */}
-        <div className="flex justify-end p-4 md:hidden">
+        <div className="flex items-center justify-between p-4 md:hidden">
+          <ThemeToggle compact />
           <button onClick={() => setIsMobileMenuOpen(false)} className="flex size-9 items-center justify-center rounded-lg border border-white/15 bg-white/10 text-slate-300 transition hover:text-white">
             <X size={20} />
           </button>
@@ -260,15 +262,18 @@ export default function FleetMasterV2() {
 
         {/* 사이드바 헤더 (PC) */}
         <div className="hidden border-b border-white/10 p-5 md:block">
-          <Link href="/" className="group inline-flex items-center gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-amber-300/20 bg-amber-300/10 text-amber-200">
-              <Anchor size={20} />
-            </span>
-            <div>
-              <h1 className="text-lg font-black text-white">육탐 매니저</h1>
-              <p className="mt-0.5 text-xs font-semibold text-slate-400">Expedition Deck</p>
-            </div>
-          </Link>
+          <div className="flex items-start justify-between gap-2">
+            <Link href="/" className="group inline-flex min-w-0 items-center gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-amber-300/20 bg-amber-300/10 text-amber-200">
+                <Anchor size={20} />
+              </span>
+              <div className="min-w-0">
+                <h1 className="text-lg font-black text-white truncate">육탐 매니저</h1>
+                <p className="mt-0.5 text-xs font-semibold text-slate-400">Expedition Deck</p>
+              </div>
+            </Link>
+            <ThemeToggle compact />
+          </div>
           <p className="mt-4 text-xs font-medium leading-5 text-slate-400">
             함대 최적화 및 모험 스킬 분석
           </p>
@@ -302,7 +307,6 @@ export default function FleetMasterV2() {
 
         {/* 계산 시작 버튼 (사이드바 하단 고정) */}
         <div className="mt-auto space-y-2 border-t border-white/10 p-4">
-
           {/* 자동 저장 인디케이터 */}
           <div className={`flex items-center justify-center gap-1.5 text-[10px] font-bold transition-all duration-500
             ${saveIndicator === 'saving' ? 'text-amber-400 opacity-100' :

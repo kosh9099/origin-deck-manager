@@ -116,14 +116,14 @@ export default function BarterDetailModal({ itemName, month, onClose }: Props) {
 
     const modal = (
         <div
-            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+            className="barter-calc fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
             onClick={onClose}
         >
             <div
-                className="bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden"
+                className="barter-detail-modal bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden"
                 onClick={e => e.stopPropagation()}
             >
-                <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
+                <div className="barter-detail-modal-header px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
                     <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
                         <span className="text-xl">📦</span> [{itemName}] 정보
                     </h3>
@@ -132,16 +132,16 @@ export default function BarterDetailModal({ itemName, month, onClose }: Props) {
                     </button>
                 </div>
 
-                <div className="px-6 py-4 overflow-y-auto bg-slate-50/30 flex-1 min-h-0">
-                    <div className="mb-4 text-[11px] text-slate-400 bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
+                <div className="barter-detail-modal-body px-6 py-4 overflow-y-auto bg-slate-50/30 flex-1 min-h-0">
+                    <div className="barter-detail-tip mb-4 text-[11px] text-slate-400 bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
                         💡 📦 아이콘은 물물 교환, 배지는 항구 구매 가능을 의미합니다.
                     </div>
-                    <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+                    <div className="barter-detail-tree bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
                         <RenderNode node={tree} depth={0} />
                     </div>
                 </div>
 
-                <div className="p-3 bg-slate-50 border-t border-slate-100 flex justify-center gap-2 shrink-0">
+                <div className="barter-detail-modal-footer p-3 bg-slate-50 border-t border-slate-100 flex justify-center gap-2 shrink-0">
                     {canAddToCart && (
                         <button
                             onClick={handleAddToCart}

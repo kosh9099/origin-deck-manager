@@ -137,7 +137,7 @@ export default function BarterCart({
 }: Props) {
   if (cards.length === 0) {
     return (
-      <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center text-sm text-slate-500">
+      <div className="barter-empty-state bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center text-sm text-slate-500">
         장바구니가 비어있습니다. 검색창에서 물물교환 품목을 추가하세요.
       </div>
     );
@@ -182,10 +182,10 @@ export default function BarterCart({
         return (
           <div
             key={card.id}
-            className="bg-white border border-slate-200 hover:border-emerald-400 rounded-2xl shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden"
+            className="barter-cart-card bg-white border border-slate-200 hover:border-emerald-400 rounded-2xl shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden"
           >
             {/* 카드 헤더 */}
-            <div className="px-4 py-3 border-b border-slate-200 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
+            <div className="barter-cart-card-header px-4 py-3 border-b border-slate-200 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
               <div className="flex items-start gap-2">
                 <button
                   type="button"
@@ -223,7 +223,7 @@ export default function BarterCart({
                   />
                 </label>
                 {totalOutput > 0 && (
-                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-300">
+                  <span className="barter-total-badge text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-300">
                     총 {totalOutput.toLocaleString()}개
                   </span>
                 )}
@@ -259,11 +259,11 @@ export default function BarterCart({
                     return (
                       <React.Fragment key={`${row.name}-${i}`}>
                         <div
-                          className="flex items-center gap-1 min-w-0 py-1.5 px-1 rounded-md hover:bg-slate-50 transition-colors"
+                          className="barter-row flex items-center gap-1 min-w-0 py-1.5 px-1 rounded-md hover:bg-slate-50 transition-colors"
                           style={{ paddingLeft: indentPx + 4 }}
                         >
                           {row.depth > 0 && (
-                            <span className="text-slate-300 text-[10px] font-mono shrink-0">└</span>
+                            <span className="barter-row-indent text-slate-300 text-[10px] font-mono shrink-0">└</span>
                           )}
                           <TypeTag
                             isLeaf={row.isLeaf}

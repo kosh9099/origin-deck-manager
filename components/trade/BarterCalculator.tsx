@@ -147,7 +147,7 @@ export default function BarterCalculator() {
   }
 
   return (
-    <div className="space-y-4 w-full">
+    <div className="barter-calc space-y-4 w-full">
       <div>
         <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">물물교환 계산기</h2>
         <p className="text-sm text-slate-500 mt-1 font-medium">

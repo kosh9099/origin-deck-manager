@@ -65,12 +65,12 @@ export default function BarterSearchBar({ recipes, popular, onAdd }: Props) {
           onChange={e => setQuery(e.target.value)}
           onKeyDown={onKeyDown}
           placeholder="물물교환 품목 검색 (한글/초성, 예: 파이프, ㅍㅇㅍ)"
-          className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-xl bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+          className="barter-search-input w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-xl bg-white focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
         />
         {matches.length > 0 && (
           <ul
             ref={listRef}
-            className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-64 overflow-y-auto"
+            className="barter-search-dropdown absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-64 overflow-y-auto"
           >
             {matches.map((name, idx) => {
               const recipe = recipes.get(name)!;
@@ -80,7 +80,7 @@ export default function BarterSearchBar({ recipes, popular, onAdd }: Props) {
                   <button
                     onMouseEnter={() => setSelectedIdx(idx)}
                     onClick={() => handleSelect(name)}
-                    className={`w-full text-left px-3 py-2 flex items-center justify-between gap-2 border-b border-slate-100 last:border-0 ${
+                    className={`barter-search-item w-full text-left px-3 py-2 flex items-center justify-between gap-2 border-b border-slate-100 last:border-0 ${
                       active ? 'bg-emerald-100' : 'hover:bg-emerald-50'
                     }`}
                   >
@@ -103,7 +103,7 @@ export default function BarterSearchBar({ recipes, popular, onAdd }: Props) {
             <button
               key={name}
               onClick={() => handleSelect(name)}
-              className="text-[11px] font-bold px-2 py-0.5 bg-amber-50 text-amber-900 border border-amber-300 rounded-md hover:bg-amber-100 active:scale-95"
+              className="barter-popular-chip text-[11px] font-bold px-2 py-0.5 bg-amber-50 text-amber-900 border border-amber-300 rounded-md hover:bg-amber-100 active:scale-95"
             >
               {name}
             </button>

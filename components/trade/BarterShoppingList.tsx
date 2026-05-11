@@ -12,8 +12,8 @@ export default function BarterShoppingList({ totals, hasMissingRate }: Props) {
   const entries = Object.entries(totals).sort((a, b) => b[1] - a[1]);
 
   return (
-    <div className="bg-white rounded-2xl border-2 border-emerald-300 shadow-sm">
-      <div className="px-4 py-3 border-b border-emerald-200 bg-emerald-50 rounded-t-2xl flex items-center gap-2">
+    <div className="barter-shopping-list bg-white rounded-2xl border-2 border-emerald-300 shadow-sm">
+      <div className="barter-shopping-list-header px-4 py-3 border-b border-emerald-200 bg-emerald-50 rounded-t-2xl flex items-center gap-2">
         <ShoppingCart size={18} className="text-emerald-600" />
         <h3 className="font-black text-slate-800 text-sm">최종 교역품 쇼핑 리스트</h3>
         {hasMissingRate && (
@@ -28,7 +28,7 @@ export default function BarterShoppingList({ totals, hasMissingRate }: Props) {
         ) : (
           <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
             {entries.map(([name, qty]) => (
-              <li key={name} className="flex items-baseline justify-between bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5">
+              <li key={name} className="barter-shopping-item flex items-baseline justify-between bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5">
                 <span className="text-sm font-bold text-slate-800 truncate mr-2">{name}</span>
                 <span className="text-sm font-black text-emerald-700 tabular-nums">{qty}</span>
               </li>

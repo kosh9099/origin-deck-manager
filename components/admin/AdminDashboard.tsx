@@ -23,9 +23,9 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-[#f0ece4] p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-4">
         <div className="flex items-center justify-between gap-2">
-          <Link href="/trade"
+          <Link href="/"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-[12px] font-bold rounded-lg shadow-sm transition-all">
-            <ArrowLeft size={13} /> 교역 매니저로
+            <ArrowLeft size={13} /> 메인으로
           </Link>
           <button
             onClick={handleLogout}

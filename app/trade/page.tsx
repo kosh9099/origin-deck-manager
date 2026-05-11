@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Home, Menu, X, Anchor, Download, RefreshCw, HandHeart, Calculator, Sparkles, MapPin, Settings, Globe } from 'lucide-react';
+import { Home, Menu, X, Anchor, Download, RefreshCw, HandHeart, Calculator, Sparkles, MapPin, Globe } from 'lucide-react';
 import TradeDashboard from '@/components/trade/TradeDashboard';
 import BoostForm from '@/components/trade/BoostForm';
 import BarterCalculator from '@/components/trade/BarterCalculator';
@@ -10,6 +10,7 @@ import CityMapView, { type MapFocus } from '@/components/trade/CityMapView';
 import SpecialForm from '@/components/trade/SpecialForm';
 import WeeklyItemsForm from '@/components/trade/WeeklyItemsForm';
 import { captureAndDownload } from '@/lib/utils/capture';
+import ThemeToggle from '@/components/common/ThemeToggle';
 
 type TradeViewType = 'dashboard' | 'boosts' | 'barter' | 'map';
 
@@ -94,7 +95,8 @@ export default function TradeManagerPage() {
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
         {/* 모바일 닫기 */}
-        <div className="flex justify-end p-4 md:hidden">
+        <div className="flex items-center justify-between p-4 md:hidden">
+          <ThemeToggle compact />
           <button onClick={() => setIsMobileMenuOpen(false)} className="flex size-9 items-center justify-center rounded-lg border border-white/15 bg-white/10 text-slate-300 transition hover:text-white">
             <X size={20} />
           </button>
@@ -102,15 +104,18 @@ export default function TradeManagerPage() {
 
         {/* 사이드바 헤더 */}
         <div className="hidden border-b border-white/10 p-5 md:block">
-          <Link href="/" className="group inline-flex items-center gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-teal-300/20 bg-teal-300/10 text-teal-200">
-              <Anchor size={20} />
-            </span>
-            <div>
-              <h1 className="text-lg font-black text-white">교역 매니저</h1>
-              <p className="mt-0.5 text-xs font-semibold text-slate-400">Trade Command</p>
-            </div>
-          </Link>
+          <div className="flex items-start justify-between gap-2">
+            <Link href="/" className="group inline-flex min-w-0 items-center gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-teal-300/20 bg-teal-300/10 text-teal-200">
+                <Anchor size={20} />
+              </span>
+              <div className="min-w-0">
+                <h1 className="text-lg font-black text-white truncate">교역 매니저</h1>
+                <p className="mt-0.5 text-xs font-semibold text-slate-400">Trade Command</p>
+              </div>
+            </Link>
+            <ThemeToggle compact />
+          </div>
           <p className="mt-4 text-xs font-medium leading-5 text-slate-400">
             대유행 & 부양 시간표 실시간 동기화
           </p>
@@ -135,13 +140,6 @@ export default function TradeManagerPage() {
           ))}
         </nav>
 
-        <div className="border-t border-white/10 p-3">
-          <Link href="/admin"
-            className="flex items-center justify-center rounded-lg p-2 text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300"
-            title="설정">
-            <Settings size={16} />
-          </Link>
-        </div>
       </aside>
 
       {/* 특수 등록 모달 */}
