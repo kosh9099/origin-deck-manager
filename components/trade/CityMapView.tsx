@@ -227,6 +227,21 @@ export default function CityMapView({ focus = null }: Props) {
     () => routeState.routes.find(r => r.id === routeState.activeId) ?? null,
     [routeState],
   );
+  // 활성 항로에 포함된 도시/마을 id 집합 — 항로 모드 dim 처리에 사용. 비어 있으면 dim 안 함.
+  const routeCityIds = useMemo(() => {
+    if (!activeRoute) return null;
+    const ids = new Set<string>();
+    for (const s of activeRoute.stops) if (s.kind === 'city') ids.add(s.id);
+    return ids.size > 0 ? ids : null;
+  }, [activeRoute]);
+  const routeVillageIds = useMemo(() => {
+    if (!activeRoute) return null;
+    const ids = new Set<string>();
+    for (const s of activeRoute.stops) if (s.kind === 'village') ids.add(s.id);
+    return ids.size > 0 ? ids : null;
+  }, [activeRoute]);
+  // 항로 모드에서 정류 1개 이상 있으면 비포함 마커를 흐리게.
+  const routeDimActive = routeMode && (routeCityIds !== null || routeVillageIds !== null);
   const routeSegments = useMemo(() => {
     if (!routeMode || !seaMask || !activeRoute || activeRoute.stops.length < 2) return [] as Array<{ points: WorldPoint[]; segIdx: number }>;
     const stopWorld: WorldPoint[] = [];
@@ -1251,7 +1266,9 @@ export default function CityMapView({ focus = null }: Props) {
                   const isItemProducer = itemMode && selectedItem ? items.includes(selectedItem) : false;
                   const isBarterProducer = barterMode && barterVillagesSet ? barterVillagesSet.has(v.id) : false;
                   const highlighted = isItemProducer || isBarterProducer;
-                  const dimmedV = (itemMode || barterMode) && !highlighted;
+                  const inRoute = routeVillageIds?.has(v.id) ?? false;
+                  const dimmedByRoute = routeDimActive && !inRoute;
+                  const dimmedV = ((itemMode || barterMode) && !highlighted) || dimmedByRoute;
                   const badgeSize = highlighted ? 22 : 16;
                   const badgeBg = highlighted
                     ? 'bg-emerald-500'
@@ -1342,7 +1359,9 @@ export default function CityMapView({ focus = null }: Props) {
                   const itemMode = !!selectedItem;
                   const barterMode = !!selectedBarter;
                   // 물교 모드에서는 도시 모두 dim, 교역품 모드에서는 비생산 도시만 dim
-                  const dimmed = barterMode ? true : (itemMode && !isProducer);
+                  const inRoute = routeCityIds?.has(entry.city) ?? false;
+                  const dimmedByRoute = routeDimActive && !inRoute;
+                  const dimmed = barterMode ? true : ((itemMode && !isProducer) || dimmedByRoute);
 
                   // 배지 사이즈 — 본거지가 일반 도시보다 살짝 크게. itemMode 생산도시는 +4 키움.
                   const badgeSize = isHomeBase
