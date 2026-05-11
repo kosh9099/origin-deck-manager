@@ -176,6 +176,17 @@ export default function ScheduleCards({
                   </div>
                 )}
 
+                {/* 지도 점프 버튼 — 이름 앞 정렬 */}
+                {onMapJump && (
+                  <button
+                    onClick={() => onMapJump(isBoost ? { city: event.city || event.zone } : { region: normalizeZoneName(event.zone) })}
+                    title={isBoost ? '지도에서 해당 도시 보기' : '지도에서 해역 보기'}
+                    className="inline-flex size-6 items-center justify-center rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 transition-colors hover:bg-indigo-100 active:scale-95 shrink-0"
+                  >
+                    <MapIcon size={12} />
+                  </button>
+                )}
+
                 {/* 도시명 */}
                 <span className="text-[13px] font-bold text-slate-800 break-keep min-w-0 truncate">
                   {hasCombo ? (
@@ -190,17 +201,6 @@ export default function ScheduleCards({
                     cityName
                   )}
                 </span>
-
-                {/* 지도 점프 버튼 */}
-                {onMapJump && (
-                  <button
-                    onClick={() => onMapJump(isBoost ? { city: event.city || event.zone } : { region: normalizeZoneName(event.zone) })}
-                    title={isBoost ? '지도에서 해당 도시 보기' : '지도에서 해역 보기'}
-                    className="inline-flex size-6 items-center justify-center rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 transition-colors hover:bg-indigo-100 active:scale-95 shrink-0"
-                  >
-                    <MapIcon size={12} />
-                  </button>
-                )}
 
                 {/* 이벤트 배지 */}
                 <span
