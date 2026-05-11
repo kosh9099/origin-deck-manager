@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Globe, Search, Anchor, Castle, Layers, Check, ChevronDown, Package, X, Tent, Eye } from 'lucide-react';
+import { Globe, Search, Anchor, Castle, Layers, Check, ChevronDown, Package, X, Tent, Eye, Route as RouteIcon } from 'lucide-react';
 import { ALL_CITIES, REGION_TO_CITIES, CITY_MAP } from '@/lib/trade/cityMap';
 import { getInGameTimeInfo } from '@/lib/trade/time';
 import seasonCalendarData from '@/constants/seasonCalendar.json';
@@ -10,6 +10,13 @@ import villageLabelsRaw from '@/constants/villageLabels.json';
 import villageBartersRaw from '@/constants/villageBarters.json';
 import CityDetailPanel from './CityDetailPanel';
 import VillageDetailPanel from './VillageDetailPanel';
+import RoutePanel from './RoutePanel';
+import { loadSeaMask, type SeaMask } from '@/lib/trade/seaMask';
+import { findRoute, type WorldPoint } from '@/lib/trade/seaPath';
+import {
+  loadRoutes, saveRoutes, createRoute, addStop as addRouteStop,
+  type RouteState, type RouteStop,
+} from '@/lib/trade/routes';
 
 type Village = { id: string; x: number; y: number; r: string; discovery: string; barterCount: number };
 const VILLAGES: Village[] = (villageCoordsRaw as { villages?: Village[] } | null)?.villages ?? [];
@@ -194,6 +201,72 @@ export default function CityMapView({ focus = null }: Props) {
   const [barterQuery, setBarterQuery] = useState('');
   const barterMenuRef = useRef<HTMLDivElement | null>(null);
   const barterInputRef = useRef<HTMLInputElement | null>(null);
+
+  // ── 항로 모드 ──
+  const [routeMode, setRouteMode] = useState(false);
+  const [routeState, setRouteState] = useState<RouteState>({ routes: [], activeId: null });
+  const [routeHydrated, setRouteHydrated] = useState(false);
+  const [seaMask, setSeaMask] = useState<SeaMask | null>(null);
+
+  useEffect(() => {
+    setRouteState(loadRoutes());
+    setRouteHydrated(true);
+  }, []);
+  useEffect(() => {
+    if (!routeHydrated) return;
+    saveRoutes(routeState);
+  }, [routeState, routeHydrated]);
+  useEffect(() => {
+    if (!routeMode) return;
+    if (seaMask) return;
+    loadSeaMask().then(setSeaMask).catch((e) => console.error('[seaMask] load failed', e));
+  }, [routeMode, seaMask]);
+
+  // 활성 항로 + 정류 사이 경로 (메모이즈)
+  const activeRoute = useMemo(
+    () => routeState.routes.find(r => r.id === routeState.activeId) ?? null,
+    [routeState],
+  );
+  const routeSegments = useMemo(() => {
+    if (!routeMode || !seaMask || !activeRoute || activeRoute.stops.length < 2) return [] as Array<{ points: WorldPoint[]; segIdx: number }>;
+    const stopWorld: WorldPoint[] = [];
+    for (const s of activeRoute.stops) {
+      if (s.kind === 'city') {
+        const entry = CITY_MAP.get(s.id);
+        if (entry) stopWorld.push({ x: entry.x + DOT_OFFSET_X, y: entry.y + DOT_OFFSET_Y });
+      } else {
+        const v = VILLAGES.find((vv) => vv.id === s.id);
+        if (v) stopWorld.push({ x: v.x + VILLAGE_OFFSET_X, y: v.y + VILLAGE_OFFSET_Y });
+      }
+    }
+    // 각 정류 쌍은 wrap 으로 인해 1개 또는 2개의 폴리라인을 생성. segIdx 는 정류 쌍 인덱스 (색상에 사용).
+    const polys: Array<{ points: WorldPoint[]; segIdx: number }> = [];
+    for (let i = 1; i < stopWorld.length; i++) {
+      const seg = findRoute(seaMask, stopWorld[i - 1], stopWorld[i]);
+      for (const path of seg.paths) {
+        polys.push({ points: path, segIdx: i - 1 });
+      }
+    }
+    return polys;
+  }, [routeMode, seaMask, activeRoute]);
+
+  const ensureActiveRoute = useCallback((current: RouteState): RouteState => {
+    if (current.activeId && current.routes.some(r => r.id === current.activeId)) return current;
+    if (current.routes.length > 0) return { ...current, activeId: current.routes[0].id };
+    const r = createRoute('항로 1');
+    return { routes: [r], activeId: r.id };
+  }, []);
+
+  const addStopToActive = useCallback((stop: RouteStop) => {
+    setRouteState((prev) => {
+      const ensured = ensureActiveRoute(prev);
+      const activeIdx = ensured.routes.findIndex(r => r.id === ensured.activeId);
+      if (activeIdx < 0) return ensured;
+      const next = [...ensured.routes];
+      next[activeIdx] = addRouteStop(next[activeIdx], stop);
+      return { ...ensured, routes: next };
+    });
+  }, [ensureActiveRoute]);
 
   // 물교 가능한 마을 품목 마스터 — villageBarters의 모든 unique 품목
   const ALL_BARTER_ITEMS = useMemo(() => {
@@ -797,6 +870,42 @@ export default function CityMapView({ focus = null }: Props) {
             )}
           </div>
 
+          {/* 항로 모드 토글 */}
+          <button
+            onClick={() => {
+              setRouteMode((v) => {
+                const next = !v;
+                if (next) {
+                  // 모드 진입 — 다른 검색/패널 자동 해제
+                  if (selectedItem) { setSelectedItem(null); setItemQuery(''); }
+                  if (selectedBarter) { setSelectedBarter(null); setBarterQuery(''); }
+                  setSelectedCity(null);
+                  setSelectedVillageId(null);
+                  // 첫 항로 자동 생성
+                  setRouteState((cur) => {
+                    if (cur.routes.length > 0) return cur;
+                    const r = createRoute('항로 1');
+                    return { routes: [r], activeId: r.id };
+                  });
+                }
+                return next;
+              });
+            }}
+            title={routeMode ? '항로 모드 종료' : '항로 모드 시작 — 도시/마을 클릭으로 정류 추가'}
+            className={`inline-flex items-center gap-1 px-2 md:px-2.5 py-1.5 rounded-lg border text-[12px] font-bold transition-colors whitespace-nowrap shrink-0
+              ${routeMode
+                ? 'bg-indigo-600 text-white border-indigo-700 hover:bg-indigo-700'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+          >
+            <RouteIcon size={13} />
+            <span className="hidden md:inline">항로</span>
+            {activeRoute && activeRoute.stops.length > 0 && (
+              <span className="text-[10px] tabular-nums opacity-80">
+                ({activeRoute.stops.length})
+              </span>
+            )}
+          </button>
+
           {/* 표시 옵션 — 도시/마을 보이기/숨기기 */}
           <div className="static md:relative" ref={displayMenuRef}>
             <button
@@ -1073,6 +1182,54 @@ export default function CityMapView({ focus = null }: Props) {
                 </svg>
               ))}
 
+              {/* 항로 폴리라인 — 마커 아래에 그려서 클릭 방해 안 함. 구간별 다채색. */}
+              {routeMode && routeSegments.length > 0 && copies.map((n) => {
+                const SEGMENT_COLORS = [
+                  '#ef4444', '#f97316', '#eab308', '#22c55e',
+                  '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899',
+                ];
+                return (
+                  <svg
+                    key={`route-${n}`}
+                    width={MAP_NATURAL_WIDTH}
+                    height={MAP_NATURAL_HEIGHT}
+                    style={{
+                      position: 'absolute',
+                      left: n * MAP_NATURAL_WIDTH,
+                      top: 0,
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    {/* halo (밑) — 흰색 외곽선으로 어떤 배경에서도 잘 보이게 */}
+                    {routeSegments.map((seg, idx) => (
+                      <polyline
+                        key={`halo-${idx}`}
+                        points={seg.points.map(p => `${p.x},${p.y}`).join(' ')}
+                        fill="none"
+                        stroke="#ffffff"
+                        strokeOpacity={0.85}
+                        strokeWidth={14 / zoom}
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                      />
+                    ))}
+                    {/* 구간별 색상 라인 */}
+                    {routeSegments.map((seg, idx) => (
+                      <polyline
+                        key={`line-${idx}`}
+                        points={seg.points.map(p => `${p.x},${p.y}`).join(' ')}
+                        fill="none"
+                        stroke={SEGMENT_COLORS[seg.segIdx % SEGMENT_COLORS.length]}
+                        strokeOpacity={0.95}
+                        strokeWidth={6 / zoom}
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                      />
+                    ))}
+                  </svg>
+                );
+              })}
+
               {/* 마을 마커 — 발견물 마을. 도시 배지보다 작고 갈색 텐트로 구분. */}
               {showVillages && VILLAGES.map((v) =>
                 copies.map((n) => {
@@ -1111,6 +1268,10 @@ export default function CityMapView({ focus = null }: Props) {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (routeMode) {
+                            addStopToActive({ kind: 'village', id: v.id, items: [] });
+                            return;
+                          }
                           setSelectedVillageId(v.id);
                           setSelectedCity(null);
                         }}
@@ -1219,6 +1380,10 @@ export default function CityMapView({ focus = null }: Props) {
                         onMouseLeave={() => setHoveredCity((c) => (c === entry.city ? null : c))}
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (routeMode) {
+                            addStopToActive({ kind: 'city', id: entry.city, items: [] });
+                            return;
+                          }
                           setSelectedCity(entry.city);
                           setSelectedVillageId(null);
                         }}
@@ -1278,6 +1443,100 @@ export default function CityMapView({ focus = null }: Props) {
                   );
                 })
               )}
+
+              {/* 항로 정류 번호 뱃지 + 항목 칩 */}
+              {routeMode && activeRoute && activeRoute.stops.map((s, idx) => {
+                let wx: number, wy: number;
+                if (s.kind === 'city') {
+                  const entry = CITY_MAP.get(s.id);
+                  if (!entry) return null;
+                  wx = entry.x + DOT_OFFSET_X;
+                  wy = entry.y + DOT_OFFSET_Y;
+                } else {
+                  const v = VILLAGES.find((vv) => vv.id === s.id);
+                  if (!v) return null;
+                  wx = v.x + VILLAGE_OFFSET_X;
+                  wy = v.y + VILLAGE_OFFSET_Y;
+                }
+                return copies.map((n) => {
+                  const cx = wx + n * MAP_NATURAL_WIDTH;
+                  const screenX = pan.x + cx * zoom;
+                  const screenY = pan.y + wy * zoom;
+                  if (screenX < -80 || screenX > viewport.w + 80 || screenY < -48 || screenY > viewport.h + 48) return null;
+                  // 정류 번호 뱃지 색 — 항로선 SEGMENT_COLORS 와 일치
+                  const SEGMENT_COLORS = ['#ef4444','#f97316','#eab308','#22c55e','#06b6d4','#3b82f6','#8b5cf6','#ec4899'];
+                  const segIdx = idx >= (activeRoute?.stops.length ?? 0) - 1
+                    ? Math.max(0, (activeRoute?.stops.length ?? 0) - 2)
+                    : idx;
+                  const badgeColor = SEGMENT_COLORS[segIdx % SEGMENT_COLORS.length];
+                  const visibleItems = s.items.slice(0, 2);
+                  const moreCount = s.items.length - visibleItems.length;
+                  return (
+                    <React.Fragment key={`stop-${idx}-${n}`}>
+                      <div
+                        style={{
+                          position: 'absolute',
+                          left: cx,
+                          top: wy,
+                          transform: `translate(50%, -130%) scale(${dotInvScale})`,
+                          transformOrigin: 'left top',
+                          pointerEvents: 'none',
+                          zIndex: 20,
+                        }}
+                      >
+                        <div
+                          className="inline-flex items-center justify-center w-5 h-5 rounded-full text-white text-[10px] font-black border-2 border-white shadow-md"
+                          style={{ backgroundColor: badgeColor }}
+                        >
+                          {idx + 1}
+                        </div>
+                      </div>
+                      {s.items.length > 0 && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            left: cx,
+                            top: wy,
+                            transform: `translate(15px, 15px) scale(${dotInvScale})`,
+                            transformOrigin: 'left top',
+                            pointerEvents: 'none',
+                            zIndex: 19,
+                          }}
+                        >
+                          <div className="flex flex-col gap-0.5 max-w-[160px] items-start">
+                            {visibleItems.map((it) => (
+                              <span
+                                key={it}
+                                className={`route-map-chip px-1.5 py-[1px] rounded text-[11px] font-black whitespace-nowrap
+                                  ${s.kind === 'city'
+                                    ? 'bg-indigo-600 text-white border border-indigo-800'
+                                    : 'bg-amber-500 text-white border border-amber-700'}`}
+                                style={{
+                                  textShadow: '0 1px 2px rgba(0,0,0,0.6)',
+                                  boxShadow: '0 2px 5px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.5)',
+                                }}
+                              >
+                                {it}
+                              </span>
+                            ))}
+                            {moreCount > 0 && (
+                              <span
+                                className="route-map-chip px-1.5 py-[1px] rounded text-[11px] font-black text-white bg-slate-700 border border-slate-900"
+                                style={{
+                                  textShadow: '0 1px 2px rgba(0,0,0,0.6)',
+                                  boxShadow: '0 2px 5px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.5)',
+                                }}
+                              >
+                                +{moreCount}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </React.Fragment>
+                  );
+                });
+              })}
             </div>
           );
         })()}
@@ -1393,6 +1652,36 @@ export default function CityMapView({ focus = null }: Props) {
           setSelectedCity(city);
         }}
       />
+
+      {/* 항로 패널 */}
+      {routeMode && (
+        <RoutePanel
+          state={routeState}
+          onChange={setRouteState}
+          onClose={() => setRouteMode(false)}
+          onFocusStop={(s) => {
+            // 정류로 화면 이동
+            let wx = 0, wy = 0;
+            if (s.kind === 'city') {
+              const entry = CITY_MAP.get(s.id);
+              if (!entry) return;
+              wx = entry.x + DOT_OFFSET_X;
+              wy = entry.y + DOT_OFFSET_Y;
+            } else {
+              const v = VILLAGES.find((vv) => vv.id === s.id);
+              if (!v) return;
+              wx = v.x + VILLAGE_OFFSET_X;
+              wy = v.y + VILLAGE_OFFSET_Y;
+            }
+            if (viewport.w > 0 && viewport.h > 0) {
+              setPan({
+                x: viewport.w / 2 - wx * zoom,
+                y: clampPanY(viewport.h / 2 - wy * zoom, zoom, viewport.h),
+              });
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

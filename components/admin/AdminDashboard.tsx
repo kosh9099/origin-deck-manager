@@ -110,6 +110,23 @@ export default function AdminDashboard() {
               </div>
             </div>
           </Link>
+
+          <Link
+            href="/admin/sea-mask"
+            className="block bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:border-sky-300 hover:shadow-md transition-all group"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center group-hover:bg-sky-100 transition-colors shrink-0">
+                <MapPin size={18} />
+              </div>
+              <div className="min-w-0">
+                <h2 className="font-black text-slate-800 text-[14px]">바다 마스크 편집기</h2>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                  교역 동선의 항로 계산용 sea/land 마스크 보정. 좁은 해협 수동 수정.
+                </p>
+              </div>
+            </div>
+          </Link>
         </div>
 
         <ChangePasswordCard />
