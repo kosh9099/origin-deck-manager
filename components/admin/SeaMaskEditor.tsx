@@ -270,7 +270,7 @@ export default function SeaMaskEditor() {
 
   const handleExport = useCallback(() => {
     if (!mask) return;
-    const blob = new Blob([mask], { type: 'application/octet-stream' });
+    const blob = new Blob([mask as BlobPart], { type: 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
