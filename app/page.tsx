@@ -291,7 +291,13 @@ export default function Home() {
 
         <footer className="flex flex-col gap-2 border-t border-slate-900/10 py-4 text-xs font-semibold text-slate-500 sm:flex-row sm:items-center sm:justify-between">
           <span>Developer <b className="text-slate-700">고든이고든요</b></span>
-          <span>PC와 모바일에 맞춘 항해 관리 대시보드</span>
+          <span className="flex flex-wrap gap-x-3 gap-y-1 sm:justify-end">
+            <span>PC와 모바일에 맞춘 항해 관리 대시보드</span>
+            <span>비공식 팬 도구</span>
+            <Link href="/privacy" className="font-bold text-slate-500 underline-offset-4 hover:text-teal-700 hover:underline">
+              개인정보처리방침
+            </Link>
+          </span>
         </footer>
       </div>
 
