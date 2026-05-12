@@ -88,6 +88,15 @@ const managers: Manager[] = [
 
 const UPDATE_LOGS: UpdateLog[] = [
   {
+    version: 'v1.5',
+    label: '교역 매니저',
+    date: '2026.05.12',
+    tone: 'text-teal-700 bg-teal-50 border-teal-200',
+    items: [
+      { type: 'improve', text: '물물교환 계산기의 하위 재료 필요량에 5% 여유분을 자동 적용 (게임 내부 정밀도 차이로 인한 소수점 부족분 보정)' },
+    ],
+  },
+  {
     version: 'v1.4',
     label: '전체 앱',
     date: '2026.05.12',
