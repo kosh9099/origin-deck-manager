@@ -88,6 +88,22 @@ const managers: Manager[] = [
 
 const UPDATE_LOGS: UpdateLog[] = [
   {
+    version: 'v1.4',
+    label: '전체 앱',
+    date: '2026.05.12',
+    tone: 'text-slate-700 bg-slate-50 border-slate-200',
+    items: [
+      { type: 'improve', text: 'PC와 모바일 화면을 모두 읽기 쉬운 항해 도구 스타일로 정리' },
+      { type: 'improve', text: '메인 항해 관리판을 내 항해사 관리, 공식 사이트, 통합시트 바로가기 중심으로 개편' },
+      { type: 'new', text: '다크 모드 추가 및 메인/교역/세계 지도 화면의 어두운 테마 가독성 개선' },
+      { type: 'improve', text: '교역 스케줄의 여백, 카드 폭, 사이드바 간섭 문제 조정' },
+      { type: 'improve', text: '교역 이벤트 배지와 추천 품목 배지의 글자 깨짐을 줄이고 가격 표기를 간결하게 정리' },
+      { type: 'fix', text: '세계 지도 도시 패널의 마을 정보, 재료 판매 항구, 교역품 시즌 표 다크 모드 표시 문제 수정' },
+      { type: 'new', text: '사이트 이름과 브라우저 탭 아이콘을 대항오 덱 매니저에 맞게 변경' },
+      { type: 'new', text: '개인정보처리방침 페이지 추가 및 하단 바로가기 제공' },
+    ],
+  },
+  {
     version: 'v1.3',
     label: '교역 매니저',
     date: '2026.05.10',
@@ -290,7 +306,24 @@ export default function Home() {
         </section>
 
         <footer className="flex flex-col gap-2 border-t border-slate-900/10 py-4 text-xs font-semibold text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-          <span>Developer <b className="text-slate-700">고든이고든요</b></span>
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-700/15 bg-white/80 px-2 py-1 text-[10px] font-black text-slate-600"
+              title="사이트 개발자"
+            >
+              <Settings size={11} />
+              <span className="uppercase tracking-widest">Developer</span>
+              <b className="text-slate-700">고든이고든요</b>
+            </span>
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-700/15 bg-white/80 px-2 py-1 text-[10px] font-black text-slate-600"
+              title="항해 데이터 파트너"
+            >
+              <Compass size={11} />
+              <span className="uppercase tracking-widest">Data Navigator</span>
+              <b className="text-slate-700">아스트라이오스</b>
+            </span>
+          </span>
           <span className="flex flex-wrap gap-x-3 gap-y-1 sm:justify-end">
             <span>PC와 모바일에 맞춘 항해 관리 대시보드</span>
             <span>비공식 팬 도구</span>
