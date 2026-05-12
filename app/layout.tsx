@@ -15,8 +15,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "대항오 덱 매니저",
+  metadataBase: new URL("https://origin-deck-manager.vercel.app"),
+  applicationName: "대항오 덱 매니저",
+  title: {
+    default: "대항오 덱 매니저",
+    template: "%s | 대항오 덱 매니저",
+  },
   description: "교역 스케줄과 육탐 함대 배치를 관리하는 항해 도구",
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    shortcut: "/favicon.svg",
+  },
+  openGraph: {
+    title: "대항오 덱 매니저",
+    description: "교역 스케줄과 육탐 함대 배치를 관리하는 항해 도구",
+    url: "/",
+    siteName: "대항오 덱 매니저",
+    locale: "ko_KR",
+    type: "website",
+  },
 };
 
 // 모바일에서 페이지 자체 핀치 줌으로 인해 맵 좌표계가 깨지는 문제 방지.
