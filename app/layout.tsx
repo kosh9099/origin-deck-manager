@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import VisitorTracker from "@/components/visitor/VisitorTracker";
 
@@ -40,6 +41,8 @@ const themeScript = `
 })();
 `;
 
+const adsenseClient = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -49,6 +52,14 @@ export default function RootLayout({
     <html lang="ko" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <body className="antialiased">
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {adsenseClient && (
+          <Script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`}
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
+        )}
         {children}
         <VisitorTracker />
       </body>
