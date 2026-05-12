@@ -93,7 +93,7 @@ const UPDATE_LOGS: UpdateLog[] = [
     date: '2026.05.12',
     tone: 'text-teal-700 bg-teal-50 border-teal-200',
     items: [
-      { type: 'improve', text: '물물교환 계산기의 하위 재료 필요량에 5% 여유분을 자동 적용 (게임 내부 정밀도 차이로 인한 소수점 부족분 보정)' },
+      { type: 'improve', text: '물물교환 계산기의 하위 재료 필요량에 +3개 여유분을 자동 가산 (게임 내부 정밀도 차이로 인한 소수점 부족분 보정)' },
     ],
   },
   {

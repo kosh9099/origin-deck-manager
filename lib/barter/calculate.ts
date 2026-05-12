@@ -1,7 +1,7 @@
 import type { BarterRecipe, BarterRate, CalcNode, CalcResult, CartCard } from '@/types/barter';
 
-// 게임 내부 비율의 정밀도 차이를 흡수하기 위한 하위 재료 여유분 (5%)
-const BUFFER_RATIO = 1.05;
+// 게임 내부 비율의 정밀도 차이를 흡수하기 위한 하위 재료 여유분 (+3)
+const BUFFER_ADD = 3;
 
 function calcNode(
   name: string,
@@ -28,7 +28,7 @@ function calcNode(
   const children: CalcNode[] = [];
   for (const matName of recipe!.materials) {
     const matQty = rate!.materialQty[matName] ?? 0;
-    const childNeed = matQty > 0 ? Math.ceil((needed * matQty * BUFFER_RATIO) / rate!.outputQty) : 0;
+    const childNeed = matQty > 0 ? Math.ceil((needed * matQty) / rate!.outputQty) + BUFFER_ADD : 0;
     children.push(calcNode(matName, childNeed, recipes, rates, intermediates, asLeaf, leafTotals, missingFlag));
   }
   return { name, needed, isLeaf: false, rateMissing: false, children };
