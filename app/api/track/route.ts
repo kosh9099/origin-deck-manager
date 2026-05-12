@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 /**
- * 익명 방문자 세션 핑.
+ * 개인을 직접 식별하지 않는 방문자 세션 핑.
  * Body: { sessionId: string, pagePath?: string }
  * - 세션이 처음이면 INSERT, 기존이면 last_seen + page_path 업데이트.
  * - 응답은 가볍게 {ok}.
@@ -33,5 +33,13 @@ export async function POST(req: Request) {
     console.warn('visitor track upsert failed:', error.message);
     return NextResponse.json({ ok: false }, { status: 500 });
   }
+
+  // 장기 미방문 세션은 운영 통계 품질과 데이터 최소화를 위해 best-effort로 정리한다.
+  const retentionCutoff = new Date(Date.now() - 366 * 24 * 60 * 60 * 1000).toISOString();
+  const { error: cleanupError } = await supabaseAdmin.from('visitor_sessions').delete().lt('last_seen', retentionCutoff);
+  if (cleanupError) {
+    console.warn('visitor retention cleanup failed:', cleanupError.message);
+  }
+
   return NextResponse.json({ ok: true });
 }
