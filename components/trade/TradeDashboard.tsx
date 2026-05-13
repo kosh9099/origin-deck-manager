@@ -62,6 +62,41 @@ export const BONUS_ITEMS: Record<string, { label: string; color: string }> = {
   '귀금속': { label: '+판매할증 30%', color: 'text-yellow-700 bg-yellow-50 border-yellow-400' },
 };
 
+// ── 상급 교역품 일정 (차수별 자동 전환) ────────────────────────────
+export const ADVANCED_TRADE_SCHEDULES: Array<{
+  phase: number;
+  start: number;
+  end: number;
+  label: string;
+  items: string[];
+}> = [
+  {
+    phase: 1,
+    start: new Date('2026-05-13T00:00:00+09:00').getTime(),
+    end: new Date('2026-06-10T00:00:00+09:00').getTime(),
+    label: '2026/05/13 정기 점검 후 ~ 2026/06/09 23:59',
+    items: ['상급 초석', '상급 양손검', '상급 동양 대포'],
+  },
+  {
+    phase: 2,
+    start: new Date('2026-06-10T00:00:00+09:00').getTime(),
+    end: new Date('2026-07-08T00:00:00+09:00').getTime(),
+    label: '2026/06/10 00:00 ~ 2026/07/07 23:59',
+    items: ['상급 자철 광석', '상급 서양 갑옷', '상급 조총'],
+  },
+  {
+    phase: 3,
+    start: new Date('2026-07-08T00:00:00+09:00').getTime(),
+    end: new Date('2026-08-13T00:00:00+09:00').getTime(),
+    label: '2026/07/08 00:00 ~ 2026/08/12 정기 점검 전까지',
+    items: ['상급 화승총', '상급 흑연', '상급 맘벨레'],
+  },
+];
+
+export function getCurrentAdvancedSchedule(nowMs: number) {
+  return ADVANCED_TRADE_SCHEDULES.find(s => nowMs >= s.start && nowMs < s.end) ?? null;
+}
+
 export function getGoldBonuses(
   event: TradeEvent,
   cityMap?: Record<string, string[]>
@@ -457,6 +492,42 @@ export default function TradeDashboard({
                   <span className={`whitespace-nowrap rounded-md border px-2 py-0.5 text-[11px] font-black ${BONUS_ITEMS['귀금속'].color}`}>
                     귀금속 판매 가격 +30%
                   </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 상급 교역품 일정 (차수별 자동 전환) */}
+      {(() => {
+        const current = getCurrentAdvancedSchedule(now);
+        if (!current) return null;
+        return (
+          <div className="mb-3 shrink-0 rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 shadow-sm">
+            <div className="flex items-start gap-2.5">
+              <span className="text-base shrink-0">⚜</span>
+              <div className="flex-1 min-w-0 space-y-1">
+                <p className="text-[12px] font-black text-sky-800 flex items-center gap-1.5 flex-wrap">
+                  <span>상급 교역품 일정</span>
+                  <span className="inline-flex items-center rounded-md border border-sky-300 bg-white px-1.5 py-0.5 text-[10px] font-black text-sky-700">
+                    {current.phase}차
+                  </span>
+                </p>
+                <div className="flex items-center gap-1.5 flex-wrap text-[11px] font-bold text-sky-700">
+                  <span className="whitespace-nowrap rounded-md border border-sky-200 bg-white px-2 py-0.5">
+                    {current.label}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {current.items.map(item => (
+                    <span
+                      key={item}
+                      className="whitespace-nowrap rounded-md border border-sky-300 bg-white px-2 py-0.5 text-[11px] font-black text-sky-800"
+                    >
+                      {item}
+                    </span>
+                  ))}
                 </div>
               </div>
             </div>
