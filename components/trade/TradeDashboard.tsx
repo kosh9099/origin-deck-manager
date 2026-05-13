@@ -72,9 +72,9 @@ export const ADVANCED_TRADE_SCHEDULES: Array<{
 }> = [
   {
     phase: 1,
-    start: new Date('2026-05-13T00:00:00+09:00').getTime(),
+    start: new Date('2026-05-13T14:00:00+09:00').getTime(),
     end: new Date('2026-06-10T00:00:00+09:00').getTime(),
-    label: '2026/05/13 정기 점검 후 ~ 2026/06/09 23:59',
+    label: '2026/05/13 14:00 ~ 2026/06/09 23:59',
     items: ['상급 초석', '상급 양손검', '상급 동양 대포'],
   },
   {
