@@ -5,6 +5,7 @@ import { TradeEvent, TradeItem } from '@/types/trade';
 import { generateEpidemicSchedules } from '@/lib/trade/epidemic';
 import ScheduleTable from './ScheduleTable';
 import ScheduleCards from './ScheduleCards';
+import BarterDetailModal from './BarterDetailModal';
 import { Flame, RefreshCw, CheckCircle, XCircle, Filter } from 'lucide-react';
 import {
   fetchZoneSheet,
@@ -213,6 +214,7 @@ export default function TradeDashboard({
   const [filters, setFilters] = useState({ boost: true, flash: true, epidemic: true, favorite: false, tierFx: true });
   const [favorites, setFavorites] = useState<Set<string>>(() => new Set());
   const [hydrated, setHydrated] = useState(false);
+  const [advancedDetailItem, setAdvancedDetailItem] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -520,13 +522,16 @@ export default function TradeDashboard({
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  {current.items.map(item => (
-                    <span
-                      key={item}
-                      className="whitespace-nowrap rounded-md border border-sky-300 bg-white px-2 py-0.5 text-[11px] font-black text-sky-800"
+                  {current.items.map(name => (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => setAdvancedDetailItem(name)}
+                      title={`${name} — 구매 항구 보기`}
+                      className="whitespace-nowrap rounded-md border border-sky-300 bg-white px-2 py-0.5 text-[11px] font-black text-sky-800 hover:bg-sky-100 hover:border-sky-400 active:scale-95 transition-all cursor-pointer"
                     >
-                      {item}
-                    </span>
+                      {name}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -600,6 +605,14 @@ export default function TradeDashboard({
           </div>
         )}
       </div>
+
+      {advancedDetailItem && (
+        <BarterDetailModal
+          itemName={advancedDetailItem}
+          month={inGameTime.month}
+          onClose={() => setAdvancedDetailItem(null)}
+        />
+      )}
 
       <style>{`
         @keyframes goldShimmer {
