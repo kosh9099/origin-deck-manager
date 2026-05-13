@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, LogOut, Loader2, Clock, KeyRound, Check, Users, MapPin } from 'lucide-react';
+import { ArrowLeft, LogOut, Loader2, Clock, KeyRound, Check, Users, MapPin, FileSpreadsheet } from 'lucide-react';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -43,6 +43,23 @@ export default function AdminDashboard() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Link
+            href="/admin/data-import"
+            className="block bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:border-emerald-300 hover:shadow-md transition-all group"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-100 transition-colors shrink-0">
+                <FileSpreadsheet size={18} />
+              </div>
+              <div className="min-w-0">
+                <h2 className="font-black text-slate-800 text-[14px]">데이터 가져오기</h2>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                  엑셀/구글시트 표를 붙여넣어 항해사 DB와 시즌 단가표를 Supabase에 병합 업데이트.
+                </p>
+              </div>
+            </div>
+          </Link>
+
           <Link
             href="/admin/city-minutes"
             className="block bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:border-emerald-300 hover:shadow-md transition-all group"

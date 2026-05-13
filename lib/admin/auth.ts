@@ -9,6 +9,15 @@ export function sha256Hex(s: string): string {
   return createHash('sha256').update(s).digest('hex');
 }
 
+function withTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error('timeout')), ms);
+    }),
+  ]);
+}
+
 /**
  * .env 의 ADMIN_PASSWORD 를 sha256 해시로 환산. 미설정 시 null.
  * 초기 시드용 fallback. DB row 가 생기면 그쪽이 우선.
@@ -25,11 +34,15 @@ export function envPasswordHash(): string | null {
  */
 export async function getStoredPasswordHash(): Promise<string | null> {
   try {
-    const { data, error } = await supabaseAdmin
-      .from('admin_settings')
-      .select('password_hash')
-      .eq('id', 1)
-      .maybeSingle();
+    const result = await withTimeout(
+      supabaseAdmin
+        .from('admin_settings')
+        .select('password_hash')
+        .eq('id', 1)
+        .maybeSingle(),
+      1500
+    ) as { data: { password_hash?: string } | null; error: { message?: string } | null };
+    const { data, error } = result;
     if (error) return null;
     return (data?.password_hash as string | undefined) ?? null;
   } catch {
