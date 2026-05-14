@@ -5,7 +5,7 @@ import { TradeEvent, TradeItem } from '@/types/trade';
 import { generateEpidemicSchedules } from '@/lib/trade/epidemic';
 import ScheduleTable from './ScheduleTable';
 import ScheduleCards from './ScheduleCards';
-import BarterDetailModal from './BarterDetailModal';
+import AdvancedItemModal from './AdvancedItemModal';
 import { Flame, RefreshCw, CheckCircle, XCircle, Filter } from 'lucide-react';
 import {
   fetchZoneSheet,
@@ -64,33 +64,51 @@ export const BONUS_ITEMS: Record<string, { label: string; color: string }> = {
 };
 
 // ── 상급 교역품 일정 (차수별 자동 전환) ────────────────────────────
+export type AdvancedTradeItem = {
+  name: string;
+  buyCondition?: string;
+  sellPorts: string[];
+};
+
 export const ADVANCED_TRADE_SCHEDULES: Array<{
   phase: number;
   start: number;
   end: number;
   label: string;
-  items: string[];
+  items: AdvancedTradeItem[];
 }> = [
   {
     phase: 1,
     start: new Date('2026-05-13T14:00:00+09:00').getTime(),
     end: new Date('2026-06-10T00:00:00+09:00').getTime(),
     label: '2026/05/13 14:00 ~ 2026/06/09 23:59',
-    items: ['상급 초석', '상급 양손검', '상급 동양 대포'],
+    items: [
+      { name: '상급 초석', sellPorts: ['스트라스부르', '쾰른', '브레멘', '함부르크', '뤼베크'] },
+      { name: '상급 양손검', buyCondition: '협상 23', sellPorts: ['나가사키', '사카이', '에도', '에조'] },
+      { name: '상급 동양 대포', buyCondition: '구매 23', sellPorts: ['수에즈', '마사와'] },
+    ],
   },
   {
     phase: 2,
     start: new Date('2026-06-10T00:00:00+09:00').getTime(),
     end: new Date('2026-07-08T00:00:00+09:00').getTime(),
     label: '2026/06/10 00:00 ~ 2026/07/07 23:59',
-    items: ['상급 자철 광석', '상급 서양 갑옷', '상급 조총'],
+    items: [
+      { name: '상급 자철 광석', sellPorts: ['에든버러', '더블린'] },
+      { name: '상급 서양 갑옷', sellPorts: ['배로우', '어널래스카', '터코마', '오론', '아카풀코', '과테말라', '파나마'] },
+      { name: '상급 조총', sellPorts: ['벵겔라', '모잠비크', '킬와', '잔지바르', '뭄바사', '말린디', '모가디슈'] },
+    ],
   },
   {
     phase: 3,
     start: new Date('2026-07-08T00:00:00+09:00').getTime(),
     end: new Date('2026-08-13T00:00:00+09:00').getTime(),
     label: '2026/07/08 00:00 ~ 2026/08/12 정기 점검 전까지',
-    items: ['상급 화승총', '상급 흑연', '상급 맘벨레'],
+    items: [
+      { name: '상급 화승총', sellPorts: ['홀로', '다바오', '마닐라'] },
+      { name: '상급 흑연', sellPorts: ['카리비브', '케이프타운', '나탈', '소팔라', '켈리마느', '타마타브'] },
+      { name: '상급 맘벨레', sellPorts: ['세비야', '말라가', '발렌시아', '바르셀로나'] },
+    ],
   },
 ];
 
@@ -214,7 +232,7 @@ export default function TradeDashboard({
   const [filters, setFilters] = useState({ boost: true, flash: true, epidemic: true, favorite: false, tierFx: true });
   const [favorites, setFavorites] = useState<Set<string>>(() => new Set());
   const [hydrated, setHydrated] = useState(false);
-  const [advancedDetailItem, setAdvancedDetailItem] = useState<string | null>(null);
+  const [advancedDetailItem, setAdvancedDetailItem] = useState<AdvancedTradeItem | null>(null);
 
   useEffect(() => {
     try {
@@ -522,15 +540,15 @@ export default function TradeDashboard({
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  {current.items.map(name => (
+                  {current.items.map(item => (
                     <button
-                      key={name}
+                      key={item.name}
                       type="button"
-                      onClick={() => setAdvancedDetailItem(name)}
-                      title={`${name} — 구매 항구 보기`}
+                      onClick={() => setAdvancedDetailItem(item)}
+                      title={`${item.name} — 구매 조건/도시/판매항 보기`}
                       className="whitespace-nowrap rounded-md border border-sky-300 bg-white px-2 py-0.5 text-[11px] font-black text-sky-800 hover:bg-sky-100 hover:border-sky-400 active:scale-95 transition-all cursor-pointer"
                     >
-                      {name}
+                      {item.name}
                     </button>
                   ))}
                 </div>
@@ -607,8 +625,10 @@ export default function TradeDashboard({
       </div>
 
       {advancedDetailItem && (
-        <BarterDetailModal
-          itemName={advancedDetailItem}
+        <AdvancedItemModal
+          itemName={advancedDetailItem.name}
+          buyCondition={advancedDetailItem.buyCondition}
+          sellPorts={advancedDetailItem.sellPorts}
           month={inGameTime.month}
           onClose={() => setAdvancedDetailItem(null)}
         />
