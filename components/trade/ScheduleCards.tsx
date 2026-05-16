@@ -14,7 +14,7 @@ import { hasCityCombination } from '@/lib/trade/combinationRotation';
 import { getInGameTimeInfo } from '@/lib/trade/time';
 import { isCurrentlyActive } from './TradeDashboard';
 import { normalizeZoneName } from '@/lib/trade/sheetSync';
-import { Map as MapIcon } from 'lucide-react';
+import { Map as MapIcon, ChevronDown, ChevronUp } from 'lucide-react';
 
 function getTariffDiscount(startTime: number): { label: string; level: number } | null {
   const kst = new Date(startTime + 9 * 3600 * 1000);
@@ -72,6 +72,7 @@ export default function ScheduleCards({
   const [selectedCity, setSelectedCity] = React.useState<string | null>(null);
   const [selectedItem, setSelectedItem] = React.useState<string | null>(null);
   const [editingBoost, setEditingBoost] = React.useState<TradeEvent | null>(null);
+  const [expanded, setExpanded] = React.useState(false);
   const inGameTime = getInGameTimeInfo(now);
 
   if (events.length === 0) {
@@ -82,9 +83,15 @@ export default function ScheduleCards({
     );
   }
 
+  const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
+  const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+  const cutoffMs = expanded ? TWENTY_FOUR_HOURS_MS : TWELVE_HOURS_MS;
+  const visibleEvents = events.filter(e => e.startTime <= now + cutoffMs);
+  const hasExtendedEvents = events.some(e => e.startTime > now + TWELVE_HOURS_MS && e.startTime <= now + TWENTY_FOUR_HOURS_MS);
+
   return (
     <div className="flex flex-col gap-2">
-      {events.map((event) => {
+      {visibleEvents.map((event) => {
         const isBoost = event.isBoost;
         const boostType = isBoost ? getBoostType(event.type) : null;
         const isFav = favorites.has(event.id);
@@ -105,7 +112,7 @@ export default function ScheduleCards({
         const cityName = isBoost ? (event.city || event.zone || '항구 미상') : event.zone;
         const hasCombo = hasCityCombination(cityName);
         const isActive = isCurrentlyActive(event);
-        const isAfter12Hours = event.isBoost && event.startTime > now + 12 * 60 * 60 * 1000;
+        const isAfter12Hours = event.startTime > now + TWELVE_HOURS_MS;
         // 물결: HH:@ 부터 60분 동안 차오름 (@ = city_minute 또는 zone_max_minute, ms 단위로 역산).
         const cardEndMs = event.endTime ?? event.startTime + 3600 * 1000;
         const minuteOffsetMs = cardEndMs - event.startTime - 3600 * 1000;
@@ -249,6 +256,28 @@ export default function ScheduleCards({
           </div>
         );
       })}
+
+      {hasExtendedEvents && (
+        <div className="mt-1 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setExpanded(prev => !prev)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-black text-slate-600 transition-colors hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700 active:scale-95"
+          >
+            {expanded ? (
+              <>
+                <ChevronUp size={14} />
+                12시간 이후 일정 접기
+              </>
+            ) : (
+              <>
+                <ChevronDown size={14} />
+                12시간 이후 일정 펼치기
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
       {selectedCity && (
         <CityCombinationModal cityName={selectedCity} onClose={() => setSelectedCity(null)} />

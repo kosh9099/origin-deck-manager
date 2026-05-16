@@ -306,7 +306,7 @@ export default function TradeDashboard({
 
   const fetchData = useCallback(async (overrideZone?: SheetItemMap, overrideCity?: SheetItemMap) => {
     setIsLoading(true);
-    const autoGenEvents = generateEpidemicSchedules(12);
+    const autoGenEvents = generateEpidemicSchedules(24);
     const useZone = overrideZone ?? zoneMap;
     const useCity = overrideCity ?? cityMap;
     try {
