@@ -179,7 +179,7 @@ const boardLinks: BoardLink[] = [
   },
   {
     icon: Calculator,
-    label: '연금 계산기',
+    label: '연금/투자 계산기',
     value: '계산',
     modal: 'pension',
   },
@@ -258,10 +258,10 @@ export default function Home() {
   const [pensionWeekIndex, setPensionWeekIndex] = useState(0);
   const [pensionPortCount, setPensionPortCount] = useState(formatNumberInput(String(TOTAL_PENSION_PORTS)));
   const [pensionBudgetEok, setPensionBudgetEok] = useState('');
-  const [plannedScore, setPlannedScore] = useState('');
   const [bronzeBookCount, setBronzeBookCount] = useState('');
   const [silverBookCount, setSilverBookCount] = useState('');
   const [goldBookCount, setGoldBookCount] = useState('');
+  const [targetScore, setTargetScore] = useState('');
 
   const pensionWeek = pensionWeeks[pensionWeekIndex] ?? pensionWeeks[0];
   const pensionCalc = useMemo(() => {
@@ -274,42 +274,27 @@ export default function Home() {
     const meritScore = Math.floor(meritDucat / DUCAT_PER_POINT);
     const ports = Math.min(TOTAL_PENSION_PORTS, Math.max(0, Math.floor(parseLooseNumber(pensionPortCount))));
     const budgetDucat = parseLooseNumber(pensionBudgetEok) * DUCAT_PER_EOK;
+    const budgetScore = Math.floor(budgetDucat / DUCAT_PER_POINT);
+    const ownedScore = meritScore + budgetScore;
     const perPortRequiredScore = pensionWeek.requiredScore;
-    const perPortExtraScore = Math.max(0, perPortRequiredScore - 500);
     const perPortDucat = perPortRequiredScore * DUCAT_PER_POINT;
-    const perPortExtraDucat = perPortExtraScore * DUCAT_PER_POINT;
-    const totalScore = perPortRequiredScore * ports;
-    const totalDucat = totalScore * DUCAT_PER_POINT;
-    const budgetPossiblePorts = budgetDucat > 0 ? Math.min(TOTAL_PENSION_PORTS, Math.floor(budgetDucat / perPortDucat)) : null;
-    const inputScore = plannedScore.trim()
-      ? Math.max(0, Math.floor(parseLooseNumber(plannedScore)))
-      : meritScore > 0
-        ? meritScore
-        : perPortRequiredScore;
-    const expectedFinalScore = Math.floor((inputScore * 500) / perPortRequiredScore);
-    const shortageScore = Math.max(0, perPortRequiredScore - inputScore);
-    const averageScoreByPort = ports > 0 ? Math.floor(meritScore / ports) : 0;
+    const targetScoreValue = Math.max(0, Math.floor(parseLooseNumber(targetScore)));
+    const targetGap = targetScoreValue - ownedScore;
 
     return {
       ports,
       budgetDucat,
+      budgetScore,
       meritCounts,
       meritDucat,
       meritScore,
-      averageScoreByPort,
+      ownedScore,
       perPortRequiredScore,
-      perPortExtraScore,
       perPortDucat,
-      perPortExtraDucat,
-      totalScore,
-      totalDucat,
-      budgetPossiblePorts,
-      inputScore,
-      expectedFinalScore,
-      shortageScore,
-      shortageDucat: shortageScore * DUCAT_PER_POINT,
+      targetScoreValue,
+      targetGap,
     };
-  }, [bronzeBookCount, goldBookCount, pensionBudgetEok, pensionPortCount, pensionWeek.requiredScore, plannedScore, silverBookCount]);
+  }, [bronzeBookCount, goldBookCount, pensionBudgetEok, pensionPortCount, pensionWeek.requiredScore, silverBookCount, targetScore]);
 
   return (
     <main className="app-bg min-h-screen overflow-x-hidden px-4 py-5 text-slate-900 sm:px-6 lg:px-8">
@@ -495,11 +480,9 @@ export default function Home() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="pension-modal-title"
-          onClick={() => setPensionOpen(false)}
         >
           <div
             className="app-panel flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-lg"
-            onClick={event => event.stopPropagation()}
           >
             <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-slate-950 px-4 py-3 text-white">
               <div className="flex min-w-0 items-center gap-2">
@@ -574,24 +557,10 @@ export default function Home() {
                       </div>
                     </label>
 
-                    <label className="grid gap-1.5">
-                      <span className="text-[11px] font-black text-slate-500">항구당 실제 투입 점수 선택 입력</span>
-                      <input
-                        value={plannedScore}
-                        onChange={event => setPlannedScore(formatNumberInput(event.target.value))}
-                        inputMode="numeric"
-                        className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-800"
-                        placeholder={`비우면 공훈서 총점 또는 ${formatNumber(pensionCalc.perPortRequiredScore)}점`}
-                      />
-                      <span className="text-[10px] font-bold text-slate-400">
-                        직접 입력하면 공훈서 계산보다 우선 적용됩니다.
-                      </span>
-                    </label>
-
                     <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[11px] font-black text-slate-500">공훈서 투자 계산</span>
-                        <span className="text-[10px] font-black text-slate-400">한 항구 투입 기준</span>
+                        <span className="text-[11px] font-black text-slate-500">공훈서 입력</span>
+                        <span className="text-[10px] font-black text-slate-400">보유 장수</span>
                       </div>
                       <div className="mt-3 grid gap-2">
                         {meritBooks.map(book => {
@@ -628,69 +597,100 @@ export default function Home() {
                         })}
                       </div>
                     </div>
+
+                    <label className="grid gap-1.5">
+                      <span className="text-[11px] font-black text-slate-500">목표 점수</span>
+                      <input
+                        value={targetScore}
+                        onChange={event => setTargetScore(formatNumberInput(event.target.value))}
+                        inputMode="numeric"
+                        className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-800"
+                        placeholder="예: 1,000,000"
+                      />
+                    </label>
                   </div>
                 </section>
 
-                <section className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-lg border border-teal-200 bg-teal-50/80 p-4">
-                    <p className="text-[11px] font-black text-teal-700">항구당 필요 점수</p>
-                    <p className="mt-2 text-2xl font-black text-slate-950">{formatNumber(pensionCalc.perPortRequiredScore)}점</p>
-                    <p className="mt-1 text-xs font-bold text-slate-600">
-                      기본 500점 + 유지분 {formatNumber(pensionCalc.perPortExtraScore)}점
-                    </p>
-                    <p className="mt-3 text-xs font-black text-teal-700">
-                      총 {formatDucat(pensionCalc.perPortDucat)} · 추가분 {formatDucat(pensionCalc.perPortExtraDucat)}
-                    </p>
+                <div className="grid gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-black uppercase tracking-widest text-teal-700">Pension</span>
+                    <h3 className="text-sm font-black text-slate-950">연금 계산</h3>
                   </div>
+                  <section className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-lg border border-teal-200 bg-teal-50/80 p-4">
+                      <p className="text-[11px] font-black text-teal-700">항구당 필요 점수</p>
+                      <p className="mt-2 text-2xl font-black text-slate-950">{formatNumber(pensionCalc.perPortRequiredScore)}점</p>
+                    </div>
 
-                  <div className="rounded-lg border border-slate-200 bg-white/90 p-4">
-                    <p className="text-[11px] font-black text-slate-500">목표 항구 총 투자</p>
-                    <p className="mt-2 text-2xl font-black text-slate-950">{formatDucat(pensionCalc.totalDucat)}</p>
-                    <p className="mt-1 text-xs font-bold text-slate-600">
-                      {formatNumber(pensionCalc.ports)}개 항구 · 총 {formatNumber(pensionCalc.totalScore)}점
-                    </p>
-                  </div>
+                    <div className="rounded-lg border border-slate-200 bg-white/90 p-4">
+                      <p className="text-[11px] font-black text-slate-500">항구당 필요 두캇</p>
+                      <p className="mt-2 text-2xl font-black text-slate-950">{formatDucat(pensionCalc.perPortDucat)}</p>
+                    </div>
+                  </section>
 
-                  <div className="rounded-lg border border-orange-200 bg-orange-50/80 p-4">
-                    <p className="text-[11px] font-black text-orange-700">공훈서 총 가치</p>
-                    <p className="mt-2 text-2xl font-black text-slate-950">{formatDucat(pensionCalc.meritDucat)}</p>
-                    <p className="mt-1 text-xs font-bold text-slate-600">
-                      동 {formatNumber(pensionCalc.meritCounts.bronze)}장 · 은 {formatNumber(pensionCalc.meritCounts.silver)}장 · 금 {formatNumber(pensionCalc.meritCounts.gold)}장
-                    </p>
+                  <div className="flex items-center gap-2 pt-2">
+                    <span className="text-[11px] font-black uppercase tracking-widest text-orange-700">Investment</span>
+                    <h3 className="text-sm font-black text-slate-950">투자 계산</h3>
                   </div>
+                  <section className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-4">
+                      <p className="text-[11px] font-black text-amber-700">두캇의 점수 가치</p>
+                      <p className="mt-2 text-2xl font-black text-slate-950">{formatNumber(pensionCalc.budgetScore)}점</p>
+                      <p className="mt-1 text-xs font-bold text-slate-600">
+                        {pensionCalc.budgetDucat > 0
+                          ? `${formatDucat(pensionCalc.budgetDucat)} 기준`
+                          : '보유 예산을 억 두캇 단위로 입력하세요.'}
+                      </p>
+                    </div>
 
-                  <div className="rounded-lg border border-violet-200 bg-violet-50/80 p-4">
-                    <p className="text-[11px] font-black text-violet-700">한 항구 상승 점수</p>
-                    <p className="mt-2 text-2xl font-black text-slate-950">{formatNumber(pensionCalc.meritScore)}점</p>
-                    <p className="mt-1 text-xs font-bold text-slate-600">
-                      목표 항구 균등 배분 시 항구당 {formatNumber(pensionCalc.averageScoreByPort)}점
-                    </p>
-                  </div>
+                    <div className="rounded-lg border border-orange-200 bg-orange-50/80 p-4">
+                      <p className="text-[11px] font-black text-orange-700">공훈서의 점수 가치</p>
+                      <p className="mt-2 text-2xl font-black text-slate-950">{formatNumber(pensionCalc.meritScore)}점</p>
+                      <p className="mt-1 text-xs font-bold text-slate-600">
+                        {pensionCalc.meritDucat > 0
+                          ? `${formatDucat(pensionCalc.meritDucat)} · 동 ${formatNumber(pensionCalc.meritCounts.bronze)}장 · 은 ${formatNumber(pensionCalc.meritCounts.silver)}장 · 금 ${formatNumber(pensionCalc.meritCounts.gold)}장`
+                          : '보유 공훈서 장수를 입력하세요.'}
+                      </p>
+                    </div>
 
-                  <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-4">
-                    <p className="text-[11px] font-black text-amber-700">예산으로 가능한 항구</p>
-                    <p className="mt-2 text-2xl font-black text-slate-950">
-                      {pensionCalc.budgetPossiblePorts === null ? '-' : `${formatNumber(pensionCalc.budgetPossiblePorts)}개`}
-                    </p>
-                    <p className="mt-1 text-xs font-bold text-slate-600">
-                      {pensionCalc.budgetPossiblePorts === null
-                        ? '보유 예산을 억 두캇 단위로 입력하세요.'
-                        : `입력 예산 ${formatDucat(pensionCalc.budgetDucat)} 기준`}
-                    </p>
-                  </div>
-
-                  <div className={`rounded-lg border p-4 ${pensionCalc.expectedFinalScore >= 500 ? 'border-emerald-200 bg-emerald-50/80' : 'border-rose-200 bg-rose-50/80'}`}>
-                    <p className={`text-[11px] font-black ${pensionCalc.expectedFinalScore >= 500 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                      8/10 예상 잔여 점수
-                    </p>
-                    <p className="mt-2 text-2xl font-black text-slate-950">{formatNumber(pensionCalc.expectedFinalScore)}점</p>
-                    <p className="mt-1 text-xs font-bold text-slate-600">
-                      {pensionCalc.expectedFinalScore >= 500
-                        ? '최소 보상 기준을 유지할 수 있습니다.'
-                        : `${formatNumber(pensionCalc.shortageScore)}점 부족 · 항구당 ${formatDucat(pensionCalc.shortageDucat)} 추가 필요`}
-                    </p>
-                  </div>
-                </section>
+                    <div className={`rounded-lg border p-4 sm:col-span-2 ${
+                      pensionCalc.targetScoreValue === 0
+                        ? 'border-slate-200 bg-white/90'
+                        : pensionCalc.targetGap <= 0
+                          ? 'border-emerald-200 bg-emerald-50/80'
+                          : 'border-rose-200 bg-rose-50/80'
+                    }`}>
+                      <p className={`text-[11px] font-black ${
+                        pensionCalc.targetScoreValue === 0
+                          ? 'text-slate-500'
+                          : pensionCalc.targetGap <= 0
+                            ? 'text-emerald-700'
+                            : 'text-rose-700'
+                      }`}>
+                        목표 점수 대비
+                      </p>
+                      <p className="mt-2 text-2xl font-black text-slate-950">
+                        {pensionCalc.targetScoreValue === 0
+                          ? '-'
+                          : pensionCalc.targetGap <= 0
+                            ? `+${formatNumber(Math.abs(pensionCalc.targetGap))}점`
+                            : `-${formatNumber(pensionCalc.targetGap)}점`}
+                      </p>
+                      <p className="mt-1 text-xs font-bold text-slate-600">
+                        내 보유 {formatNumber(pensionCalc.ownedScore)}점 (두캇 {formatNumber(pensionCalc.budgetScore)} + 공훈서 {formatNumber(pensionCalc.meritScore)})
+                        {pensionCalc.targetScoreValue > 0 ? ` · 목표 ${formatNumber(pensionCalc.targetScoreValue)}점` : ''}
+                      </p>
+                      {pensionCalc.targetGap > 0 && (
+                        <p className="mt-2 text-xs font-bold text-rose-700">
+                          부족분 충당: 두캇 {formatDucat(pensionCalc.targetGap * DUCAT_PER_POINT)} 또는{' '}
+                          {meritBooks
+                            .map(book => `${book.shortLabel} ${formatNumber(Math.ceil(pensionCalc.targetGap / (book.ducat / DUCAT_PER_POINT)))}장`)
+                            .join(' · ')}
+                        </p>
+                      )}
+                    </div>
+                  </section>
+                </div>
               </div>
 
               <section className="mt-4 rounded-lg border border-slate-200 bg-white/90 p-4">
