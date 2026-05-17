@@ -352,15 +352,14 @@ export default function TradeDashboard({
   }, [fetchData]);
 
   // 특수 물교 등록 fetch + 변경 이벤트 구독
+  // Map<품목명, expires_at ISO> — 이벤트 시작 시각이 만료 전이면 active로 표시
   const refreshSpecials = useCallback(async () => {
     try {
       const { getActiveSpecials } = await import('@/lib/supabaseClient');
       const list = await getActiveSpecials();
       const map = new Map<string, string>();
       for (const s of list) {
-        const d = new Date(s.created_at);
-        const kstDate = new Date(d.getTime() + 9 * 3600 * 1000).toISOString().slice(0, 10);
-        map.set(s.name, kstDate);
+        map.set(s.name, s.expires_at);
       }
       setSpecialItems(map);
     } catch (e) {

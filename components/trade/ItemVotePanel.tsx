@@ -66,8 +66,12 @@ export default function ItemVotePanel({ event, onItemClick, specialItems, tierFx
   const recs = event.seasonRecs ?? [];
 
   const chipClass = getRecChipClass(event);
-  const eventKstDate = new Date(event.startTime + 9 * 3600 * 1000).toISOString().slice(0, 10);
-  const isRegisteredSpecial = (name: string) => specialItems?.get(name) === eventKstDate;
+  // specialItems Map: 품목명 → 등록 만료 시각(ISO). 이벤트 시작이 만료 전이면 active.
+  const isRegisteredSpecial = (name: string) => {
+    const expiresIso = specialItems?.get(name);
+    if (!expiresIso) return false;
+    return event.startTime < new Date(expiresIso).getTime();
+  };
   const isInactiveSpecial = (name: string) =>
     SPECIAL_BARTER_ITEMS.has(name) && !isRegisteredSpecial(name);
 
