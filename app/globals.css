@@ -395,8 +395,10 @@ textarea:focus-visible {
 }
 
 .dark .bg-sky-50,
+.dark .bg-sky-50\/80,
 .dark .bg-sky-100,
 .dark .bg-blue-50,
+.dark .bg-blue-50\/80,
 .dark .bg-blue-100 {
   background-color: rgba(30, 58, 138, 0.34) !important;
 }
@@ -413,6 +415,13 @@ textarea:focus-visible {
 .dark .bg-violet-100,
 .dark .bg-violet-100\/80 {
   background-color: rgba(76, 29, 149, 0.38) !important;
+}
+
+.dark .bg-indigo-50,
+.dark .bg-indigo-50\/60,
+.dark .bg-indigo-50\/80,
+.dark .bg-indigo-100 {
+  background-color: rgba(49, 46, 129, 0.38) !important;
 }
 
 .dark .bg-red-50,
@@ -461,6 +470,13 @@ textarea:focus-visible {
   color: #ddd6fe !important;
 }
 
+.dark .text-indigo-600,
+.dark .text-indigo-700,
+.dark .text-indigo-800,
+.dark .text-indigo-900 {
+  color: #c7d2fe !important;
+}
+
 .dark .text-red-600,
 .dark .text-red-700,
 .dark .text-red-800,
@@ -501,6 +517,16 @@ textarea:focus-visible {
 .dark .border-rose-200,
 .dark .border-rose-300 {
   border-color: rgba(251, 146, 60, 0.36) !important;
+}
+
+.dark .border-indigo-200,
+.dark .border-indigo-300 {
+  border-color: rgba(129, 140, 248, 0.42) !important;
+}
+
+/* 다크 모드: teal→cyan 그라데이션 헤더 (주요 물교 주간 기록 등) */
+.dark .bg-gradient-to-r.from-teal-50.to-cyan-50 {
+  background-image: linear-gradient(to right, rgba(6, 78, 59, 0.55), rgba(22, 78, 99, 0.55)) !important;
 }
 
 .dark .city-detail-panel {

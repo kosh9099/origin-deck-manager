@@ -205,9 +205,9 @@ export const TRACKED_ITEMS: TrackedItemDef[] = [
   { event_type: '부양', category: '공업품', items: ['카우리'] },
   { event_type: '부양', category: '가축', items: ['기니피그'] },
   { event_type: '부양', category: '직물', items: ['비쿠냐 직물', '독수리깃털'] },
-  { event_type: '부양', category: '의약품', items: ['홍삼'] },
-  { event_type: '급매', category: '금괴', items: ['금괴'] },
-  { event_type: '급매', category: '은괴', items: ['은괴'] },
+  { event_type: '부양', category: '광석', items: ['황동석'] },
+  { event_type: '부양', category: '총포류', items: ['상급 동양 대포'] },
+  { event_type: '급매', category: '흑요석', items: ['흑요석'] },
 ];
 
 const TRACKED_BOOST_CATEGORIES = new Set(

@@ -253,6 +253,24 @@ function formatNumberInput(value: string) {
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
+// 비중(%) 입력용 — 숫자와 소수점 한 개만 허용
+function formatDecimalInput(value: string) {
+  const cleaned = value.replace(/[^\d.]/g, '');
+  const firstDot = cleaned.indexOf('.');
+  if (firstDot === -1) return cleaned;
+  return cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, '');
+}
+
+type MonopolyCompany = { name: string; before: string; after: string };
+
+const MONOPOLY_DEFAULT_COMPANIES: MonopolyCompany[] = [
+  { name: '내 상회', before: '', after: '' },
+  { name: '상회 2', before: '', after: '' },
+  { name: '상회 3', before: '', after: '' },
+  { name: '상회 4', before: '', after: '' },
+  { name: '상회 5', before: '', after: '' },
+];
+
 export default function Home() {
   const [pensionOpen, setPensionOpen] = useState(false);
   const [pensionWeekIndex, setPensionWeekIndex] = useState(0);
@@ -262,6 +280,108 @@ export default function Home() {
   const [silverBookCount, setSilverBookCount] = useState('');
   const [goldBookCount, setGoldBookCount] = useState('');
   const [targetScore, setTargetScore] = useState('');
+  const [scoreToConvert, setScoreToConvert] = useState('');
+  const [pensionTab, setPensionTab] = useState<'pension' | 'monopoly'>('pension');
+  const [monopolyInvestment, setMonopolyInvestment] = useState('');
+  const [monopolyMyIndex, setMonopolyMyIndex] = useState(0);
+  const [monopolyCompanies, setMonopolyCompanies] = useState<MonopolyCompany[]>(MONOPOLY_DEFAULT_COMPANIES);
+  const [monopolyMemberCount, setMonopolyMemberCount] = useState('');
+
+  const scoreToDucat = useMemo(() => {
+    const score = Math.max(0, Math.floor(parseLooseNumber(scoreToConvert)));
+    return { score, ducat: score * DUCAT_PER_POINT };
+  }, [scoreToConvert]);
+
+  const monopolyCalc = useMemo(() => {
+    const investment = Math.max(0, Math.floor(parseLooseNumber(monopolyInvestment)));
+    const rows = monopolyCompanies.map((c, i) => {
+      const beforeFilled = c.before.trim() !== '';
+      const afterFilled = c.after.trim() !== '';
+      const before = parseLooseNumber(c.before);
+      const after = parseLooseNumber(c.after);
+      const filled = beforeFilled && afterFilled;
+      const delta = filled ? after - before : 0;
+      const ratePerPoint = filled && investment > 0 ? delta / investment : 0;
+      return {
+        index: i,
+        name: c.name || `상회 ${i + 1}`,
+        before,
+        after,
+        filled,
+        delta,
+        ratePerPoint,
+        isMine: i === monopolyMyIndex,
+      };
+    });
+    const filledRows = rows.filter(r => r.filled);
+    const sumBefore = filledRows.reduce((s, r) => s + r.before, 0);
+    const sumAfter = filledRows.reduce((s, r) => s + r.after, 0);
+    const me = rows[monopolyMyIndex];
+    const filledOthers = filledRows.filter(r => !r.isMine);
+
+    // 비교 대상: 투자 후 비중이 가장 높은 다른 상회
+    const leader = filledOthers.length > 0
+      ? filledOthers.reduce((max, r) => (r.after > max.after ? r : max), filledOthers[0])
+      : null;
+
+    let status: 'idle' | 'invalid_sum' | 'invalid_investment' | 'invalid_rate' | 'lead' | 'never' | 'behind' = 'idle';
+    let gap = 0;
+    let closingRate = 0;
+    let remainingPoints = 0;
+    let projectedMe = me?.after ?? 0;
+    let projectedLeader = leader?.after ?? 0;
+
+    if (!me?.filled || !leader) {
+      status = 'idle';
+    } else if (investment <= 0) {
+      status = 'invalid_investment';
+    } else if (Math.abs(sumBefore - 100) > 0.5 || Math.abs(sumAfter - 100) > 0.5) {
+      // 합계가 100%에서 0.5%p 넘게 벗어나면 입력 오류 의심
+      status = 'invalid_sum';
+    } else if (me.after >= leader.after) {
+      status = 'lead';
+    } else if (me.ratePerPoint <= 0) {
+      status = 'invalid_rate';
+    } else {
+      closingRate = me.ratePerPoint - leader.ratePerPoint; // leader.ratePerPoint는 보통 음수 → 빼기로 절댓값 합쳐짐
+      gap = leader.after - me.after;
+      if (closingRate <= 0) {
+        status = 'never';
+      } else {
+        status = 'behind';
+        // 투자 단위(investment)의 배수로 올림 — 사용자 멘탈 모델 일치
+        const unitsNeeded = Math.ceil(gap / (closingRate * investment));
+        remainingPoints = unitsNeeded * investment;
+        projectedMe = me.after + me.ratePerPoint * remainingPoints;
+        projectedLeader = leader.after + leader.ratePerPoint * remainingPoints;
+      }
+    }
+
+    const memberCount = Math.max(0, Math.floor(parseLooseNumber(monopolyMemberCount)));
+    const perMemberPoints = memberCount > 0 ? Math.ceil(remainingPoints / memberCount) : 0;
+    const perMemberDucat = perMemberPoints * DUCAT_PER_POINT;
+
+    return {
+      investment,
+      rows,
+      filledRows,
+      sumBefore,
+      sumAfter,
+      me,
+      leader,
+      status,
+      gap,
+      closingRate,
+      remainingPoints,
+      remainingDucat: remainingPoints * DUCAT_PER_POINT,
+      projectedMe,
+      projectedLeader,
+      perUnitGapClose: investment > 0 ? closingRate * investment : 0,
+      memberCount,
+      perMemberPoints,
+      perMemberDucat,
+    };
+  }, [monopolyCompanies, monopolyInvestment, monopolyMyIndex, monopolyMemberCount]);
 
   const pensionWeek = pensionWeeks[pensionWeekIndex] ?? pensionWeeks[0];
   const pensionCalc = useMemo(() => {
@@ -502,6 +622,32 @@ export default function Home() {
               </button>
             </div>
 
+            <div className="flex shrink-0 gap-0 border-b border-slate-200 bg-slate-50 px-3">
+              <button
+                type="button"
+                onClick={() => setPensionTab('pension')}
+                className={`relative -mb-px px-4 py-2.5 text-xs font-black transition ${
+                  pensionTab === 'pension'
+                    ? 'border-b-2 border-teal-600 text-teal-700'
+                    : 'border-b-2 border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                연금/투자 계산
+              </button>
+              <button
+                type="button"
+                onClick={() => setPensionTab('monopoly')}
+                className={`relative -mb-px px-4 py-2.5 text-xs font-black transition ${
+                  pensionTab === 'monopoly'
+                    ? 'border-b-2 border-indigo-600 text-indigo-700'
+                    : 'border-b-2 border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                독점 상회 계산
+              </button>
+            </div>
+
+            {pensionTab === 'pension' && (
             <div className="overflow-y-auto p-4 sm:p-5">
               <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
                 <section className="rounded-lg border border-slate-200 bg-white/90 p-4">
@@ -696,6 +842,44 @@ export default function Home() {
               <section className="mt-4 rounded-lg border border-slate-200 bg-white/90 p-4">
                 <div className="flex flex-wrap items-end justify-between gap-2">
                   <div>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-sky-700">Quick Converter</p>
+                    <h3 className="mt-1 text-sm font-black text-slate-950">점수 → 두캇 환산</h3>
+                  </div>
+                  <span className="rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-[10px] font-black text-sky-700">
+                    1점 = {formatNumber(DUCAT_PER_POINT)}두캇
+                  </span>
+                </div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1.4fr] sm:items-end">
+                  <label className="grid gap-1.5">
+                    <span className="text-[11px] font-black text-slate-500">점수 입력</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={scoreToConvert}
+                        onChange={event => setScoreToConvert(formatNumberInput(event.target.value))}
+                        inputMode="numeric"
+                        className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-800"
+                        placeholder="예: 1,000"
+                      />
+                      <span className="shrink-0 text-xs font-black text-slate-500">점</span>
+                    </div>
+                  </label>
+                  <div className="rounded-lg border border-sky-200 bg-sky-50 p-3">
+                    <p className="text-[11px] font-black text-sky-700">필요 두캇</p>
+                    <p className="mt-1 text-2xl font-black text-slate-950">
+                      {scoreToDucat.score > 0 ? formatDucat(scoreToDucat.ducat) : '-'}
+                    </p>
+                    <p className="mt-1 text-xs font-bold text-slate-600">
+                      {scoreToDucat.score > 0
+                        ? `${formatNumber(scoreToDucat.score)}점 × ${formatNumber(DUCAT_PER_POINT)} = ${formatNumber(scoreToDucat.ducat)}두캇`
+                        : '점수를 입력하면 두캇으로 환산됩니다.'}
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              <section className="mt-4 rounded-lg border border-slate-200 bg-white/90 p-4">
+                <div className="flex flex-wrap items-end justify-between gap-2">
+                  <div>
                     <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Reference Table</p>
                     <h3 className="mt-1 text-sm font-black text-slate-950">8/10에 500점을 남기기 위한 시작일별 항구당 투자 기준</h3>
                   </div>
@@ -732,6 +916,284 @@ export default function Home() {
                 </div>
               </section>
             </div>
+            )}
+
+            {pensionTab === 'monopoly' && (
+            <div className="overflow-y-auto p-4 sm:p-5">
+              <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+                <section className="rounded-lg border border-slate-200 bg-white/90 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-widest text-indigo-700">Monopoly Setup</p>
+                      <h3 className="mt-1 text-lg font-black text-slate-950">상회 비중 입력</h3>
+                    </div>
+                    <span className="rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-[10px] font-black text-indigo-700">
+                      투자 전·후 비교로 자동 환산
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <label className="grid min-w-0 gap-1.5">
+                      <span className="text-[11px] font-black text-slate-500">투자한 점수</span>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <input
+                          value={monopolyInvestment}
+                          onChange={event => setMonopolyInvestment(formatNumberInput(event.target.value))}
+                          inputMode="numeric"
+                          className="h-10 w-full min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-800"
+                          placeholder="예: 1,000,000"
+                        />
+                        <span className="shrink-0 text-xs font-black text-slate-500">점</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-400">
+                        실제 투자량(점). 점당 효율 자동 추정.
+                      </span>
+                    </label>
+                    <label className="grid min-w-0 gap-1.5">
+                      <span className="text-[11px] font-black text-slate-500">상회원 수 (선택)</span>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <input
+                          value={monopolyMemberCount}
+                          onChange={event => setMonopolyMemberCount(formatNumberInput(event.target.value))}
+                          inputMode="numeric"
+                          className="h-10 w-full min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-800"
+                          placeholder="예: 20"
+                        />
+                        <span className="shrink-0 text-xs font-black text-slate-500">명</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-400">
+                        입력 시 1인당 분담량 계산.
+                      </span>
+                    </label>
+                  </div>
+
+                  <div className="mt-5">
+                    <div className="grid grid-cols-[28px_minmax(70px,1fr)_1fr_1fr] items-center gap-2 px-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                      <span className="text-center">내</span>
+                      <span>상회명</span>
+                      <span className="text-right">투자 전 %</span>
+                      <span className="text-right">투자 후 %</span>
+                    </div>
+                    <div className="mt-2 grid gap-2">
+                      {monopolyCompanies.map((c, i) => {
+                        const row = monopolyCalc.rows[i];
+                        const isMine = i === monopolyMyIndex;
+                        return (
+                          <div
+                            key={i}
+                            className={`grid grid-cols-[28px_minmax(70px,1fr)_1fr_1fr] items-center gap-2 rounded-lg border p-2 ${
+                              isMine ? 'border-indigo-300 bg-indigo-50/60' : 'border-slate-200 bg-white'
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="monopoly-my-company"
+                              checked={isMine}
+                              onChange={() => setMonopolyMyIndex(i)}
+                              className="size-4 cursor-pointer accent-indigo-600 justify-self-center"
+                              aria-label={`${c.name || `상회 ${i + 1}`}을 내 상회로 지정`}
+                            />
+                            <input
+                              value={c.name}
+                              onChange={event => setMonopolyCompanies(prev => prev.map((p, idx) => idx === i ? { ...p, name: event.target.value } : p))}
+                              className="h-9 min-w-0 rounded-md border border-slate-200 bg-white px-2 text-xs font-bold text-slate-800"
+                              placeholder={`상회 ${i + 1}`}
+                            />
+                            <input
+                              value={c.before}
+                              onChange={event => setMonopolyCompanies(prev => prev.map((p, idx) => idx === i ? { ...p, before: formatDecimalInput(event.target.value) } : p))}
+                              inputMode="decimal"
+                              className="h-9 min-w-0 rounded-md border border-slate-200 bg-white px-2 text-right text-xs font-bold text-slate-800"
+                              placeholder="0.00"
+                            />
+                            <input
+                              value={c.after}
+                              onChange={event => setMonopolyCompanies(prev => prev.map((p, idx) => idx === i ? { ...p, after: formatDecimalInput(event.target.value) } : p))}
+                              inputMode="decimal"
+                              className="h-9 min-w-0 rounded-md border border-slate-200 bg-white px-2 text-right text-xs font-bold text-slate-800"
+                              placeholder="0.00"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2 px-1">
+                      <span className="text-[10px] font-bold text-slate-400">
+                        합계: 전 {formatNumber(Math.round(monopolyCalc.sumBefore * 100) / 100)}% · 후 {formatNumber(Math.round(monopolyCalc.sumAfter * 100) / 100)}%
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMonopolyCompanies(MONOPOLY_DEFAULT_COMPANIES);
+                          setMonopolyInvestment('');
+                          setMonopolyMemberCount('');
+                          setMonopolyMyIndex(0);
+                        }}
+                        className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] font-black text-slate-600 hover:bg-slate-50"
+                      >
+                        초기화
+                      </button>
+                    </div>
+                  </div>
+                </section>
+
+                <div className="grid gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-black uppercase tracking-widest text-indigo-700">Result</span>
+                    <h3 className="text-sm font-black text-slate-950">변화량 & 역전 계산</h3>
+                  </div>
+
+                  <section className="rounded-lg border border-slate-200 bg-white/90 p-4">
+                    <p className="text-[11px] font-black text-slate-500">상회별 비중 변화 (1점당 추정 효율)</p>
+                    <div className="mt-3 grid gap-1.5">
+                      {monopolyCalc.rows.map(row => {
+                        if (!row.filled) {
+                          return (
+                            <div key={row.index} className="flex items-center justify-between gap-2 rounded-md border border-dashed border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-400">
+                              <span>{row.name}</span>
+                              <span>—</span>
+                            </div>
+                          );
+                        }
+                        const deltaSign = row.delta > 0 ? '+' : '';
+                        const tone = row.delta > 0
+                          ? 'border-emerald-200 bg-emerald-50/80 text-emerald-800'
+                          : row.delta < 0
+                            ? 'border-rose-200 bg-rose-50/80 text-rose-800'
+                            : 'border-slate-200 bg-slate-50 text-slate-600';
+                        return (
+                          <div
+                            key={row.index}
+                            className={`grid grid-cols-[1fr_auto_auto] items-center gap-2 rounded-md border px-2 py-1 text-[11px] font-bold ${tone} ${row.isMine ? 'ring-2 ring-indigo-300' : ''}`}
+                          >
+                            <span className="truncate">
+                              {row.isMine ? '⭐ ' : ''}{row.name}
+                            </span>
+                            <span className="font-black tabular-nums">
+                              {deltaSign}{(Math.round(row.delta * 1000) / 1000).toFixed(3)}%p
+                            </span>
+                            <span className="text-[10px] tabular-nums opacity-80">
+                              {monopolyCalc.investment > 0
+                                ? `${row.ratePerPoint >= 0 ? '+' : ''}${(row.ratePerPoint * 1_000_000).toFixed(4)}%p/100만점`
+                                : '—'}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+
+                  {(() => {
+                    if (monopolyCalc.status === 'idle') {
+                      return (
+                        <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-4 text-center text-xs font-bold text-slate-500">
+                          내 상회 포함 최소 2개 상회의 투자 전·후 비중과 투자 금액을 입력하세요.
+                        </div>
+                      );
+                    }
+                    if (monopolyCalc.status === 'invalid_investment') {
+                      return (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-4 text-center text-xs font-black text-amber-700">
+                          투자 점수를 입력하세요.
+                        </div>
+                      );
+                    }
+                    if (monopolyCalc.status === 'invalid_sum') {
+                      return (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-4 text-center text-xs font-black text-amber-700">
+                          비중 합계가 100%에서 0.5%p 이상 벗어납니다. 입력값을 확인하세요. (전 {formatNumber(Math.round(monopolyCalc.sumBefore * 100) / 100)}% / 후 {formatNumber(Math.round(monopolyCalc.sumAfter * 100) / 100)}%)
+                        </div>
+                      );
+                    }
+                    if (monopolyCalc.status === 'lead') {
+                      return (
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 p-4">
+                          <p className="text-[11px] font-black text-emerald-700">현재 상태</p>
+                          <p className="mt-2 text-2xl font-black text-slate-950">🏆 이미 1위</p>
+                          <p className="mt-1 text-xs font-bold text-slate-600">
+                            내 {monopolyCalc.me.name} {monopolyCalc.me.after.toFixed(2)}% · 2위 {monopolyCalc.leader?.name} {monopolyCalc.leader?.after.toFixed(2)}%
+                          </p>
+                        </div>
+                      );
+                    }
+                    if (monopolyCalc.status === 'invalid_rate') {
+                      return (
+                        <div className="rounded-lg border border-rose-200 bg-rose-50/80 p-4 text-center text-xs font-black text-rose-700">
+                          내 상회 비중이 오르지 않았습니다. 데이터를 확인하세요.
+                        </div>
+                      );
+                    }
+                    if (monopolyCalc.status === 'never') {
+                      return (
+                        <div className="rounded-lg border border-rose-200 bg-rose-50/80 p-4">
+                          <p className="text-[11px] font-black text-rose-700">현재 추세 기준</p>
+                          <p className="mt-2 text-2xl font-black text-slate-950">⚠️ 역전 불가</p>
+                          <p className="mt-1 text-xs font-bold text-slate-600">
+                            내 상승 폭이 1위 하락 폭보다 작거나 같아 격차가 좁혀지지 않습니다.
+                          </p>
+                        </div>
+                      );
+                    }
+                    // status === 'behind'
+                    return (
+                      <>
+                        <section className="grid gap-3 sm:grid-cols-2">
+                          <div className="rounded-lg border border-slate-200 bg-white/90 p-4">
+                            <p className="text-[11px] font-black text-slate-500">현재 격차</p>
+                            <p className="mt-2 text-2xl font-black text-slate-950">{monopolyCalc.gap.toFixed(2)}%p</p>
+                            <p className="mt-1 text-xs font-bold text-slate-600">
+                              {monopolyCalc.leader?.name} {monopolyCalc.leader?.after.toFixed(2)}% − 내 {monopolyCalc.me.after.toFixed(2)}%
+                            </p>
+                          </div>
+                          <div className="rounded-lg border border-slate-200 bg-white/90 p-4">
+                            <p className="text-[11px] font-black text-slate-500">투자 1회당 격차 축소</p>
+                            <p className="mt-2 text-2xl font-black text-slate-950">{monopolyCalc.perUnitGapClose.toFixed(3)}%p</p>
+                            <p className="mt-1 text-xs font-bold text-slate-600">
+                              {formatNumber(monopolyCalc.investment)}점 기준
+                            </p>
+                          </div>
+                        </section>
+
+                        <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+                          <p className="text-[11px] font-black text-indigo-700">필요한 추가 투자</p>
+                          <p className="mt-2 text-3xl font-black text-slate-950">
+                            +{formatNumber(monopolyCalc.remainingPoints)}점
+                          </p>
+                          <p className="mt-1 text-xs font-bold text-slate-600">
+                            {formatDucat(monopolyCalc.remainingDucat)} · 같은 효율로 추가 투자 시
+                          </p>
+
+                          {monopolyCalc.memberCount > 0 && (
+                            <div className="mt-3 rounded-md border border-indigo-300 bg-white p-3">
+                              <p className="text-[11px] font-black text-indigo-700">
+                                상회원 {formatNumber(monopolyCalc.memberCount)}명이 분담 시 1인당
+                              </p>
+                              <p className="mt-1 text-xl font-black text-slate-950 tabular-nums">
+                                {formatNumber(monopolyCalc.perMemberPoints)}점 · {formatDucat(monopolyCalc.perMemberDucat)}
+                              </p>
+                              <p className="mt-1 text-[10px] font-bold text-slate-500">
+                                총 {formatNumber(monopolyCalc.perMemberPoints * monopolyCalc.memberCount)}점 확보 (필요량보다 {formatNumber(monopolyCalc.perMemberPoints * monopolyCalc.memberCount - monopolyCalc.remainingPoints)}점 여유)
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="mt-3 rounded-md border border-indigo-200 bg-white/70 p-3 text-[11px] font-bold text-slate-700">
+                            <p>예상 역전 후</p>
+                            <p className="mt-1 text-slate-900">
+                              ⭐ 내 {monopolyCalc.me.name} <span className="font-black">{monopolyCalc.projectedMe.toFixed(2)}%</span>
+                              <span className="mx-2 text-slate-400">vs</span>
+                              {monopolyCalc.leader?.name} <span className="font-black">{monopolyCalc.projectedLeader.toFixed(2)}%</span>
+                              <span className="ml-2 text-emerald-700">(+{(monopolyCalc.projectedMe - monopolyCalc.projectedLeader).toFixed(2)}%p)</span>
+                            </p>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
+            )}
 
             <div className="flex shrink-0 justify-end border-t border-slate-200 bg-slate-50 px-4 py-3">
               <button type="button" onClick={() => setPensionOpen(false)} className="tool-button h-9 px-4">
