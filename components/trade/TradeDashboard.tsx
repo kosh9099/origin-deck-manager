@@ -83,9 +83,9 @@ export const ADVANCED_TRADE_SCHEDULES: Array<{
     end: new Date('2026-06-10T00:00:00+09:00').getTime(),
     label: '2026/05/13 14:00 ~ 2026/06/09 23:59',
     items: [
-      { name: '상급 초석', sellPorts: ['스트라스부르', '쾰른', '브레멘', '함부르크', '뤼베크'] },
-      { name: '상급 양손검', buyCondition: '협상 23', sellPorts: ['나가사키', '사카이', '에도', '에조'] },
-      { name: '상급 동양 대포', buyCondition: '구매 23', sellPorts: ['수에즈', '마사와'] },
+      { name: '상급 초석', sellPorts: ['뤼베크', '스트라스부르', '쾰른', '함부르크', '브레멘'] },
+      { name: '상급 양손검', buyCondition: '협상 23', sellPorts: ['에도', '사카이', '나가사키', '에조'] },
+      { name: '상급 동양 대포', buyCondition: '구매 23', sellPorts: ['수에즈', '마사와', '베라크루스', '포르토벨로', '메리다', '트루히요', '타간로크'] },
     ],
   },
   {

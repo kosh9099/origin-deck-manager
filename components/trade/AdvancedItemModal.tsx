@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { getMaxPrices } from '@/lib/trade/seasonPrices';
 
 interface Props {
   itemName: string;
@@ -12,6 +13,12 @@ interface Props {
 }
 
 type SeasonStatus = '▲' | '—' | '▼';
+
+// 235,672 → "23", 1,234,567 → "123" (만 단위 정수 floor)
+function manShort(n: number): string {
+  if (n < 10000) return n.toLocaleString('ko-KR');
+  return `${Math.floor(n / 10000)}`;
+}
 
 export default function AdvancedItemModal({ itemName, buyCondition, sellPorts, month, onClose }: Props) {
   const [buyCities, setBuyCities] = useState<string[]>([]);
@@ -90,12 +97,25 @@ export default function AdvancedItemModal({ itemName, buyCondition, sellPorts, m
 
             <div className="flex items-baseline gap-3 flex-wrap">
               <span className="text-[12px] font-black text-slate-500 shrink-0 w-16">판매항</span>
-              <div className="flex flex-wrap gap-1.5 flex-1">
-                {sellPorts.length > 0 ? sellPorts.map(p => (
-                  <span key={p} className="text-[11px] font-black px-2 py-0.5 rounded-md border border-sky-300 bg-sky-50 text-sky-800">
-                    {p}
-                  </span>
-                )) : <span className="text-sm text-slate-400">—</span>}
+              <div className="flex flex-col gap-1.5 flex-1 items-start">
+                {sellPorts.length > 0 ? sellPorts.map(p => {
+                  const prices = getMaxPrices(p, itemName);
+                  return (
+                    <span
+                      key={p}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-black px-2 py-0.5 rounded-md border border-sky-300 bg-sky-50 text-sky-800"
+                    >
+                      <span>{p}</span>
+                      {prices && (
+                        <span className="text-[10px] font-bold text-sky-700/80">
+                          <span className="text-rose-800">대 {manShort(prices.pandemicHigh)}만</span>
+                          <span className="mx-1 text-slate-300">·</span>
+                          <span className="text-emerald-800">부 {manShort(prices.boostHigh)}만</span>
+                        </span>
+                      )}
+                    </span>
+                  );
+                }) : <span className="text-sm text-slate-400">—</span>}
               </div>
             </div>
           </div>

@@ -9,20 +9,20 @@ type ItemMeta = {
   pandemic: string | null;
 };
 
+type PriceMode = 'pandemicLow' | 'pandemicHigh' | 'boostLow' | 'boostHigh';
+
+type CategoryMultiplier = Record<PriceMode, number>;
+
 type SeasonData = {
-  priceKeys: string[]; // ["기본가", "대유행↓", "대유행↑", "부양↓", "부양↑"]
+  version: number;
+  priceModes: string[];
+  categoryMultipliers: Record<string, CategoryMultiplier>;
   items: ItemMeta[];
   cities: string[];
-  prices: Record<string, Record<string, (number | null)[]>>;
+  basePrices: Record<string, Record<string, number>>;
 };
 
 const data = rawData as SeasonData;
-
-// priceKeys 인덱스
-const IDX_PANDEMIC_LOW = 1;  // 대유행↓
-const IDX_PANDEMIC_HIGH = 2; // 대유행↑
-const IDX_BOOST_LOW = 3;     // 부양↓
-const IDX_BOOST_HIGH = 4;    // 부양↑
 
 const TOP_N_BOOST = 3;     // 부양: 최상위 3개 (급매는 itemsByName 경로에서 1개 직접 반환)
 const TOP_N_EPIDEMIC = 5;  // 대유행: 최상위 5개 (편차 컷 없이 그대로 노출)
@@ -64,16 +64,29 @@ for (const item of data.items) {
   itemsByName.set(item.name, item);
 }
 
-function pricesAt(city: string, itemName: string): (number | null)[] | null {
-  return data.prices[city]?.[itemName] ?? null;
+function priceAt(city: string, itemName: string, mode: PriceMode): number | null {
+  const base = data.basePrices[city]?.[itemName];
+  if (base == null) return null;
+  const item = itemsByName.get(itemName);
+  if (!item) return null;
+  const mul = data.categoryMultipliers[item.category]?.[mode];
+  if (mul == null) return null;
+  return Math.round(base * mul);
 }
 
-function buildRec(city: string, itemName: string, lowIdx: number, highIdx: number): SeasonRecommendation | null {
-  const p = pricesAt(city, itemName);
-  if (!p) return null;
-  const high = p[highIdx];
+/** 도시·품목의 부양↑/대유행↑ 최고가를 함께 반환. 데이터 없으면 null. */
+export function getMaxPrices(city: string, itemName: string): { pandemicHigh: number; boostHigh: number } | null {
+  const ph = priceAt(city, itemName, 'pandemicHigh');
+  const bh = priceAt(city, itemName, 'boostHigh');
+  if (ph == null || bh == null) return null;
+  return { pandemicHigh: ph, boostHigh: bh };
+}
+
+function buildRec(city: string, itemName: string, lowMode: PriceMode, highMode: PriceMode): SeasonRecommendation | null {
+  const high = priceAt(city, itemName, highMode);
   if (high == null) return null;
-  return { name: itemName, high, low: p[lowIdx] ?? 0 };
+  const low = priceAt(city, itemName, lowMode);
+  return { name: itemName, high, low: low ?? 0 };
 }
 
 function topN(
@@ -119,14 +132,14 @@ function topN(
  *   3. 둘 다 미매칭 → []
  */
 export function getBoostRecommendations(city: string, type: string): SeasonRecommendation[] {
-  if (!data.prices[city]) return [];
+  if (!data.basePrices[city]) return [];
 
   // 1. 카테고리 매칭
   const byCategory = itemsByCategory.get(type);
   if (byCategory && byCategory.length > 0) {
     const recs: SeasonRecommendation[] = [];
     for (const item of byCategory) {
-      const rec = buildRec(city, item.name, IDX_BOOST_LOW, IDX_BOOST_HIGH);
+      const rec = buildRec(city, item.name, 'boostLow', 'boostHigh');
       if (rec) recs.push(rec);
     }
     return topN(recs, TOP_N_BOOST);
@@ -134,7 +147,7 @@ export function getBoostRecommendations(city: string, type: string): SeasonRecom
 
   // 2. 특정 품목명 매칭 (급매: type이 품목명 그 자체) → 그 품목 자체를 반환
   if (itemsByName.has(type)) {
-    const rec = buildRec(city, type, IDX_BOOST_LOW, IDX_BOOST_HIGH);
+    const rec = buildRec(city, type, 'boostLow', 'boostHigh');
     return rec ? [rec] : [];
   }
 
@@ -170,10 +183,8 @@ export function getEpidemicRecommendations(zone: string, type: string): SeasonRe
     let highCity: string | undefined;
     let lowCity: string | undefined;
     for (const city of zoneCities) {
-      const p = pricesAt(city, item.name);
-      if (!p) continue;
-      const high = p[IDX_PANDEMIC_HIGH];
-      const low = p[IDX_PANDEMIC_LOW];
+      const high = priceAt(city, item.name, 'pandemicHigh');
+      const low = priceAt(city, item.name, 'pandemicLow');
       if (high != null && high > bestHigh) { bestHigh = high; highCity = city; }
       if (low != null && low < bestLow) { bestLow = low; lowCity = city; }
     }
