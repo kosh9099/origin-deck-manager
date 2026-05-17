@@ -190,7 +190,7 @@ export default function BarterCart({
                 <button
                   type="button"
                   onClick={() => onItemClick(card.name)}
-                  className="flex-1 min-w-0 font-black text-slate-800 text-base truncate text-left hover:text-emerald-600 hover:underline transition-colors"
+                  className="min-w-0 max-w-[calc(100%-2.25rem)] mr-auto font-black text-slate-800 text-base truncate text-left hover:text-emerald-600 hover:underline transition-colors"
                   title={`${label} — 판매 항구 보기`}
                 >
                   {label}

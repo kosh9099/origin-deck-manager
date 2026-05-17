@@ -11,6 +11,7 @@ function calcNode(
   intermediates: Set<string>,
   asLeaf: Set<string>,
   leafTotals: Record<string, number>,
+  intermediateTotals: Record<string, number>,
   missingFlag: { value: boolean }
 ): CalcNode {
   const isIntermediate = intermediates.has(name) && !asLeaf.has(name);
@@ -18,6 +19,7 @@ function calcNode(
     leafTotals[name] = (leafTotals[name] ?? 0) + needed;
     return { name, needed, isLeaf: true, rateMissing: false, children: [] };
   }
+  intermediateTotals[name] = (intermediateTotals[name] ?? 0) + needed;
   const recipe = recipes.get(name);
   const rate = rates[name];
   const hasRate = rate && rate.outputQty > 0 && recipe && recipe.materials.length > 0;
@@ -29,7 +31,7 @@ function calcNode(
   for (const matName of recipe!.materials) {
     const matQty = rate!.materialQty[matName] ?? 0;
     const childNeed = matQty > 0 ? Math.ceil((needed * matQty) / rate!.outputQty) + BUFFER_ADD : 0;
-    children.push(calcNode(matName, childNeed, recipes, rates, intermediates, asLeaf, leafTotals, missingFlag));
+    children.push(calcNode(matName, childNeed, recipes, rates, intermediates, asLeaf, leafTotals, intermediateTotals, missingFlag));
   }
   return { name, needed, isLeaf: false, rateMissing: false, children };
 }
@@ -44,12 +46,14 @@ export function calculateCard(
   const recipe = recipes.get(card.name);
   const rate = rates[card.name];
   const leafTotals: Record<string, number> = {};
+  const intermediateTotals: Record<string, number> = {};
   const missingFlag = { value: false };
 
   if (!recipe) {
     return {
       tree: { name: card.name, needed: card.ticks, isLeaf: true, rateMissing: false, children: [] },
       leafTotals: { [card.name]: card.ticks },
+      intermediateTotals: {},
       hasMissingRate: false,
     };
   }
@@ -59,7 +63,7 @@ export function calculateCard(
   for (const matName of recipe.materials) {
     const matQty = safeRate.materialQty[matName] ?? 0;
     const need = matQty * card.ticks;
-    children.push(calcNode(matName, need, recipes, rates, intermediates, asLeaf, leafTotals, missingFlag));
+    children.push(calcNode(matName, need, recipes, rates, intermediates, asLeaf, leafTotals, intermediateTotals, missingFlag));
   }
 
   return {
@@ -71,6 +75,7 @@ export function calculateCard(
       children,
     },
     leafTotals,
+    intermediateTotals,
     hasMissingRate: missingFlag.value,
   };
 }
@@ -79,6 +84,16 @@ export function mergeLeafTotals(results: CalcResult[]): Record<string, number> {
   const merged: Record<string, number> = {};
   for (const r of results) {
     for (const [name, qty] of Object.entries(r.leafTotals)) {
+      merged[name] = (merged[name] ?? 0) + qty;
+    }
+  }
+  return merged;
+}
+
+export function mergeIntermediateTotals(results: CalcResult[]): Record<string, number> {
+  const merged: Record<string, number> = {};
+  for (const r of results) {
+    for (const [name, qty] of Object.entries(r.intermediateTotals)) {
       merged[name] = (merged[name] ?? 0) + qty;
     }
   }

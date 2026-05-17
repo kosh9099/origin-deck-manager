@@ -5,7 +5,7 @@ import { AlertTriangle } from 'lucide-react';
 import type { BarterRecipe, BarterRate, CartCard, CalcResult } from '@/types/barter';
 import { loadRecipes } from '@/lib/barter/recipes';
 import { loadRates, saveRate, bumpFreq, topFreq, loadAsLeaf, saveAsLeaf, loadTicks, saveTicks, loadCards, saveCards } from '@/lib/barter/storage';
-import { calculateCard, mergeLeafTotals } from '@/lib/barter/calculate';
+import { calculateCard, mergeLeafTotals, mergeIntermediateTotals } from '@/lib/barter/calculate';
 import BarterSearchBar from './BarterSearchBar';
 import BarterCart from './BarterCart';
 import BarterShoppingList from './BarterShoppingList';
@@ -92,6 +92,7 @@ export default function BarterCalculator() {
   }, [cards, recipes, rates, intermediates, asLeaf]);
 
   const merged = useMemo(() => mergeLeafTotals(results), [results]);
+  const mergedIntermediates = useMemo(() => mergeIntermediateTotals(results), [results]);
   const hasMissingRate = results.some(r => r.hasMissingRate);
 
   const handleAdd = (name: string) => {
@@ -179,7 +180,7 @@ export default function BarterCalculator() {
         onItemClick={setDetailItem}
       />
 
-      <BarterShoppingList totals={merged} hasMissingRate={hasMissingRate} />
+      <BarterShoppingList totals={merged} intermediateTotals={mergedIntermediates} hasMissingRate={hasMissingRate} />
 
       {detailItem && (
         <BarterDetailModal

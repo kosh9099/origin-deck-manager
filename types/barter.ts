@@ -28,5 +28,6 @@ export type CalcNode = {
 export type CalcResult = {
   tree: CalcNode;
   leafTotals: Record<string, number>;
+  intermediateTotals: Record<string, number>;
   hasMissingRate: boolean;
 };
