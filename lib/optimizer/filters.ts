@@ -7,9 +7,14 @@ export function hasExpSkill(s: Sailor): boolean {
   return Object.keys(MAX_SKILL_LEVELS).some(sk => getSailorSkillLevel(s, sk) > 0);
 }
 
-/** 전투선실 자격: S+ 등급 OR 백병대 OR 수석 호위기사 */
+/** 전투선실 자격: S+ 등급 OR 백병대 OR 수석 호위기사 OR 무패의 함대장 (모험 스킬 보유 예외) */
 export function isQualifiedForCombat(s: Sailor): boolean {
-  return s.등급 === 'S+' || s.직업 === '백병대' || s.직업 === '수석 호위기사';
+  return (
+    s.등급 === 'S+' ||
+    s.직업 === '백병대' ||
+    s.직업 === '수석 호위기사' ||
+    s.직업 === '무패의 함대장'
+  );
 }
 
 /** 전투선실 배치 가능 여부 (Phase 2/3용: 타입+자격+탐험스킬) */
