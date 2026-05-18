@@ -84,10 +84,10 @@ export default function ScheduleCards({
   }
 
   const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000;
-  const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
-  const cutoffMs = expanded ? TWENTY_FOUR_HOURS_MS : TWELVE_HOURS_MS;
+  const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
+  const cutoffMs = expanded ? FORTY_EIGHT_HOURS_MS : TWELVE_HOURS_MS;
   const visibleEvents = events.filter(e => e.startTime <= now + cutoffMs);
-  const hasExtendedEvents = events.some(e => e.startTime > now + TWELVE_HOURS_MS && e.startTime <= now + TWENTY_FOUR_HOURS_MS);
+  const hasExtendedEvents = events.some(e => e.startTime > now + TWELVE_HOURS_MS && e.startTime <= now + FORTY_EIGHT_HOURS_MS);
 
   return (
     <div className="flex flex-col gap-2">
