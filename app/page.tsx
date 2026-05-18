@@ -324,7 +324,7 @@ export default function Home() {
       ? filledOthers.reduce((max, r) => (r.after > max.after ? r : max), filledOthers[0])
       : null;
 
-    let status: 'idle' | 'invalid_sum' | 'invalid_investment' | 'invalid_rate' | 'lead' | 'never' | 'behind' = 'idle';
+    let status: 'idle' | 'invalid_investment' | 'invalid_rate' | 'lead' | 'never' | 'behind' = 'idle';
     let gap = 0;
     let closingRate = 0;
     let remainingPoints = 0;
@@ -335,9 +335,6 @@ export default function Home() {
       status = 'idle';
     } else if (investment <= 0) {
       status = 'invalid_investment';
-    } else if (Math.abs(sumBefore - 100) > 0.5 || Math.abs(sumAfter - 100) > 0.5) {
-      // 합계가 100%에서 0.5%p 넘게 벗어나면 입력 오류 의심
-      status = 'invalid_sum';
     } else if (me.after >= leader.after) {
       status = 'lead';
     } else if (me.ratePerPoint <= 0) {
@@ -1095,13 +1092,6 @@ export default function Home() {
                       return (
                         <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-4 text-center text-xs font-black text-amber-700">
                           투자 점수를 입력하세요.
-                        </div>
-                      );
-                    }
-                    if (monopolyCalc.status === 'invalid_sum') {
-                      return (
-                        <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-4 text-center text-xs font-black text-amber-700">
-                          비중 합계가 100%에서 0.5%p 이상 벗어납니다. 입력값을 확인하세요. (전 {formatNumber(Math.round(monopolyCalc.sumBefore * 100) / 100)}% / 후 {formatNumber(Math.round(monopolyCalc.sumAfter * 100) / 100)}%)
                         </div>
                       );
                     }
