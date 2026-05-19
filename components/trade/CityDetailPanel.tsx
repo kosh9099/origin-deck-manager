@@ -285,8 +285,30 @@ export default function CityDetailPanel({ city, onClose }: Props) {
                   {comboMaterials.map((m, idx) => (
                     <div key={idx} className="bg-indigo-50/40 border border-indigo-100 rounded-lg px-2.5 py-1.5">
                       <div className="text-[11px] font-extrabold text-indigo-900">[{m.name}]</div>
-                      <div className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
-                        {m.locations!.join(', ')}
+                      <div className="text-[11px] text-slate-600 mt-0.5 leading-relaxed flex flex-wrap gap-x-2 gap-y-0.5">
+                        {m.locations!.map((port) => {
+                          const seasonArr = seasonCalendar.portSeason[`${port}|${m.name}`];
+                          const status = seasonArr?.[inGameMonth - 1];
+                          const sym = status === '성' ? '▲' : status === '비' ? '▼' : '―';
+                          const symCls =
+                            status === '성'
+                              ? 'text-emerald-600'
+                              : status === '비'
+                                ? 'text-rose-500'
+                                : 'text-slate-300';
+                          const symTitle =
+                            status === '성'
+                              ? `${port} ${inGameMonth}월 성수기`
+                              : status === '비'
+                                ? `${port} ${inGameMonth}월 비수기`
+                                : `${port} ${inGameMonth}월 평수기`;
+                          return (
+                            <span key={port} className="inline-flex items-center gap-0.5 whitespace-nowrap" title={symTitle}>
+                              <span className={`font-black ${symCls}`}>{sym}</span>
+                              <span>{port}</span>
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
@@ -452,7 +474,7 @@ function ComboRow({ level, formula, color }: { level: string; formula?: string; 
       <div className={`flex items-center justify-center px-3 py-2 font-black text-[12px] border-r w-16 shrink-0 ${color}`}>
         {level}
       </div>
-      <div className="city-detail-formula px-3 py-2 text-[12px] font-medium text-slate-700 leading-relaxed flex items-center bg-gradient-to-r from-white to-slate-50 w-full">
+      <div className="city-detail-formula px-3 py-2 text-[12px] font-medium text-slate-700 leading-relaxed flex items-center bg-white w-full">
         {formula}
       </div>
     </div>

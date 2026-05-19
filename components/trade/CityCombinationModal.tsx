@@ -1,17 +1,29 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { X, MapPin } from 'lucide-react';
 import itemLocationsData from '@/constants/itemLocations.json';
+import seasonCalendarData from '@/constants/seasonCalendar.json';
 import { getCityCombination } from '@/lib/trade/combinationRotation';
+import { getInGameTimeInfo } from '@/lib/trade/time';
 
 interface CityCombinationModalProps {
   cityName: string;
   onClose: () => void;
 }
 
+type SeasonCalendar = {
+  monthLabels: number[];
+  cities: Record<string, { region: string; months: string[] }>;
+  items: Record<string, { category: string; cities: string[] }>;
+  itemClasses: Record<string, string>;
+  portSeason: Record<string, string[]>;
+};
+
 const itemLocations = itemLocationsData as Record<string, string[]>;
+const seasonCalendar = seasonCalendarData as unknown as SeasonCalendar;
 
 export default function CityCombinationModal({ cityName, onClose }: CityCombinationModalProps) {
   const data = getCityCombination(cityName);
+  const inGameMonth = useMemo(() => getInGameTimeInfo(Date.now()).month, []);
 
   if (!data) return null;
 
@@ -81,9 +93,31 @@ export default function CityCombinationModal({ cityName, onClose }: CityCombinat
                 {itemsWithLocations.map((item, idx) => (
                   <div key={idx} className="flex flex-col gap-1 bg-indigo-50/30 rounded-lg p-2.5 border border-indigo-100/50">
                     <span className="text-[12px] font-extrabold text-indigo-900">[{item.name}]</span>
-                    <span className="text-[11.5px] font-medium text-slate-600 leading-relaxed">
-                      {item.locations.join(', ')}
-                    </span>
+                    <div className="text-[11.5px] font-medium text-slate-600 leading-relaxed flex flex-wrap gap-x-2 gap-y-0.5">
+                      {item.locations.map((port) => {
+                        const seasonArr = seasonCalendar.portSeason[`${port}|${item.name}`];
+                        const status = seasonArr?.[inGameMonth - 1];
+                        const sym = status === '성' ? '▲' : status === '비' ? '▼' : '―';
+                        const symCls =
+                          status === '성'
+                            ? 'text-emerald-600'
+                            : status === '비'
+                              ? 'text-rose-500'
+                              : 'text-slate-300';
+                        const tip =
+                          status === '성'
+                            ? `${port} ${inGameMonth}월 성수기`
+                            : status === '비'
+                              ? `${port} ${inGameMonth}월 비수기`
+                              : `${port} ${inGameMonth}월 평수기`;
+                        return (
+                          <span key={port} className="inline-flex items-center gap-0.5 whitespace-nowrap" title={tip}>
+                            <span className={`font-black ${symCls}`}>{sym}</span>
+                            <span>{port}</span>
+                          </span>
+                        );
+                      })}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -113,7 +147,7 @@ function CombinationRow({ level, formula, color }: { level: string; formula?: st
       <div className={`flex items-center justify-center px-4 py-3 font-black text-sm border-r w-24 shrink-0 ${color}`}>
         {level}
       </div>
-      <div className="px-4 py-3 text-[13px] font-medium text-slate-700 leading-relaxed flex items-center bg-gradient-to-r from-white to-slate-50 w-full">
+      <div className="px-4 py-3 text-[13px] font-medium text-slate-700 leading-relaxed flex items-center bg-white w-full">
         {formula}
       </div>
     </div>
