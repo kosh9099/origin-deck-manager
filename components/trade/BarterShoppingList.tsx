@@ -6,10 +6,55 @@ import { ShoppingCart, Layers } from 'lucide-react';
 interface Props {
   totals: Record<string, number>;
   intermediateTotals: Record<string, number>;
+  prepared: Record<string, number>;
+  preparedIntermediate: Record<string, number>;
   hasMissingRate: boolean;
 }
 
-export default function BarterShoppingList({ totals, intermediateTotals, hasMissingRate }: Props) {
+function ShoppingItem({
+  name,
+  qty,
+  prep,
+  totalColor,
+  doneBg,
+}: {
+  name: string;
+  qty: number;
+  prep: number;
+  totalColor: string;
+  doneBg: string;
+}) {
+  const done = qty > 0 && prep >= qty;
+  return (
+    <li
+      className={`barter-shopping-item flex items-baseline justify-between rounded-lg px-3 py-1.5 border transition-opacity ${
+        done ? `${doneBg} opacity-60` : 'bg-slate-50 border-slate-200'
+      }`}
+      title={prep > 0 ? `준비 ${prep} / 필요 ${qty}` : `필요 ${qty}`}
+    >
+      <span className={`text-sm font-bold text-slate-800 truncate mr-2 ${done ? 'line-through' : ''}`}>
+        {name}
+      </span>
+      <span className="text-sm font-black tabular-nums shrink-0">
+        {prep > 0 && (
+          <>
+            <span className="text-emerald-600">{prep}</span>
+            <span className="text-slate-300"> / </span>
+          </>
+        )}
+        <span className={totalColor}>{qty}</span>
+      </span>
+    </li>
+  );
+}
+
+export default function BarterShoppingList({
+  totals,
+  intermediateTotals,
+  prepared,
+  preparedIntermediate,
+  hasMissingRate,
+}: Props) {
   const entries = Object.entries(totals).sort((a, b) => b[1] - a[1]);
   const intermediateEntries = Object.entries(intermediateTotals).sort((a, b) => b[1] - a[1]);
 
@@ -29,14 +74,23 @@ export default function BarterShoppingList({ totals, intermediateTotals, hasMiss
           {entries.length === 0 ? (
             <p className="text-sm text-slate-400 italic">장바구니에 품목을 추가하고 1회 교환 비율을 입력하세요.</p>
           ) : (
-            <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              {entries.map(([name, qty]) => (
-                <li key={name} className="barter-shopping-item flex items-baseline justify-between bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5">
-                  <span className="text-sm font-bold text-slate-800 truncate mr-2">{name}</span>
-                  <span className="text-sm font-black text-emerald-700 tabular-nums">{qty}</span>
-                </li>
-              ))}
-            </ul>
+            <>
+              <p className="text-[11px] text-slate-400 mb-2">
+                카드의 재료 행을 체크하면 <span className="font-bold text-emerald-600">준비 수량</span>이 집계됩니다.
+              </p>
+              <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                {entries.map(([name, qty]) => (
+                  <ShoppingItem
+                    key={name}
+                    name={name}
+                    qty={qty}
+                    prep={prepared[name] ?? 0}
+                    totalColor="text-emerald-700"
+                    doneBg="bg-emerald-50 border-emerald-300"
+                  />
+                ))}
+              </ul>
+            </>
           )}
         </div>
       </div>
@@ -50,10 +104,14 @@ export default function BarterShoppingList({ totals, intermediateTotals, hasMiss
           <div className="p-4">
             <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
               {intermediateEntries.map(([name, qty]) => (
-                <li key={name} className="barter-shopping-item flex items-baseline justify-between bg-amber-50/40 border border-amber-200 rounded-lg px-3 py-1.5">
-                  <span className="text-sm font-bold text-slate-800 truncate mr-2">{name}</span>
-                  <span className="text-sm font-black text-amber-700 tabular-nums">{qty}</span>
-                </li>
+                <ShoppingItem
+                  key={name}
+                  name={name}
+                  qty={qty}
+                  prep={preparedIntermediate[name] ?? 0}
+                  totalColor="text-amber-700"
+                  doneBg="bg-amber-50 border-amber-300"
+                />
               ))}
             </ul>
           </div>

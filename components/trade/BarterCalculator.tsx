@@ -4,8 +4,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import type { BarterRecipe, BarterRate, CartCard, CalcResult } from '@/types/barter';
 import { loadRecipes } from '@/lib/barter/recipes';
-import { loadRates, saveRate, bumpFreq, topFreq, loadAsLeaf, saveAsLeaf, loadTicks, saveTicks, loadCards, saveCards } from '@/lib/barter/storage';
-import { calculateCard, mergeLeafTotals, mergeIntermediateTotals } from '@/lib/barter/calculate';
+import { loadRates, saveRate, bumpFreq, topFreq, loadAsLeaf, saveAsLeaf, loadTicks, saveTicks, loadCards, saveCards, loadChecked, saveChecked } from '@/lib/barter/storage';
+import { calculateCard, mergeLeafTotals, mergeIntermediateTotals, computePreparedTotals } from '@/lib/barter/calculate';
 import BarterSearchBar from './BarterSearchBar';
 import BarterCart from './BarterCart';
 import BarterShoppingList from './BarterShoppingList';
@@ -25,6 +25,7 @@ export default function BarterCalculator() {
   const [cards, setCards] = useState<CartCard[]>([]);
   const [rates, setRates] = useState<Record<string, BarterRate>>({});
   const [asLeaf, setAsLeaf] = useState<Set<string>>(new Set());
+  const [checkedRows, setCheckedRows] = useState<Set<string>>(new Set());
   const [savedTicks, setSavedTicks] = useState<Record<string, number>>({});
   const [popular, setPopular] = useState<string[]>([]);
   const [overflowWarning, setOverflowWarning] = useState(false);
@@ -43,6 +44,7 @@ export default function BarterCalculator() {
     });
     setRates(loadRates());
     setAsLeaf(loadAsLeaf());
+    setCheckedRows(loadChecked());
     setSavedTicks(loadTicks());
     setCards(loadCards());
     setPopular(topFreq(6));
@@ -95,6 +97,12 @@ export default function BarterCalculator() {
   const mergedIntermediates = useMemo(() => mergeIntermediateTotals(results), [results]);
   const hasMissingRate = results.some(r => r.hasMissingRate);
 
+  // 체크된 행 → 품목별 "준비 수량" 집계
+  const prepared = useMemo(
+    () => computePreparedTotals(results, cards.map(c => c.id), checkedRows),
+    [results, cards, checkedRows]
+  );
+
   const handleAdd = (name: string) => {
     if (cards.length >= SOFT_LIMIT) setOverflowWarning(true);
     const initialTicks = savedTicks[name] ?? 0;
@@ -133,12 +141,36 @@ export default function BarterCalculator() {
     saveRate(name, rate);
   };
 
+  // 같은 품목의 다른 카드에서 수량(레시피 입력값) 전체를 복사
+  const handleCopyRates = (targetCardId: string, sourceCardId: string) => {
+    setCards(prev => {
+      const source = prev.find(c => c.id === sourceCardId);
+      if (!source) return prev;
+      const srcRates = source.rates ?? rates;
+      return prev.map(c =>
+        c.id === targetCardId
+          ? { ...c, rates: JSON.parse(JSON.stringify(srcRates)) as Record<string, BarterRate> }
+          : c
+      );
+    });
+  };
+
   const handleToggleAsLeaf = (name: string) => {
     setAsLeaf(prev => {
       const next = new Set(prev);
       if (next.has(name)) next.delete(name);
       else next.add(name);
       saveAsLeaf(next);
+      return next;
+    });
+  };
+
+  const handleToggleChecked = (key: string) => {
+    setCheckedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      saveChecked(next);
       return next;
     });
   };
@@ -177,10 +209,19 @@ export default function BarterCalculator() {
         onRemove={handleRemove}
         onRateChange={handleRateChange}
         onToggleAsLeaf={handleToggleAsLeaf}
+        onCopyRates={handleCopyRates}
         onItemClick={setDetailItem}
+        checkedRows={checkedRows}
+        onToggleChecked={handleToggleChecked}
       />
 
-      <BarterShoppingList totals={merged} intermediateTotals={mergedIntermediates} hasMissingRate={hasMissingRate} />
+      <BarterShoppingList
+        totals={merged}
+        intermediateTotals={mergedIntermediates}
+        prepared={prepared.leaf}
+        preparedIntermediate={prepared.intermediate}
+        hasMissingRate={hasMissingRate}
+      />
 
       {detailItem && (
         <BarterDetailModal

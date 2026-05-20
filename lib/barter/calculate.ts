@@ -99,3 +99,37 @@ export function mergeIntermediateTotals(results: CalcResult[]): Record<string, n
   }
   return merged;
 }
+
+/** 행 체크박스 키 — 카드 안에서 (부모, 품목) 조합으로 행을 식별 */
+export function rowKey(cardId: string, parentName: string, name: string): string {
+  return `${cardId}|${parentName}|${name}`;
+}
+
+/**
+ * 체크된 행의 needed 수량을 품목별로 합산.
+ * - leaf 행 → leaf 맵, intermediate 행 → intermediate 맵
+ * - 카드 트리를 BarterCart 의 flattenChildren 과 동일한 순서로 순회
+ */
+export function computePreparedTotals(
+  results: CalcResult[],
+  cardIds: string[],
+  checked: Set<string>
+): { leaf: Record<string, number>; intermediate: Record<string, number> } {
+  const leaf: Record<string, number> = {};
+  const intermediate: Record<string, number> = {};
+  results.forEach((result, idx) => {
+    const cardId = cardIds[idx];
+    if (!cardId) return;
+    const walk = (node: CalcNode, parentName: string) => {
+      for (const c of node.children) {
+        if (checked.has(rowKey(cardId, parentName, c.name))) {
+          if (c.isLeaf) leaf[c.name] = (leaf[c.name] ?? 0) + c.needed;
+          else intermediate[c.name] = (intermediate[c.name] ?? 0) + c.needed;
+        }
+        if (!c.isLeaf && !c.rateMissing) walk(c, c.name);
+      }
+    };
+    walk(result.tree, result.tree.name);
+  });
+  return { leaf, intermediate };
+}

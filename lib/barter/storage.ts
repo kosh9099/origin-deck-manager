@@ -5,6 +5,7 @@ const FREQ_KEY = 'barter:freq';
 const AS_LEAF_KEY = 'barter:asLeaf';
 const TICKS_KEY = 'barter:ticks';
 const CARDS_KEY = 'barter:cards';
+const CHECKED_KEY = 'barter:checked';
 
 function safeRead<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;
@@ -70,6 +71,15 @@ export function loadAsLeaf(): Set<string> {
 
 export function saveAsLeaf(set: Set<string>): void {
   safeWrite(AS_LEAF_KEY, Array.from(set));
+}
+
+/** 준비 완료 체크된 행 키 집합 (키: `${cardId}|${parentName}|${name}`) */
+export function loadChecked(): Set<string> {
+  return new Set(safeRead<string[]>(CHECKED_KEY, []));
+}
+
+export function saveChecked(set: Set<string>): void {
+  safeWrite(CHECKED_KEY, Array.from(set));
 }
 
 export function topFreq(n: number): string[] {

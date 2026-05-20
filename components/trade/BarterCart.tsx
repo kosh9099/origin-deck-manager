@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { X, Package, Repeat } from 'lucide-react';
+import { X, Package, Repeat, ClipboardCopy } from 'lucide-react';
 import type { BarterRecipe, BarterRate, CartCard, CalcNode, CalcResult } from '@/types/barter';
+import { rowKey } from '@/lib/barter/calculate';
 
 interface Props {
   cards: CartCard[];
@@ -16,7 +17,10 @@ interface Props {
   onRemove: (id: string) => void;
   onRateChange: (cardId: string, name: string, rate: BarterRate) => void;
   onToggleAsLeaf: (name: string) => void;
+  onCopyRates: (targetCardId: string, sourceCardId: string) => void;
   onItemClick: (name: string) => void;
+  checkedRows: Set<string>;
+  onToggleChecked: (key: string) => void;
 }
 
 type FlatRow = {
@@ -133,7 +137,10 @@ export default function BarterCart({
   onRemove,
   onRateChange,
   onToggleAsLeaf,
+  onCopyRates,
   onItemClick,
+  checkedRows,
+  onToggleChecked,
 }: Props) {
   if (cards.length === 0) {
     return (
@@ -178,6 +185,15 @@ export default function BarterCart({
         const totalOutput = (cardRate?.outputQty ?? 0) * card.ticks;
         const rows: FlatRow[] = [];
         flattenChildren(result.tree, card.name, 0, rows);
+
+        // 같은 품목의 직전 카드 — 수량 복사 소스
+        let copySourceIdx = -1;
+        for (let j = idx - 1; j >= 0; j--) {
+          if (cards[j].name === card.name) {
+            copySourceIdx = j;
+            break;
+          }
+        }
 
         return (
           <div
@@ -228,6 +244,17 @@ export default function BarterCart({
                   </span>
                 )}
               </div>
+              {copySourceIdx >= 0 && (
+                <button
+                  type="button"
+                  onClick={() => onCopyRates(card.id, cards[copySourceIdx].id)}
+                  className="mt-2 inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700 transition-colors hover:bg-emerald-100 active:scale-95"
+                  title={`${cardLabels[copySourceIdx]}의 수량(레시피 입력값)을 이 카드로 복사`}
+                >
+                  <ClipboardCopy size={11} />
+                  {cardLabels[copySourceIdx]} 수량 복사
+                </button>
+              )}
             </div>
 
             {/* 본문 */}
@@ -256,50 +283,62 @@ export default function BarterCart({
                     const ownRate = cardRates[row.name];
                     const isMissingChild = !row.isLeaf && row.rateMissing;
                     const indentPx = row.depth * 8;
+                    const checkKey = rowKey(card.id, row.parentName, row.name);
+                    const isChecked = checkedRows.has(checkKey);
+                    const dimCls = isChecked ? 'opacity-40' : '';
                     return (
                       <React.Fragment key={`${row.name}-${i}`}>
-                        <div
-                          className="barter-row flex items-center gap-1 min-w-0 py-1.5 px-1 rounded-md hover:bg-slate-50 transition-colors"
-                          style={{ paddingLeft: indentPx + 4 }}
-                        >
-                          {row.depth > 0 && (
-                            <span className="barter-row-indent text-slate-300 text-[10px] font-mono shrink-0">└</span>
-                          )}
-                          <TypeTag
-                            isLeaf={row.isLeaf}
-                            toggleable={recipes.has(row.name)}
-                            onToggle={() => onToggleAsLeaf(row.name)}
+                        <div className="barter-row flex items-center gap-1.5 min-w-0 py-1.5 px-1 rounded-md hover:bg-slate-50 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => onToggleChecked(checkKey)}
+                            className="size-3.5 shrink-0 cursor-pointer accent-emerald-600"
+                            title="구매/준비 완료 체크"
                           />
-                          <button
-                            type="button"
-                            onClick={() => onItemClick(row.name)}
-                            className={`font-bold text-[13px] truncate text-left hover:underline transition-colors ${
-                              row.isLeaf ? 'text-amber-900 hover:text-amber-600' : 'text-emerald-900 hover:text-emerald-600'
-                            }`}
-                            title={`${row.name} — 판매 항구 보기`}
+                          <div
+                            className={`flex items-center gap-1 min-w-0 flex-1 transition-opacity ${dimCls}`}
+                            style={{ paddingLeft: indentPx }}
                           >
-                            {row.name}
-                          </button>
-                          {!row.isLeaf && (
-                            <span
-                              className="inline-flex items-center shrink-0"
-                              title={`${row.name} 1회 산출량`}
+                            {row.depth > 0 && (
+                              <span className="barter-row-indent text-slate-300 text-[10px] font-mono shrink-0">└</span>
+                            )}
+                            <TypeTag
+                              isLeaf={row.isLeaf}
+                              toggleable={recipes.has(row.name)}
+                              onToggle={() => onToggleAsLeaf(row.name)}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => onItemClick(row.name)}
+                              className={`font-bold text-[13px] truncate text-left hover:underline transition-colors ${
+                                row.isLeaf ? 'text-amber-900 hover:text-amber-600' : 'text-emerald-900 hover:text-emerald-600'
+                              } ${isChecked ? 'line-through' : ''}`}
+                              title={`${row.name} — 판매 항구 보기`}
                             >
-                              <NumInput
-                                value={ownRate?.outputQty ?? 0}
-                                onChange={n => updateOutQty(card.id, cardRates, row.name, n)}
-                                className="w-11 !border-emerald-300 !bg-emerald-50 !text-emerald-800 !px-1"
-                              />
-                            </span>
-                          )}
+                              {row.name}
+                            </button>
+                            {!row.isLeaf && (
+                              <span
+                                className="inline-flex items-center shrink-0"
+                                title={`${row.name} 1회 산출량`}
+                              >
+                                <NumInput
+                                  value={ownRate?.outputQty ?? 0}
+                                  onChange={n => updateOutQty(card.id, cardRates, row.name, n)}
+                                  className="w-11 !border-emerald-300 !bg-emerald-50 !text-emerald-800 !px-1"
+                                />
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <NumInput
                           value={matQty}
                           onChange={n => updateMatQty(card.id, cardRates, row.parentName, row.name, n)}
-                          className="w-12"
+                          className={`w-12 transition-opacity ${dimCls}`}
                         />
                         <span
-                          className={`text-[13px] tabular-nums font-black text-right px-0.5 ${
+                          className={`text-[13px] tabular-nums font-black text-right px-0.5 transition-opacity ${dimCls} ${
                             isMissingChild
                               ? 'text-amber-500'
                               : row.isLeaf
