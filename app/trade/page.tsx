@@ -76,7 +76,7 @@ export default function TradeManagerPage() {
         </div>
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="tool-button size-9"
+          className="tool-button size-9 shrink-0"
           aria-label="메뉴 열기"
         >
           {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}

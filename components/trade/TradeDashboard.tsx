@@ -6,6 +6,7 @@ import { generateEpidemicSchedules } from '@/lib/trade/epidemic';
 import ScheduleTable from './ScheduleTable';
 import ScheduleCards from './ScheduleCards';
 import AdvancedItemModal from './AdvancedItemModal';
+import HeaderClock from './HeaderClock';
 import { Flame, RefreshCw, CheckCircle, XCircle, Filter } from 'lucide-react';
 import {
   fetchZoneSheet,
@@ -473,10 +474,14 @@ export default function TradeDashboard({
               인게임 {inGameTime.month}월
             </span>
           </h3>
-          <button onClick={handleRefresh} disabled={isLoading}
-            className="flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-black text-slate-600 transition-all hover:bg-slate-100 disabled:opacity-50">
-            <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} /> 새로고침
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <HeaderClock />
+            <button onClick={handleRefresh} disabled={isLoading}
+              className="flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-black text-slate-600 transition-all hover:bg-slate-100 disabled:opacity-50">
+              <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} />
+              <span className="hidden sm:inline">새로고침</span>
+            </button>
+          </div>
         </div>
         <p className="mt-1 text-[10px] leading-tight text-slate-500">
           추천 품목 가격은 판매지식 20렙 / 할증 0% 기준
