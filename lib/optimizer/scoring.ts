@@ -352,3 +352,24 @@ export function calcStatModeLootObjective(
   const statScore = calcStatModeObjective(currentLevels, statConfig);
   return statScore - lootPenalty;
 }
+
+/**
+ * 스탯 모드 + 우선순위 목표 목적함수:
+ * priorityTargets의 스킬이 목표치에 미달하면 엄청난 감점
+ */
+export function calcStatModePriorityObjective(
+  currentLevels: Record<string, number>,
+  statConfig: StatWeightConfig,
+  priorityTargets: { skill: string; target: number }[]
+): number {
+  let penalty = 0;
+  for (const { skill, target } of priorityTargets) {
+    const current = currentLevels[skill] || 0;
+    const diff = current - target;
+    if (diff !== 0) {
+      penalty += Math.abs(diff) * 100_000;
+    }
+  }
+  const statScore = calcStatModeObjective(currentLevels, statConfig);
+  return statScore - penalty;
+}

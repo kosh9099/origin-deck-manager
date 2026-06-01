@@ -1,13 +1,14 @@
 'use client';
 
 import React from 'react';
-import { Sword, Eye, Leaf, Trophy } from 'lucide-react';
+import { Sword, Eye, Leaf, Trophy, Crosshair } from 'lucide-react';
 
 export interface StatWeightConfig {
   combat: number;
   observation: number;
   gathering: number;
   lootFirst: boolean;
+  lootAndHuntFirst: boolean;
 }
 
 export const DEFAULT_STAT_WEIGHT_CONFIG: StatWeightConfig = {
@@ -15,6 +16,7 @@ export const DEFAULT_STAT_WEIGHT_CONFIG: StatWeightConfig = {
   observation: 33,
   gathering: 33,
   lootFirst: false,
+  lootAndHuntFirst: false,
 };
 
 interface Props {
@@ -60,6 +62,13 @@ export const LOOT_SKILLS = [
   '주의깊은 탐험가', '성실한 탐험가', '부지런한 탐험가',
 ];
 
+export const HUNT_SKILL_TARGETS: { skill: string; target: number }[] = [
+  { skill: '해적 사냥', target: 10 },
+  { skill: '맹수 사냥', target: 10 },
+  { skill: '해적 척결', target: 5 },
+  { skill: '맹수 척결', target: 5 },
+];
+
 export default function StatWeightSettings({ config, onChange }: Props) {
 
   const handleSlider = (key: 'combat' | 'observation' | 'gathering', newValue: number) => {
@@ -87,47 +96,93 @@ export default function StatWeightSettings({ config, onChange }: Props) {
   };
 
   const handleLootFirst = () => onChange({ ...config, lootFirst: !config.lootFirst });
+  const handleLootAndHuntFirst = () => onChange({ ...config, lootAndHuntFirst: !config.lootAndHuntFirst });
 
   return (
     <div className="space-y-4">
 
-      {/* 전리품 먼저 맥스 토글 */}
-      <div
-        onClick={handleLootFirst}
-        className={`cursor-pointer rounded-xl border p-4 transition-all
-          ${config.lootFirst
-            ? 'bg-amber-50 border-amber-300 shadow-sm'
-            : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Trophy size={18} className={config.lootFirst ? 'text-amber-500' : 'text-slate-400'} />
-            <div>
-              <p className={`text-[13px] font-black ${config.lootFirst ? 'text-amber-700' : 'text-slate-600'}`}>
+      {/* 우선 달성 토글 2칸 */}
+      <div className="grid grid-cols-2 gap-2">
+
+        {/* 전리품 먼저 맥스 */}
+        <div
+          onClick={handleLootFirst}
+          className={`cursor-pointer rounded-xl border p-3 transition-all flex flex-col gap-2
+            ${config.lootFirst
+              ? 'bg-amber-50 border-amber-300 shadow-sm'
+              : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Trophy size={15} className={config.lootFirst ? 'text-amber-500' : 'text-slate-400'} />
+              <p className={`text-[12px] font-black leading-tight ${config.lootFirst ? 'text-amber-700' : 'text-slate-600'}`}>
                 전리품 먼저 맥스
               </p>
-              <p className="text-[10px] text-slate-400 mt-0.5">
-                전리품 6종 스킬을 먼저 Max 달성 후, 남은 선실에 비중 배치
-              </p>
+            </div>
+            <div className={`w-8 h-4 rounded-full transition-all relative shrink-0
+              ${config.lootFirst ? 'bg-amber-400' : 'bg-slate-200'}`}>
+              <div className={`w-3 h-3 rounded-full bg-white absolute top-0.5 shadow transition-all
+                ${config.lootFirst ? 'left-4' : 'left-0.5'}`} />
             </div>
           </div>
-          {/* 토글 */}
-          <div className={`w-10 h-5 rounded-full transition-all relative shrink-0
-            ${config.lootFirst ? 'bg-amber-400' : 'bg-slate-200'}`}>
-            <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 shadow transition-all
-              ${config.lootFirst ? 'left-5' : 'left-0.5'}`} />
-          </div>
+          <p className="text-[9px] text-slate-400 leading-snug">
+            전리품 6종 MAX 달성 후 남은 선실에 비중 배치
+          </p>
+          {config.lootFirst && (
+            <div className="flex flex-wrap gap-1 pt-2 border-t border-amber-200">
+              {LOOT_SKILLS.map(sk => (
+                <span key={sk} className="text-[8px] font-bold px-1 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">
+                  {sk} MAX
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
-        {config.lootFirst && (
-          <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-amber-200">
-            {LOOT_SKILLS.map(sk => (
-              <span key={sk} className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">
-                {sk} MAX
-              </span>
-            ))}
+        {/* 전리품+맹해 먼저 */}
+        <div
+          onClick={handleLootAndHuntFirst}
+          className={`cursor-pointer rounded-xl border p-3 transition-all flex flex-col gap-2
+            ${config.lootAndHuntFirst
+              ? 'bg-red-50 border-red-300 shadow-sm'
+              : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Crosshair size={15} className={config.lootAndHuntFirst ? 'text-red-500' : 'text-slate-400'} />
+              <p className={`text-[12px] font-black leading-tight ${config.lootAndHuntFirst ? 'text-red-700' : 'text-slate-600'}`}>
+                전리품+맹해 먼저
+              </p>
+            </div>
+            <div className={`w-8 h-4 rounded-full transition-all relative shrink-0
+              ${config.lootAndHuntFirst ? 'bg-red-400' : 'bg-slate-200'}`}>
+              <div className={`w-3 h-3 rounded-full bg-white absolute top-0.5 shadow transition-all
+                ${config.lootAndHuntFirst ? 'left-4' : 'left-0.5'}`} />
+            </div>
           </div>
-        )}
+          <p className="text-[9px] text-slate-400 leading-snug">
+            전리품 MAX + 사냥·척결 목표치 우선 달성 후 덱 구성
+          </p>
+          {config.lootAndHuntFirst && (
+            <div className="pt-2 border-t border-red-200 space-y-1">
+              <div className="flex flex-wrap gap-1">
+                {LOOT_SKILLS.map(sk => (
+                  <span key={sk} className="text-[8px] font-bold px-1 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">
+                    {sk} MAX
+                  </span>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {HUNT_SKILL_TARGETS.map(({ skill, target }) => (
+                  <span key={skill} className="text-[8px] font-bold px-1 py-0.5 rounded bg-red-100 text-red-700 border border-red-200">
+                    {skill} {target}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* 능력치 비중 슬라이더 카드 */}

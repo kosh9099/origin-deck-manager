@@ -1,6 +1,6 @@
 import { Sailor, Ship } from '@/types';
 import { canFillCombatSlot, canFillAdventureSlot } from '../filters';
-import { getSailorSkillLevel, calcSkillModeObjective, calcStatModeObjective, calcStatModeLootObjective } from '../scoring';
+import { getSailorSkillLevel, calcSkillModeObjective, calcStatModeObjective, calcStatModeLootObjective, calcStatModePriorityObjective } from '../scoring';
 import { MAX_SKILL_LEVELS } from '../rules';
 import { runGA } from './engine';
 import { GAContext, DEFAULT_GA_CONFIG } from './types';
@@ -8,7 +8,7 @@ import { localSearchRefine, localSearch2opt } from './localSearch';
 import { cloneChromosome, createGreedyChromosome, createSmartGreedyChromosome } from './chromosome';
 import { evaluateFitness } from './fitness';
 import type { StatWeightConfig } from '@/components/skill/StatWeightSettings';
-import { LOOT_SKILLS } from '@/components/skill/StatWeightSettings';
+import { LOOT_SKILLS, HUNT_SKILL_TARGETS } from '@/components/skill/StatWeightSettings';
 import type { OptimizerMode } from '../index';
 
 import { Chromosome } from './types';
@@ -110,9 +110,17 @@ export function runGeneticOptimizer(
     objectiveFn = (levels) => calcSkillModeObjective(levels, targetLevels);
   } else {
     // stat 모드
-    const sc = statConfig || { combat: 34, observation: 33, gathering: 33, lootFirst: false };
-    if (sc.lootFirst) {
-      objectiveFn = (levels) => calcStatModeLootObjective(levels, sc, LOOT_SKILLS);
+    const sc = statConfig || { combat: 34, observation: 33, gathering: 33, lootFirst: false, lootAndHuntFirst: false };
+    if (sc.lootFirst || sc.lootAndHuntFirst) {
+      const priorityMap = new Map<string, number>();
+      if (sc.lootFirst || sc.lootAndHuntFirst) {
+        LOOT_SKILLS.forEach(sk => priorityMap.set(sk, MAX_SKILL_LEVELS[sk] || 10));
+      }
+      if (sc.lootAndHuntFirst) {
+        HUNT_SKILL_TARGETS.forEach(({ skill, target }) => priorityMap.set(skill, target));
+      }
+      const priorityTargets = Array.from(priorityMap.entries()).map(([skill, target]) => ({ skill, target }));
+      objectiveFn = (levels) => calcStatModePriorityObjective(levels, sc, priorityTargets);
     } else {
       objectiveFn = (levels) => calcStatModeObjective(levels, sc);
     }
