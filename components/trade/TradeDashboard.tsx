@@ -68,6 +68,7 @@ export const BONUS_ITEMS: Record<string, { label: string; color: string }> = {
 export type AdvancedTradeItem = {
   name: string;
   buyCondition?: string;
+  buyPorts?: string[];
   sellPorts: string[];
 };
 
@@ -95,9 +96,9 @@ export const ADVANCED_TRADE_SCHEDULES: Array<{
     end: new Date('2026-07-08T00:00:00+09:00').getTime(),
     label: '2026/06/10 00:00 ~ 2026/07/07 23:59',
     items: [
-      { name: '상급 자철 광석', sellPorts: ['에든버러', '더블린'] },
-      { name: '상급 서양 갑옷', sellPorts: ['배로우', '어널래스카', '터코마', '오론', '아카풀코', '과테말라', '파나마'] },
-      { name: '상급 조총', sellPorts: ['벵겔라', '모잠비크', '킬와', '잔지바르', '뭄바사', '말린디', '모가디슈'] },
+      { name: '상급 자철 광석', buyPorts: ['도파르', '소코트라'], sellPorts: ['더블린', '에든버러'] },
+      { name: '상급 서양 갑옷', buyCondition: '협상 23', buyPorts: ['브리스톨', '에든버러'], sellPorts: ['과테말라', '배로우', '아카풀코', '어널래스카', '오론', '터코마', '파나마'] },
+      { name: '상급 조총', buyCondition: '구매 23', buyPorts: ['사카이', '에도'], sellPorts: ['말린디', '모가디슈', '모잠비크', '몸바사', '벵겔라', '잔지바르', '킬와'] },
     ],
   },
   {
@@ -106,9 +107,9 @@ export const ADVANCED_TRADE_SCHEDULES: Array<{
     end: new Date('2026-08-13T00:00:00+09:00').getTime(),
     label: '2026/07/08 00:00 ~ 2026/08/12 정기 점검 전까지',
     items: [
-      { name: '상급 화승총', sellPorts: ['홀로', '다바오', '마닐라'] },
-      { name: '상급 흑연', sellPorts: ['카리비브', '케이프타운', '나탈', '소팔라', '켈리마느', '타마타브'] },
-      { name: '상급 맘벨레', sellPorts: ['세비야', '말라가', '발렌시아', '바르셀로나'] },
+      { name: '상급 화승총', buyCondition: '구매 23', buyPorts: ['바르셀로나', '세비야'], sellPorts: ['다바오', '마닐라', '홀로'] },
+      { name: '상급 흑연', buyPorts: ['다바오', '홀로'], sellPorts: ['나탈', '소팔라', '카리비브', '켈리마느', '케이프타운', '타마타브'] },
+      { name: '상급 맘벨레', buyCondition: '협상 23', buyPorts: ['소팔라', '켈리마느'], sellPorts: ['말라가', '바르셀로나', '발렌시아', '세비야'] },
     ],
   },
 ];
@@ -661,6 +662,7 @@ export default function TradeDashboard({
         <AdvancedItemModal
           itemName={advancedDetailItem.name}
           buyCondition={advancedDetailItem.buyCondition}
+          buyPorts={advancedDetailItem.buyPorts}
           sellPorts={advancedDetailItem.sellPorts}
           month={inGameTime.month}
           onClose={() => setAdvancedDetailItem(null)}

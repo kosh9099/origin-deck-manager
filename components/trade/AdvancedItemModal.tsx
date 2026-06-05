@@ -7,6 +7,7 @@ import { getMaxPrices } from '@/lib/trade/seasonPrices';
 interface Props {
   itemName: string;
   buyCondition?: string;
+  buyPorts?: string[];
   sellPorts: string[];
   month: number;
   onClose: () => void;
@@ -20,7 +21,7 @@ function manShort(n: number): string {
   return `${Math.floor(n / 10000)}`;
 }
 
-export default function AdvancedItemModal({ itemName, buyCondition, sellPorts, month, onClose }: Props) {
+export default function AdvancedItemModal({ itemName, buyCondition, buyPorts, sellPorts, month, onClose }: Props) {
   const [buyCities, setBuyCities] = useState<string[]>([]);
   const [status, setStatus] = useState<SeasonStatus>('—');
   const [loading, setLoading] = useState(true);
@@ -82,7 +83,23 @@ export default function AdvancedItemModal({ itemName, buyCondition, sellPorts, m
             <div className="border-t border-slate-100" />
 
             <div className="flex items-baseline gap-3 flex-wrap">
-              <span className="text-[12px] font-black text-slate-500 shrink-0 w-16">구매 도시</span>
+              <span className="text-[12px] font-black text-slate-500 shrink-0 w-16">구매항</span>
+              <div className="flex flex-wrap gap-1.5 items-baseline flex-1">
+                {buyPorts && buyPorts.length > 0 ? buyPorts.map(p => (
+                  <span
+                    key={p}
+                    className="inline-flex items-center text-[11px] font-black px-2 py-0.5 rounded-md border border-amber-300 bg-amber-50 text-amber-800"
+                  >
+                    {p}
+                  </span>
+                )) : <span className="text-sm text-slate-400">—</span>}
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100" />
+
+            <div className="flex items-baseline gap-3 flex-wrap">
+              <span className="text-[12px] font-black text-slate-500 shrink-0 w-16">추천 매입</span>
               <div className="flex flex-wrap gap-1.5 items-baseline flex-1">
                 <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${statusClass}`}>
                   {status} {statusLabel}
