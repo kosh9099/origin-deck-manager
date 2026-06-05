@@ -234,6 +234,9 @@ export default function TradeDashboard({
   const [favorites, setFavorites] = useState<Set<string>>(() => new Set());
   const [hydrated, setHydrated] = useState(false);
   const [advancedDetailItem, setAdvancedDetailItem] = useState<AdvancedTradeItem | null>(null);
+  const [selectedAdvancedPhase, setSelectedAdvancedPhase] = useState<number>(
+    () => getCurrentAdvancedSchedule(Date.now())?.phase ?? ADVANCED_TRADE_SCHEDULES[0].phase
+  );
 
   useEffect(() => {
     try {
@@ -523,10 +526,12 @@ export default function TradeDashboard({
         );
       })()}
 
-      {/* 상급 교역품 일정 (차수별 자동 전환) */}
+      {/* 상급 교역품 일정 (차수 탭 전환) */}
       {(() => {
-        const current = getCurrentAdvancedSchedule(now);
-        if (!current) return null;
+        const selected =
+          ADVANCED_TRADE_SCHEDULES.find(s => s.phase === selectedAdvancedPhase) ??
+          ADVANCED_TRADE_SCHEDULES[0];
+        const currentPhase = getCurrentAdvancedSchedule(now)?.phase;
         return (
           <div className="mb-3 shrink-0 rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 shadow-sm">
             <div className="flex items-start gap-2.5">
@@ -534,17 +539,41 @@ export default function TradeDashboard({
               <div className="flex-1 min-w-0 space-y-1">
                 <p className="text-[12px] font-black text-sky-800 flex items-center gap-1.5 flex-wrap">
                   <span>상급 교역품 일정</span>
-                  <span className="inline-flex items-center rounded-md border border-sky-300 bg-white px-1.5 py-0.5 text-[10px] font-black text-sky-700">
-                    {current.phase}차
-                  </span>
+                  {ADVANCED_TRADE_SCHEDULES.map(s => {
+                    const isSelected = s.phase === selectedAdvancedPhase;
+                    const isCurrent = s.phase === currentPhase;
+                    return (
+                      <button
+                        key={s.phase}
+                        type="button"
+                        onClick={() => setSelectedAdvancedPhase(s.phase)}
+                        title={isCurrent ? `${s.phase}차 (현재 진행 중)` : `${s.phase}차 보기`}
+                        className={`inline-flex items-center gap-0.5 rounded-md border px-1.5 py-0.5 text-[10px] font-black transition-all active:scale-95 ${
+                          isSelected
+                            ? 'border-sky-600 bg-sky-600 text-white shadow-sm'
+                            : 'border-sky-300 bg-white text-sky-700 hover:bg-sky-100 hover:border-sky-400'
+                        }`}
+                      >
+                        {s.phase}차
+                        {isCurrent && (
+                          <span
+                            className={`ml-0.5 inline-block h-1.5 w-1.5 rounded-full ${
+                              isSelected ? 'bg-white' : 'bg-emerald-500'
+                            }`}
+                            aria-label="현재 진행 중"
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
                 </p>
                 <div className="flex items-center gap-1.5 flex-wrap text-[11px] font-bold text-sky-700">
                   <span className="whitespace-nowrap rounded-md border border-sky-200 bg-white px-2 py-0.5">
-                    {current.label}
+                    {selected.label}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  {current.items.map(item => (
+                  {selected.items.map(item => (
                     <button
                       key={item.name}
                       type="button"
