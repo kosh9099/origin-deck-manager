@@ -17,7 +17,12 @@
       "Bash(python extract_season_calendar.py)",
       "Bash(xxd)",
       "Bash(node -e ' *)",
-      "Bash(node -e \"const d=require\\('./constants/seasonPrices.json'\\); console.log\\('priceKeys:',d.priceKeys\\); console.log\\('카우리 in 쾰른:',d.prices['쾰른']?.['카우리']\\); console.log\\('카우리 in 스트라스부르:',d.prices['스트라스부르']?.['카우리']\\); console.log\\('카우리 sample \\(서지중해 카르타헤나\\):',d.prices['카르타헤나']?.['카우리']\\);\")"
+      "Bash(node -e \"const d=require\\('./constants/seasonPrices.json'\\); console.log\\('priceKeys:',d.priceKeys\\); console.log\\('카우리 in 쾰른:',d.prices['쾰른']?.['카우리']\\); console.log\\('카우리 in 스트라스부르:',d.prices['스트라스부르']?.['카우리']\\); console.log\\('카우리 sample \\(서지중해 카르타헤나\\):',d.prices['카르타헤나']?.['카우리']\\);\")",
+      "Bash(awk -F',' 'NR>1 {print $27; print $28}' db.csv)",
+      "Bash(awk -F',' 'NR>1 {print $27}' db.csv)",
+      "Bash(awk -F',' 'NR>1 {print $28}' db.csv)",
+      "Bash(awk -F, 'NR>1 {for\\(i=17;i<=28;i++\\) if\\($i ~ /LV/i\\) print i\": \"$i}' db.csv)",
+      "Bash(awk -F, 'NR>1 { *)"
     ]
   }
 }

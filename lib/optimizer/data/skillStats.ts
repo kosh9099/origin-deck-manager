@@ -11,6 +11,7 @@ export const SKILL_STATS: Record<string, Record<number, SkillStat>> = {
   '험지 관찰': {
     1: { combat: 0, observation: 3, gathering: 0, loot: 0.0, pirate: 0, beast: 0 },
     2: { combat: 0, observation: 5, gathering: 0, loot: 0.0, pirate: 0, beast: 0 },
+    3: { combat: 0, observation: 11, gathering: 0, loot: 0.0, pirate: 0, beast: 0 },
   },
   '생물 관찰': {
     1: { combat: 2, observation: 2, gathering: 0, loot: 0.0, pirate: 0, beast: 0 },
@@ -80,6 +81,7 @@ export const SKILL_STATS: Record<string, Record<number, SkillStat>> = {
     7: { combat: 9, observation: 0, gathering: 18, loot: 0.0, pirate: 0, beast: 0 },
     8: { combat: 10, observation: 0, gathering: 19, loot: 0.0, pirate: 0, beast: 0 },
     9: { combat: 11, observation: 0, gathering: 20, loot: 0.0, pirate: 0, beast: 0 },
+    10: { combat: 25, observation: 0, gathering: 48, loot: 0.0, pirate: 0, beast: 0 },
   },
   '전투적인 관찰': {
     1: { combat: 3, observation: 2, gathering: 0, loot: 0.0, pirate: 0, beast: 0 },
@@ -153,6 +155,7 @@ export const SKILL_STATS: Record<string, Record<number, SkillStat>> = {
   '험지 평정': {
     1: { combat: 3, observation: 0, gathering: 0, loot: 0.0, pirate: 0, beast: 0 },
     2: { combat: 5, observation: 0, gathering: 0, loot: 0.0, pirate: 0, beast: 0 },
+    3: { combat: 11, observation: 0, gathering: 0, loot: 0.0, pirate: 0, beast: 0 },
   },
   '투쟁적인 탐험가': {
     1: { combat: 0, observation: 0, gathering: 0, loot: 0.07, pirate: 0, beast: 0 },
