@@ -22,7 +22,9 @@
       "Bash(awk -F',' 'NR>1 {print $27}' db.csv)",
       "Bash(awk -F',' 'NR>1 {print $28}' db.csv)",
       "Bash(awk -F, 'NR>1 {for\\(i=17;i<=28;i++\\) if\\($i ~ /LV/i\\) print i\": \"$i}' db.csv)",
-      "Bash(awk -F, 'NR>1 { *)"
+      "Bash(awk -F, 'NR>1 { *)",
+      "Bash(python -c \"import json; d=json.load\\(open\\('prices_base.json',encoding='utf-8'\\)\\); print\\('cities:', len\\(d\\)\\); print\\('keys of first:', list\\(d[0].keys\\(\\)\\)\\); items=set\\(\\); [items.update\\(k for k in c if k!='_id'\\) for c in d]; print\\('items:', sorted\\(items\\)\\)\")",
+      "Bash(python)"
     ]
   }
 }

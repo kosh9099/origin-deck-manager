@@ -35,6 +35,11 @@ const PRESEASON_DEADLINE_UTC = new Date('2026-05-12T14:59:59Z').getTime();
 const PRESEASON_ITEMS = new Set<string>(['금괴', '은괴', '목탄']);
 const isPreseasonExpired = Date.now() > PRESEASON_DEADLINE_UTC;
 
+// 이벤트 한정 특수 물교: KST 2026-08-09 23:59:59 이후 제외 (이후 자동 삭제)
+const EVENT_SPECIAL_DEADLINE_UTC = new Date('2026-08-09T14:59:59Z').getTime();
+const EVENT_SPECIAL_ITEMS = new Set<string>(['북해의 얼음']);
+const isEventSpecialExpired = Date.now() > EVENT_SPECIAL_DEADLINE_UTC;
+
 // 특수 물교 품목 (랜덤 출현 — 특수 등록되지 않으면 비활성 표시)
 export const SPECIAL_BARTER_ITEMS = new Set<string>([
   '독수리 깃털',
@@ -50,6 +55,7 @@ export const SPECIAL_BARTER_ITEMS = new Set<string>([
   '코아우아우',
   '아이더 깃털',
   '수마',
+  '북해의 얼음', // 이벤트 한정 — KST 2026-08-09 이후 자동 제외
 ]);
 
 // 카테고리/이름 룩업 인덱스 (제외 품목은 후보에 포함하지 않음)
@@ -58,6 +64,7 @@ const itemsByName = new Map<string, ItemMeta>();
 for (const item of data.items) {
   if (EXCLUDED_ITEMS.has(item.name)) continue;
   if (isPreseasonExpired && PRESEASON_ITEMS.has(item.name)) continue;
+  if (isEventSpecialExpired && EVENT_SPECIAL_ITEMS.has(item.name)) continue;
   const list = itemsByCategory.get(item.category) ?? [];
   list.push(item);
   itemsByCategory.set(item.category, list);
